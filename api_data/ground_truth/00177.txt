@@ -1,0 +1,342 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Good.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_good")
+public class Good {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "good_name", length = 20)
+    private String goodName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+    @Column(name = "price", precision = 10, scale = 2)
+    private Double price;
+
+    @Column(name = "original_price", precision = 10, scale = 2)
+    private Double originalPrice;
+
+    @Column(name = "inventory")
+    private Integer inventory;
+
+    @Column(name = "sold_count")
+    private Integer soldCount;
+
+    @Column(name = "spec", length = 20)
+    private String spec;
+
+    @Column(name = "origin", length = 10)
+    private String origin;
+}
+```
+
+```java
+// Order.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_order")
+public class Order {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "order_id")
+    private Long orderId;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "address_id")
+    private Integer addressId;
+
+    @Column(name = "amount")
+    private Double amount;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "remarks")
+    private String remarks;
+
+    @Column(name = "status")
+    private Integer status;
+}
+```
+
+```java
+// OrderDetail.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_order_detail")
+public class OrderDetail {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "order_detail_id")
+    private Long orderDetailId;
+
+    @Column(name = "order_id")
+    private Long orderId;
+
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "count")
+    private Integer count;
+}
+```
+
+```java
+// OrderService.java
+package com.example.service;
+
+import com.example.entity.Order;
+
+import java.util.List;
+import java.util.Map;
+
+public interface OrderService {
+    List<Map<String, Object>> getOrdersByUserId(int userId, Integer status);
+}
+```
+
+```java
+// OrderServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Good;
+import com.example.entity.Order;
+import com.example.entity.OrderDetail;
+import com.example.mapper.GoodMapper;
+import com.example.mapper.OrderDetailMapper;
+import com.example.mapper.OrderMapper;
+import com.example.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+
+@Service
+public class OrderServiceImpl implements OrderService {
+
+    private final OrderMapper orderMapper;
+    private final OrderDetailMapper orderDetailMapper;
+    private final GoodMapper goodMapper;
+
+    @Autowired
+    public OrderServiceImpl(OrderMapper orderMapper, OrderDetailMapper orderDetailMapper, GoodMapper goodMapper) {
+        this.orderMapper = orderMapper;
+        this.orderDetailMapper = orderDetailMapper;
+        this.goodMapper = goodMapper;
+    }
+
+    @Override
+    public List<Map<String, Object>> getOrdersByUserId(int userId, Integer status) {
+        List<Map<String, Object>> responseList = new ArrayList<>();
+        List<Order> orders = orderMapper.getOrdersByUserId(userId, status);
+        for (Order order : orders) {
+            List<OrderDetail> orderDetails = orderDetailMapper.getOrderDetailsByOrderId(order.getOrderId());
+
+            List<Map<String, Object>> orderDetailResponseList = new ArrayList<>();
+            for (OrderDetail orderDetail : orderDetails) {
+                Good good = goodMapper.getGoodById(orderDetail.getGoodId());
+                Map<String, Object> orderDetailResponse = new HashMap<>();
+                orderDetailResponse.put("orderDetailId", orderDetail.getOrderDetailId());
+                orderDetailResponse.put("orderId", orderDetail.getOrderId());
+                orderDetailResponse.put("goodId", orderDetail.getGoodId());
+                orderDetailResponse.put("count", orderDetail.getCount());
+                orderDetailResponse.put("good", good);
+                orderDetailResponseList.add(orderDetailResponse);
+
+            }
+            Map<String, Object> orderResponse = new HashMap<>();
+            orderResponse.put("orderId", order.getOrderId());
+            orderResponse.put("userId", order.getUserId());
+            orderResponse.put("addressId", order.getAddressId());
+            orderResponse.put("amount", order.getAmount());
+            orderResponse.put("createTime", order.getCreateTime());
+            orderResponse.put("remarks", order.getRemarks());
+            orderResponse.put("status", order.getStatus());
+            orderResponse.put("orderDetail", orderDetailResponseList);
+            responseList.add(orderResponse);
+        }
+        return responseList;
+    }
+}
+```
+
+```java
+// OrderController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Order;
+import com.example.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.persistence.criteria.CriteriaBuilder;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+public class OrderController {
+
+    private final OrderService orderService;
+
+    @Autowired
+    public OrderController(OrderService orderService) {
+        this.orderService = orderService;
+    }
+
+    @GetMapping("/user/v1/user/{userId}/order")
+    public ApiResponse getOrdersByUserId(@PathVariable int userId, Integer status) {
+        List<Map<String, Object>> reponse = orderService.getOrdersByUserId(userId, status);
+        return new ApiResponse(100, "成功", reponse);
+    }
+}
+```
+
+```java
+// GoodMapper.java
+package com.example.mapper;
+
+import com.example.entity.Good;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface GoodMapper {
+    Good getGoodById(@Param("goodId") int goodId);
+}
+```
+
+```java
+// OrderDetailMapper.java
+package com.example.mapper;
+
+import com.example.entity.OrderDetail;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface OrderDetailMapper {
+    List<OrderDetail> getOrderDetailsByOrderId(@Param("orderId") long orderId);
+}
+```
+
+```java
+// OrderMapper.java
+package com.example.mapper;
+
+import com.example.entity.Order;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface OrderMapper {
+    List<Order> getOrdersByUserId(@Param("userId") int userId, @Param("status") Integer status);
+}
+```
+
+```xml
+<!-- GoodMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.GoodMapper">
+    <select id="getGoodById" resultType="com.example.entity.Good">
+        SELECT * FROM tb_good WHERE good_id = #{goodId}
+    </select>
+</mapper>
+```
+
+```xml
+<!-- OrderDetailMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.OrderDetailMapper">
+    <select id="getOrderDetailsByOrderId" resultType="com.example.entity.OrderDetail">
+        SELECT * FROM tb_order_detail WHERE order_id = #{orderId}
+    </select>
+</mapper>
+```
+
+```xml
+<!-- OrderMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.OrderMapper">
+    <select id="getOrdersByUserId" resultType="com.example.entity.Order">
+        SELECT * FROM tb_order
+        WHERE user_id = #{userId}
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+</mapper>
+
+```

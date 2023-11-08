@@ -1,0 +1,243 @@
+```java
+// ApiResponse.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Long id;
+    private Long couponId;
+    private Long memberId;
+    private String couponCode;
+    private String memberNickname;
+    private Integer getType;
+    private Date createTime;
+    private Integer useStatus;
+    private Date useTime;
+    private Long orderId;
+    private String orderSn;
+}
+
+
+
+```
+```java
+// CouponHistoryListRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CouponHistoryListRequest {
+    private Long couponId;
+    private Integer useStatus;
+    private String orderSn;
+    private Integer pageSize;
+    private Integer pageNum;
+}
+```
+```java
+// SmsCouponHistory.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SmsCouponHistory {
+    /**
+     * 主键ID
+     */
+    private Long id;
+
+    /**
+     * 优惠券ID
+     */
+    private Long couponId;
+
+    /**
+     * 会员ID
+     */
+    private Long memberId;
+
+    /**
+     * 优惠码
+     */
+    private String couponCode;
+
+    /**
+     * 会员昵称
+     */
+    private String memberNickname;
+
+    /**
+     * 获取类型
+     */
+    private Integer getType;
+
+    /**
+     * 创建时间
+     */
+    private Timestamp createTime;
+
+    /**
+     * 使用状态
+     */
+    private Integer useStatus;
+
+    /**
+     * 使用时间
+     */
+    private Timestamp useTime;
+
+    /**
+     * 订单ID
+     */
+    private Long orderId;
+
+    /**
+     * 订单编号
+     */
+    private String orderSn;
+}
+
+```
+
+```java
+// CouponHistoryService.java
+
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.CouponHistoryListRequest;
+import com.example.mapper.CouponHistoryMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class CouponHistoryService {
+    private final CouponHistoryMapper couponHistoryMapper;
+
+    @Autowired
+    public CouponHistoryService(CouponHistoryMapper couponHistoryMapper) {
+        this.couponHistoryMapper = couponHistoryMapper;
+    }
+
+    public List<ApiResponse> getCouponHistoryList(CouponHistoryListRequest request) {
+        // 调用couponHistoryMapper的方法查询数据库中符合条件的优惠券领取记录
+        return couponHistoryMapper.getCouponHistoryList(request);
+    }
+}
+```
+
+
+```java
+// CouponHistoryController.java
+
+package com.example.controller;
+
+import com.example.service.CouponHistoryService;
+import com.example.entity.ApiResponse;
+import com.example.entity.CouponHistoryListRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/couponHistory")
+public class CouponHistoryController {
+    private final CouponHistoryService couponHistoryService;
+
+    @Autowired
+    public CouponHistoryController(CouponHistoryService couponHistoryService) {
+        this.couponHistoryService = couponHistoryService;
+    }
+
+    @GetMapping("/list")
+    public List<ApiResponse> getCouponHistoryList(@RequestParam Long couponId,
+                                                  @RequestParam Integer useStatus,
+                                                  @RequestParam String orderSn,
+                                                  @RequestParam Integer pageSize,
+                                                  @RequestParam Integer pageNum) {
+        if (couponId==null)
+            return null;
+        CouponHistoryListRequest request = new CouponHistoryListRequest(couponId, useStatus, orderSn, pageSize, pageNum);
+        return couponHistoryService.getCouponHistoryList(request);
+    }
+}
+```
+
+```java
+// CouponHistoryMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.CouponHistoryListRequest;
+
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface CouponHistoryMapper {
+    List<ApiResponse> getCouponHistoryList(CouponHistoryListRequest request);
+}
+```
+
+```xml
+<!-- CouponHistoryMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.CouponHistoryMapper">
+    <resultMap id="BaseResultMap" type="com.example.entity.ApiResponse">
+        <id column="id" jdbcType="BIGINT" property="id" />
+        <result column="coupon_id" jdbcType="BIGINT" property="couponId" />
+        <result column="member_id" jdbcType="BIGINT" property="memberId" />
+        <result column="coupon_code" jdbcType="VARCHAR" property="couponCode" />
+        <result column="member_nickname" jdbcType="VARCHAR" property="memberNickname" />
+        <result column="get_type" jdbcType="INTEGER" property="getType" />
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+        <result column="use_status" jdbcType="INTEGER" property="useStatus" />
+        <result column="use_time" jdbcType="TIMESTAMP" property="useTime" />
+        <result column="order_id" jdbcType="BIGINT" property="orderId" />
+        <result column="order_sn" jdbcType="VARCHAR" property="orderSn" />
+    </resultMap>
+    <select id="getCouponHistoryList" resultMap="BaseResultMap">
+        SELECT id, coupon_id, member_id, coupon_code, member_nickname, get_type, create_time, use_status, use_time, order_id, order_sn
+        FROM sms_coupon_history
+        WHERE coupon_id = #{couponId}
+        AND use_status = #{useStatus}
+        AND order_sn = #{orderSn}
+        LIMIT #{pageSize} OFFSET #{pageNum}
+    </select>
+</mapper>
+
+```
+

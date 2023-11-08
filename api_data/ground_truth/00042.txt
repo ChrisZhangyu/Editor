@@ -1,0 +1,253 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// RegisterDTO.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class RegisterDTO {
+    private String name;
+    private String pass;
+    private String checkPass;
+    private String email;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    /**
+     * 用户ID
+     */
+    private String id;
+
+    /**
+     * 用户名
+     */
+    private String username;
+
+    /**
+     * 别名
+     */
+    private String alias;
+
+    /**
+     * 密码
+     */
+    private String password;
+
+    /**
+     * 头像
+     */
+    private String avatar;
+
+    /**
+     * 邮箱
+     */
+    private String email;
+
+    /**
+     * 手机号码
+     */
+    private String mobile;
+
+    /**
+     * 积分
+     */
+    private int score;
+
+    /**
+     * 令牌
+     */
+    private String token;
+
+    /**
+     * 个人简介
+     */
+    private String bio;
+
+    /**
+     * 是否激活
+     */
+    private boolean active;
+
+    /**
+     * 状态
+     */
+    private boolean status;
+
+    /**
+     * 角色ID
+     */
+    private String roleId;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 修改时间
+     */
+    private Date modifyTime;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import org.springframework.stereotype.Service;
+
+@Service
+public interface UserService {
+    ApiResponse login(String name, String pass);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.UmsUser;
+import com.example.mapper.UserMapper;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Override
+    public ApiResponse login(String name, String pass) {
+        // 在ums_user表中查询用户
+        UmsUser user = userMapper.getUserByUsername(name);
+        if (user == null) {
+            return new ApiResponse(400, "登录失败", null);
+        }
+        // 对pass进行md5加密
+        String encryptedPass = md5Encrypt(pass);
+        // 检查加密后的pass和数据库中的password是否相同
+        if (encryptedPass.equals(user.getPassword())) {
+            return new ApiResponse(200, "登录成功", null);
+        } else {
+            return new ApiResponse(400, "登录失败", null);
+        }
+    }
+
+    private String md5Encrypt(String pass) {
+        // 使用MD5算法进行加密
+        try {
+            MessageDigest digest = MessageDigest.getInstance("md5");
+            byte[] bs = digest.digest(pass.getBytes());
+            String encryptedPassword = "";
+            for (byte b : bs) {
+                int temp = b & 255;
+                if (temp < 16 && temp >= 0) {
+                    encryptedPassword = encryptedPassword + "0" + Integer.toHexString(temp);
+                } else {
+                    encryptedPassword = encryptedPassword + Integer.toHexString(temp);
+                }
+            }
+            return encryptedPassword;
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.RegisterDTO;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class UserController {
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/ums/user/login")
+    public ApiResponse login(@RequestBody RegisterDTO registerDTO) {
+        return userService.login(registerDTO.getName(), registerDTO.getPass());
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.UmsUser;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+@Mapper
+public interface UserMapper {
+    UmsUser getUserByUsername(@Param("username") String username);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="getUserByUsername" resultType="com.example.entity.UmsUser">
+        SELECT * FROM ums_user WHERE username = #{username}
+    </select>
+</mapper>
+```

@@ -1,0 +1,190 @@
+﻿业务功能逻辑：
+按客户ID检索：根据输入的参数customerID从表wms_customer获取指定customerID的客户信息，如果获取成功，返回ApiResponse。
+
+需要检查的代码：
+```java
+// Customer.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Customer {
+    private int customerId;
+    private String customerName;
+    private String customerPerson;
+    private String customerTel;
+    private String customerEmail;
+    private String customerAddress;
+}
+```
+```java
+// CustomerRequest.java
+package com.example.entity;
+
+
+
+import com.example.entity.Customer;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CustomerRequest {
+    private int customerId;
+}
+
+
+```
+```java
+// CustomerResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CustomerResponse {
+    private int code;
+    private String result;
+    private Customer data;
+}
+```
+
+```java
+// CustomerService.java
+package com.example.service;
+
+
+import com.example.entity.CustomerResponse;
+
+public interface CustomerService {
+    CustomerResponse getCustomerInfo(int customerId);
+}
+```
+
+```java
+// CustomerServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.CustomerResponse;
+import com.example.mapper.CustomerMapper;
+import com.example.service.CustomerService;
+import com.example.entity.Customer;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class CustomerServiceImpl implements CustomerService {
+
+    private final CustomerMapper customerMapper;
+
+    @Autowired
+    public CustomerServiceImpl(CustomerMapper customerMapper) {
+        this.customerMapper = customerMapper;
+    }
+
+    @Override
+    public CustomerResponse getCustomerInfo(int customerId) {
+        CustomerResponse response = new CustomerResponse();
+        try {
+            Customer customer = customerMapper.getCustomerById(customerId);
+            if (customer != null) {
+                response.setCode(1);
+                response.setResult("success");
+                response.setData(customer);
+            } else {
+                response.setCode(0);
+                response.setResult("failure");
+                response.setData(null);
+            }
+        } catch (Exception e) {
+            response.setCode(-1);
+            response.setResult("error");
+            response.setData(null);
+        }
+        return response;
+    }
+}
+```
+
+```java
+// CustomerController.java
+package com.example.controller;
+
+import com.example.entity.CustomerResponse;
+import com.example.service.CustomerService;
+import com.example.entity.CustomerRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/customerManage")
+public class CustomerController {
+
+    private final CustomerService customerService;
+
+    @Autowired
+    public CustomerController(CustomerService customerService) {
+        this.customerService = customerService;
+    }
+
+    @GetMapping("/getCustomerInfo")
+    public CustomerResponse getCustomerInfo(@RequestBody CustomerRequest request) {
+        return customerService.getCustomerInfo(request.getCustomerId());
+    }
+}
+```
+
+```java
+// CustomerMapper.java
+package com.example.mapper;
+
+import com.example.entity.Customer;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface CustomerMapper {
+    Customer getCustomerById(@Param("customerId") int customerId);
+}
+```
+
+```xml
+<!-- CustomerMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.CustomerMapper">
+
+    <select id="getCustomerById" parameterType="int" resultType="com.example.model.Customer">
+        SELECT * FROM wms_customer WHERE CUSTOMER_ID = #{customerId}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+Caused by: org.apache.ibatis.type.TypeException: Could not resolve type alias 'com.example.model.Customer'.  Cause: java.lang.ClassNotFoundException: Cannot find class: com.example.model.Customer
+```
+```语法错误
+在CustomerMapper.xml 中缺少Customer实体类属性表wms_customer字段间的映射语句。
+```

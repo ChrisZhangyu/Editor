@@ -1,0 +1,422 @@
+﻿
+```java
+// ExamPaperAnswer.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperAnswer {
+    private int id;
+    private int examPaperId;
+    private String paperName;
+    private int paperType;
+    private int subjectId;
+    private int systemScore;
+    private int userScore;
+    private int paperScore;
+    private int questionCorrect;
+    private int questionCount;
+    private int doTime;
+    private int status;
+    private int createUser;
+    private Date createTime;
+    private int taskExamId;
+}
+
+```
+```java
+// ExamPaperAnswerPageData.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperAnswerPageData {
+    private int total;
+    private List<ExamPaperAnswerPageItem> list;
+}
+```
+```java
+// ExamPaperAnswerPageItem.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperAnswerPageItem {
+    private int id;
+    private Date createTime;
+    private int userScore;
+    private String subjectName;
+    private int subjectId;
+    private int questionCount;
+    private int questionCorrect;
+    private int paperScore;
+    private int doTime;
+    private int paperType;
+    private int systemScore;
+    private int status;
+    private String paperName;
+    private String userName;
+}```
+```java
+// ExamPaperAnswerPageRequest.java
+package com.example.entity;
+
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperAnswerPageRequest {
+    private Integer subjectId;
+    private Integer pageIndex;
+    private Integer pageSize;
+}
+
+
+
+
+
+
+```
+```java
+// ExamPaperAnswerPageResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperAnswerPageResponse {
+    private int code;
+    private String message;
+    private ExamPaperAnswerPageData response;
+}
+```
+```java
+// Subject.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Subject {
+    private int id;
+    private String name;
+    private int level;
+    private String levelName;
+    private int itemOrder;
+    private boolean deleted;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+
+```
+
+```java
+// ExamPaperAnswerService.java
+package com.example.service;
+
+import com.example.entity.ExamPaperAnswerPageRequest;
+import com.example.entity.ExamPaperAnswerPageResponse;
+
+public interface ExamPaperAnswerService {
+    ExamPaperAnswerPageResponse getExamPaperAnswerPage(ExamPaperAnswerPageRequest request);
+}
+```
+
+```java
+// ExamPaperAnswerServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.*;
+import com.example.mapper.SubjectMapper;
+import com.example.service.ExamPaperAnswerService;
+import com.example.mapper.ExamPaperAnswerMapper;
+import com.example.mapper.UserMapper;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class ExamPaperAnswerServiceImpl implements ExamPaperAnswerService {
+    private final ExamPaperAnswerMapper examPaperAnswerMapper;
+    private final UserMapper userMapper;
+    private final SubjectMapper subjectMapper;
+
+    public ExamPaperAnswerServiceImpl(ExamPaperAnswerMapper examPaperAnswerMapper, UserMapper userMapper, SubjectMapper subjectMapper) {
+        this.examPaperAnswerMapper = examPaperAnswerMapper;
+        this.userMapper = userMapper;
+        this.subjectMapper = subjectMapper;
+    }
+
+    @Override
+    public ExamPaperAnswerPageResponse getExamPaperAnswerPage(ExamPaperAnswerPageRequest request) {
+        try {
+            List<ExamPaperAnswerPageItem> itemList = new ArrayList<>();
+            int total = examPaperAnswerMapper.getExamPaperAnswerCount(request.getSubjectId());
+            List<ExamPaperAnswer> answerList = examPaperAnswerMapper.getExamPaperAnswerPage(request);
+            for (ExamPaperAnswer answer : answerList) {
+                ExamPaperAnswerPageItem item = new ExamPaperAnswerPageItem();
+                item.setId(answer.getId());
+                item.setCreateTime(answer.getCreateTime());
+                item.setUserScore(answer.getUserScore());
+                item.setSubjectId(answer.getSubjectId());
+                item.setQuestionCount(answer.getQuestionCount());
+                item.setQuestionCorrect(answer.getQuestionCorrect());
+                item.setPaperScore(answer.getPaperScore());
+                item.setDoTime(answer.getDoTime());
+                item.setPaperType(answer.getPaperType());
+                item.setSystemScore(answer.getSystemScore());
+                item.setStatus(answer.getStatus());
+                item.setPaperName(answer.getPaperName());
+                User user = userMapper.getUserById(answer.getCreateUser());
+                if (user != null) {
+                    item.setUserName(user.getUserName());
+                }
+                Subject subject = subjectMapper.getSubjectById(answer.getSubjectId());
+                if (subject != null) {
+                    item.setSubjectName(subject.getName());
+                }
+                itemList.add(item);
+            }
+            ExamPaperAnswerPageData data = new ExamPaperAnswerPageData(total, itemList);
+            return new ExamPaperAnswerPageResponse(1, "成功", data);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ExamPaperAnswerPageResponse(0, "获取失败", null);
+        }
+    }
+}
+```
+
+```java
+// ExamPaperAnswerController.java
+package com.example.controller;
+
+import com.example.entity.ExamPaperAnswerPageRequest;
+import com.example.entity.ExamPaperAnswerPageResponse;
+import com.example.service.ExamPaperAnswerService;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/examPaperAnswer")
+public class ExamPaperAnswerController {
+    private final ExamPaperAnswerService examPaperAnswerService;
+
+    public ExamPaperAnswerController(ExamPaperAnswerService examPaperAnswerService) {
+        this.examPaperAnswerService = examPaperAnswerService;
+    }
+
+    @PostMapping("/page")
+    public ExamPaperAnswerPageResponse getExamPaperAnswerPage(@RequestBody ExamPaperAnswerPageRequest request) {
+        return examPaperAnswerService.getExamPaperAnswerPage(request);
+    }
+}
+```
+
+```java
+// ExamPaperAnswerMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaperAnswerPageRequest;
+import com.example.entity.ExamPaperAnswer;
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface ExamPaperAnswerMapper {
+    int getExamPaperAnswerCount(Integer subjectId);
+
+    List<ExamPaperAnswer> getExamPaperAnswerPage(ExamPaperAnswerPageRequest request);
+}
+```
+```java
+// SubjectMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaperAnswerPageRequest;
+import com.example.entity.ExamPaperAnswer;
+
+
+import com.example.entity.Subject;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface SubjectMapper {
+    Subject getSubjectById(Integer id);
+}
+```
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaperAnswerPageRequest;
+import com.example.entity.ExamPaperAnswer;
+import com.example.entity.User;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface UserMapper {
+    User getUserById(Integer id);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.example.mapper.UserMapper">
+    <resultMap id="BaseResultMap" type="com.example.entity.User">
+        <id column="id" property="id" />
+        <result column="user_uuid" property="userUuid" />
+        <result column="user_name" property="userName" />
+        <result column="password" property="password" />
+        <result column="real_name" property="realName" />
+        <result column="age" property="age" />
+        <result column="sex" property="sex" />
+        <result column="birth_day" property="birthDay" />
+        <result column="user_level" property="userLevel" />
+        <result column="phone" property="phone" />
+        <result column="role" property="role" />
+        <result column="status" property="status" />
+        <result column="image_path" property="imagePath" />
+        <result column="create_time" property="createTime" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="last_active_time" property="lastActiveTime" />
+        <result column="deleted" property="deleted" />
+        <result column="wx_open_id" property="wxOpenId" />
+    </resultMap>
+    <select id="getUserById" parameterType="java.lang.Integer" resultType="com.example.entity.User" resultMap="BaseResultMap">
+        SELECT * FROM t_user WHERE id = #{id}
+    </select>
+</mapper>
+
+```
+```xml
+<!-- SubjectMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.example.mapper.SubjectMapper">
+    <resultMap id="Subject" type="com.example.entity.Subject">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="level" column="level"/>
+        <result property="levelName" column="levelName"/>
+        <result property="itemOrder" column="itemOrder"/>
+        <result property="deleted" column="deleted"/>
+    </resultMap>
+    <select id="getSubjectById" parameterType="java.lang.Integer" resultType="com.example.entity.Subject" resultMap="Subject">
+        SELECT * FROM t_subject WHERE id = #{id}
+    </select>
+</mapper>
+```
+```xml
+<!-- ExamPaperAnswerMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.example.mapper.ExamPaperAnswerMapper">
+    <resultMap id="ExamPaperAnswer" type="com.example.entity.ExamPaperAnswer">
+        <id property="id" column="id"/>
+        <result property="examPaperId" column="exam_paper_id"/>
+        <result property="paperName" column="paper_name"/>
+        <result property="paperType" column="paper_type"/>
+        <result property="subjectId" column="subject_id"/>
+        <result property="systemScore" column="system_score"/>
+        <result property="userScore" column="user_score"/>
+        <result property="paperScore" column="paper_score"/>
+        <result property="questionCorrect" column="question_correct"/>
+        <result property="questionCount" column="question_count"/>
+        <result property="doTime" column="do_time"/>
+        <result property="status" column="status"/>
+        <result property="createUser" column="create_user"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+    <select id="getExamPaperAnswerCount" parameterType="java.lang.Integer" resultType="int">
+        SELECT COUNT(*) FROM t_exam_paper_answer WHERE subject_id = #{subjectId}
+    </select>
+
+    <select id="getExamPaperAnswerPage" parameterType="com.example.entity.ExamPaperAnswerPageRequest" resultType="com.example.entity.ExamPaperAnswer" resultMap="ExamPaperAnswer">
+        SELECT * FROM t_exam_paper_answer WHERE subject_id = #{subjectId} LIMIT #{pageIndex}, #{pageSize}
+    </select>
+</mapper>
+```
+

@@ -1,0 +1,176 @@
+业务功能逻辑：
+按","分割输入字符串ids，依次删除ssm_picture表中的记录，respone为true.
+
+需要检查的代码：
+```java
+// Picture.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Picture {
+    private int id;
+    private String path;
+    private int type;
+    private String time;
+    private String url;
+    private int grade;
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// PictureService.java
+package com.example.service;
+
+import java.util.List;
+
+public interface PictureService {
+    boolean deletePictures(List<Integer> ids);
+}
+```
+
+```java
+// PictureServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Arrays;
+import java.util.List;
+
+@Service
+public class PictureServiceImpl implements PictureService {
+
+    @Autowired
+    private PictureMapper pictureMapper;
+
+    @Override
+    public boolean deletePictures(List<Integer> ids) {
+        try {
+            pictureMapper.deletePictures(ids);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+}
+```
+
+```java
+// PictureController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class PictureController {
+
+    @Autowired
+    private PictureService pictureService;
+
+    @PostMapping("/picture/delete")
+    public ApiResponse deletePictures(@RequestParam("ids") String ids) {
+        List<Integer> idList = Arrays.asList(ids.split(","));
+        boolean success = pictureService.deletePictures(idList);
+        if (success) {
+            return new ApiResponse(1, "成功", null);
+        } else {
+            return new ApiResponse(0, "失败", null);
+        }
+    }
+}
+```
+
+```java
+// PictureMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+public interface PictureMapper {
+    @Delete("DELETE FROM ssm_picture WHERE id IN (#{ids})")
+    void deletePictures(@Param("ids") List<Integer> ids);
+}
+```
+
+```xml
+<!-- PictureMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.PictureMapper">
+    <delete id="deletePictures">
+        DELETE FROM ssm_picture WHERE id IN
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+PictureController.java: [12,13]
+java: 找不到符号
+  符号:   类 PictureService
+  位置: 类 com.example.controller.PictureController
+PictureController.java: [15,12]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.PictureController
+PictureController.java: [18,9]
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.controller.PictureController
+PictureController.java: [18,32]
+java: 找不到符号
+  符号:   变量 Arrays
+  位置: 类 com.example.controller.PictureController
+PictureServiceImpl.java: [10,44]
+java: 找不到符号
+  符号: 类 PictureService
+PictureServiceImpl.java: [13,13]
+java: 找不到符号
+  符号:   类 PictureMapper
+  位置: 类 com.example.service.impl.PictureServiceImpl
+PictureController.java: [21,45]
+java: 不兼容的类型: 推论变量T具有不兼容的限制范围
+    等式约束条件: java.lang.Integer
+    下限: java.lang.String
+Mapped Statements collection already contains value for com.example.mapper.PictureMapper.deletePictures
+```
+
+```功能错误
+```

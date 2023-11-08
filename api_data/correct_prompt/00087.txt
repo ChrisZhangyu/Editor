@@ -1,0 +1,159 @@
+业务功能逻辑：
+从bms_tip表中随机选择一条记录，返回data设置为{bms_tip记录}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// BmsTip.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_tip")
+public class BmsTip {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "content", length = 1000)
+    private String content;
+
+    @Column(name = "author", length = 50)
+    private String author;
+
+    @Column(name = "type")
+    private Byte type;
+}
+```
+
+```java
+// TipService.java
+package com.example.service;
+
+import com.example.entity.BmsTip;
+import org.springframework.stereotype.Service;
+
+@Service
+public class TipService {
+    private final TipMapper tipMapper;
+
+    public TipService(TipMapper tipMapper) {
+        this.tipMapper = tipMapper;
+    }
+
+    public ApiResponse getTodayTip() {
+        BmsTip tip = tipMapper.getRandomTip();
+        return new ApiResponse(200, "操作成功", tip);
+    }
+}
+```
+
+```java
+// TipController.java
+package com.example.controller;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/tip")
+public class TipController {
+    private final TipService tipService;
+
+    public TipController(TipService tipService) {
+        this.tipService = tipService;
+    }
+
+    @GetMapping("/today")
+    public ApiResponse getTodayTip() {
+        return tipService.getTodayTip();
+    }
+}
+```
+
+```java
+// TipMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+
+@Mapper
+public interface TipMapper {
+    @Select("SELECT * FROM bms_tip ORDER BY RAND() LIMIT 1")
+    BmsTip getRandomTip();
+}
+```
+
+```xml
+<!-- TipMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.TipMapper">
+    <select id="getRandomTip" resultType="com.example.entity.BmsTip">
+        SELECT * FROM bms_tip ORDER BY RAND() LIMIT 1
+    </select>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+TipController.java:10:19
+java: 找不到符号
+  符号:   类 TipService
+  位置: 类 com.example.controller.TipController
+TipController.java:12:26
+java: 找不到符号
+  符号:   类 TipService
+  位置: 类 com.example.controller.TipController
+TipController.java:17:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.TipController
+TipMapper.java:9:5
+java: 找不到符号
+  符号:   类 BmsTip
+  位置: 接口 com.example.mapper.TipMapper
+TipService.java:8:19
+java: 找不到符号
+  符号:   类 TipMapper
+  位置: 类 com.example.service.TipService
+TipService.java:10:23
+java: 找不到符号
+  符号:   类 TipMapper
+  位置: 类 com.example.service.TipService
+TipService.java:14:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.TipService
+Caused by: java.lang.IllegalArgumentException: Mapped Statements collection already contains value for com.example.mapper.TipMapper.getRandomTip. please check file [TipMapper.xml] and TipMapper.java (best guess)
+```
+
+```功能错误
+```

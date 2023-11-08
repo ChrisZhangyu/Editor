@@ -1,0 +1,245 @@
+业务功能逻辑：
+遍历输入参数，在bms_post_tag表中查询话题标签列表，查询条件是bms_post_tag.topic_id等于输入列表的PostVO.id；如果话题标签列表不为空，获取tag_id列表，并在bms_tag表中获取对应的记录，PostVO.tags设置为{bms_tags}；返回参数data设置为{[PostVO]}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    /**
+     * 响应状态码
+     */
+    private int code;
+
+    /**
+     * 响应消息
+     */
+    private String message;
+
+    /**
+     * 响应数据
+     */
+    private T data;
+}
+```
+
+```java
+// BmsPostTag.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class BmsPostTag {
+    private int id;
+    private String tagId;
+    private String topicId;
+}
+```
+
+```java
+// BmsTag.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class BmsTag {
+    private String id;
+    private String name;
+    private int topicCount;
+}
+```
+
+```java
+// PostService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.BmsTag;
+import com.example.mapper.PostTagMapper;
+import com.example.mapper.TagMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class PostService {
+    private final PostMapper postMapper;
+    private final PostTagMapper postTagMapper;
+    private final TagMapper tagMapper;
+
+    @Autowired
+    public PostService(PostMapper postMapper, PostTagMapper postTagMapper, TagMapper tagMapper) {
+        this.postMapper = postMapper;
+        this.postTagMapper = postTagMapper;
+        this.tagMapper = tagMapper;
+    }
+
+    public ApiResponse<List<PostVO>> getPostListWithTag() {
+        List<PostVO> postList = postMapper.getPostList();
+        for (PostVO post : postList) {
+            List<String> tagIds = postTagMapper.getTagIdsByTopicId(post.getId());
+            List<BmsTag> tags = tagMapper.getTagsByIds(tagIds);
+            post.setTags(tags);
+        }
+        return new ApiResponse<>(200, "操作成功", postList);
+    }
+}
+```
+
+```java
+// PostController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.PostService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/post")
+public class PostController {
+    private final PostService postService;
+
+    @Autowired
+    public PostController(PostService postService) {
+        this.postService = postService;
+    }
+
+    @GetMapping("/tag/list")
+    public ApiResponse<List<PostVO>> getPostListWithTag() {
+        return postService.getPostListWithTag();
+    }
+}
+```
+
+```java
+// PostMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface PostMapper {
+    List<PostVO> getPostList();
+}
+```
+```java
+// PostTagMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface PostTagMapper {
+    List<String> getTagIdsByTopicId(@Param("topicId") String topicId);
+}
+```
+
+```java
+// TagMapper.java
+package com.example.mapper;
+
+import com.example.entity.BmsTag;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+@Mapper
+public interface TagMapper {
+    List<BmsTag> getTagsByIds(@Param("tagIds") List<String> tagIds);
+}
+```
+
+```xml
+<!-- PostMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!-- PostMapper.xml -->
+<mapper namespace="com.example.mapper.PostMapper">
+    <select id="getPostList" resultType="com.example.entity.PostVO">
+        SELECT * FROM bms_post
+    </select>
+</mapper>
+```
+
+```xml
+<!-- PostTagMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!-- PostTagMapper.xml -->
+<mapper namespace="com.example.mapper.PostTagMapper">
+    <select id="getTagIdsByTopicId" resultType="java.lang.String">
+        SELECT tag_id FROM bms_post_tag WHERE topic_id = #{topicId}
+    </select>
+</mapper>
+```
+
+```xml
+<!-- TagMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!-- TagMapper.xml -->
+<mapper namespace="com.example.mapper.TagMapper">
+    <select id="getTagsByIds" resultType="com.example.entity.BmsTag">
+        SELECT * FROM bms_tag WHERE id IN
+        <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+            #{tagId}
+        </foreach>
+    </select>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+PostController.java:23:62
+java: 找不到符号
+  符号:   类 PostVO
+  位置: 类 com.example.controller.PostController
+PostController.java:23:29
+java: 找不到符号
+  符号:   类 PostVO
+  位置: 类 com.example.controller.PostController
+PostService.java:23:62
+java: 找不到符号
+  符号:   类 PostVO
+  位置: 类 com.example.service.PostService
+PostService.java:23:29
+java: 找不到符号
+  符号:   类 PostVO
+  位置: 类 com.example.service.PostService
+PostService.java:24:14
+java: 找不到符号
+  符号:   类 PostVO
+  位置: 类 com.example.service.PostService
+```
+
+```功能错误
+整个功能逻辑都实现错误，首先没有创建输入参数PostVO的实体类，其次没有正确生成API接口的输入参数（输入参数应该PostVO）。
+```

@@ -1,0 +1,220 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    /**
+     * 用户ID
+     */
+    private String id;
+
+    /**
+     * 用户名
+     */
+    private String username;
+
+    /**
+     * 别名
+     */
+    private String alias;
+
+    /**
+     * 密码
+     */
+    private String password;
+
+    /**
+     * 头像
+     */
+    private String avatar;
+
+    /**
+     * 邮箱
+     */
+    private String email;
+
+    /**
+     * 手机号码
+     */
+    private String mobile;
+
+    /**
+     * 积分
+     */
+    private int score;
+
+    /**
+     * 令牌
+     */
+    private String token;
+
+    /**
+     * 个人简介
+     */
+    private String bio;
+
+    /**
+     * 是否激活
+     */
+    private boolean active;
+
+    /**
+     * 状态
+     */
+    private boolean status;
+
+    /**
+     * 角色ID
+     */
+    private String roleId;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 修改时间
+     */
+    private Date modifyTime;
+}
+```
+
+```java
+// UmsUserService.java
+package com.example.service;
+
+import com.example.entity.UmsUser;
+
+public interface UmsUserService {
+    UmsUser getUserByUsername(String username);
+}
+```
+
+```java
+// UmsUserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.UmsUser;
+import com.example.mapper.UmsUserMapper;
+import com.example.service.UmsUserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UmsUserServiceImpl implements UmsUserService {
+
+    private final UmsUserMapper umsUserMapper;
+
+    @Autowired
+    public UmsUserServiceImpl(UmsUserMapper umsUserMapper) {
+        this.umsUserMapper = umsUserMapper;
+    }
+
+    @Override
+    public UmsUser getUserByUsername(String username) {
+        return umsUserMapper.getUserByUsername(username);
+    }
+}
+```
+
+```java
+// UmsUserController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.UmsUser;
+import com.example.service.UmsUserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class UmsUserController {
+    private final UmsUserService umsUserService;
+
+    @Autowired
+    public UmsUserController(UmsUserService umsUserService) {
+        this.umsUserService = umsUserService;
+    }
+
+    @GetMapping("/ums/user/info")
+    public ApiResponse<UmsUser> getUserInfo(@RequestParam("username") String username) {
+        UmsUser user = umsUserService.getUserByUsername(username);
+        System.out.print(user);
+        if (user != null) {
+            return new ApiResponse<>(200, "操作成功", user);
+        } else {
+            return new ApiResponse<>(200, "操作成功", null);
+        }
+    }
+}
+```
+
+```java
+// UmsUserMapper.java
+package com.example.mapper;
+
+import com.example.entity.UmsUser;
+
+import com.example.entity.UmsUser;
+
+public interface UmsUserMapper {
+    UmsUser getUserByUsername(String username);
+}
+```
+
+```xml
+<!-- UmsUserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.UmsUserMapper">
+
+    <resultMap type="com.example.entity.UmsUser" id="ArticleResult">
+        <result property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="alias" column="alias"/>
+        <result property="password" column="password"/>
+        <result property="avatar" column="avatar"/>
+        <result property="email" column="email"/>
+        <result property="mobile" column="mobile"/>
+        <result property="token" column="token"/>
+        <result property="active" column="active"/>
+        <result property="roleId" column="roleId"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="modifyTime" column="modify_time"/>
+    </resultMap>
+
+    <select id="getUserByUsername" resultMap="ArticleResult">
+        SELECT * FROM ums_user WHERE username = #{username}
+    </select>
+</mapper>
+```

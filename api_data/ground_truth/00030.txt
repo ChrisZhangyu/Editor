@@ -1,0 +1,203 @@
+```java
+// ApiResponse.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+```
+```java
+// OmsOrderSetting.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderSetting {
+    /**
+     * 主键ID
+     */
+    private Long id;
+
+    /**
+     * 秒杀订单超时时间（单位：分钟）
+     */
+    private Integer flashOrderOvertime;
+
+    /**
+     * 普通订单超时时间（单位：分钟）
+     */
+    private Integer normalOrderOvertime;
+
+    /**
+     * 自动确认收货时间（单位：天）
+     */
+    private Integer confirmOvertime;
+
+    /**
+     * 自动完成交易时间（单位：天）
+     */
+    private Integer finishOvertime;
+
+    /**
+     * 自动好评时间（单位：天）
+     */
+    private Integer commentOvertime;
+}
+```
+```java
+// OrderSettingUpdateRequest.java
+package com.example.entity;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OrderSettingUpdateRequest {
+    private Long id;
+    private Integer flashOrderOvertime;
+    private Integer normalOrderOvertime;
+    private Integer confirmOvertime;
+    private Integer finishOvertime;
+    private Integer commentOvertime;
+}
+
+```
+
+```java
+// OrderSettingService.java
+
+package com.example.service;
+
+import com.example.entity.OrderSettingUpdateRequest;
+
+public interface OrderSettingService {
+    int update(Long id, OrderSettingUpdateRequest request);
+}
+```
+
+```java
+// OrderSettingServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.mapper.OrderSettingMapper;
+import com.example.service.OrderSettingService;
+import com.example.entity.OrderSettingUpdateRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class OrderSettingServiceImpl implements OrderSettingService {
+    @Autowired
+    private OrderSettingMapper orderSettingMapper;
+    @Override
+    public int update(Long id, OrderSettingUpdateRequest request) {
+        int count = 0;
+        if (request == null || id <=0)
+            return count;
+        else{
+            count = orderSettingMapper.updateOrderSetting(id, request);
+        }
+        return count;
+    }
+}
+```
+
+```java
+// OrderSettingController.java
+
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.OrderSettingService;
+import com.example.entity.OrderSettingUpdateRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/orderSetting")
+public class OrderSettingController {
+    private final OrderSettingService orderSettingService;
+
+    @Autowired
+    public OrderSettingController(OrderSettingService orderSettingService) {
+        this.orderSettingService = orderSettingService;
+    }
+
+    @PostMapping("/update/{id}")
+    public ResponseEntity<ApiResponse<Integer>> updateOrderSetting(@PathVariable Long id, @RequestBody OrderSettingUpdateRequest request) {
+        int count = orderSettingService.update(id, request);
+        if(count == 0){
+            ApiResponse<Integer> response = new ApiResponse<>(HttpStatus.OK.value(), "failed", count);
+            return ResponseEntity.ok(response);
+        }
+        ApiResponse<Integer> response = new ApiResponse<>(HttpStatus.OK.value(), "Success", count);
+        return ResponseEntity.ok(response);
+    }
+}
+```
+
+```java
+// OrderSettingMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.OrderSettingUpdateRequest;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface OrderSettingMapper {
+    int updateOrderSetting(@Param("id") Long id, @Param("request") OrderSettingUpdateRequest request);
+}
+```
+
+```xml
+<!-- OrderSettingMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.OrderSettingMapper">
+    <resultMap id="BaseResultMap" type="com.example.entity.OmsOrderSetting">
+        <id column="id" jdbcType="BIGINT" property="id" />
+        <result column="flash_order_overtime" jdbcType="INTEGER" property="flashOrderOvertime" />
+        <result column="normal_order_overtime" jdbcType="INTEGER" property="normalOrderOvertime" />
+        <result column="confirm_overtime" jdbcType="INTEGER" property="confirmOvertime" />
+        <result column="finish_overtime" jdbcType="INTEGER" property="finishOvertime" />
+        <result column="comment_overtime" jdbcType="INTEGER" property="commentOvertime" />
+    </resultMap>
+    <update id="updateOrderSetting">
+        UPDATE oms_order_setting
+        SET flash_order_overtime = #{request.flashOrderOvertime},
+            normal_order_overtime = #{request.normalOrderOvertime},
+            confirm_overtime = #{request.confirmOvertime},
+            finish_overtime = #{request.finishOvertime},
+            comment_overtime = #{request.commentOvertime}
+        WHERE id = #{id}
+    </update>
+</mapper>
+
+```
+

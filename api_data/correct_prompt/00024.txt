@@ -1,0 +1,195 @@
+业务功能逻辑：从数据库中查询数据库表中的所有收货地址数据并返回。返回参数{"id": null, "addressName": "地址名称", "sendStatus": "默认发货地址：0->否；1->是", "receiveStatus": "是否默认收货地址：0->否；1->是", "name": "收发货人姓名", "phone":  "收货人电话", "province": "省/直辖市", "city": "市", "region": "区",   "detailAddress": "详细地址"}。
+
+需要检查的代码：
+```java
+// ApiResponse.java
+
+package com.example.entity;
+
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CompanyAddress {
+    private Long id;
+    private String addressName;
+    private Integer sendStatus;
+    private Integer receiveStatus;
+    private String name;
+    private String phone;
+    private String province;
+    private String city;
+    private String region;
+    private String detailAddress;
+}
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class GetCompanyAddressListRequest {
+    private String distinct;
+    private String refid;
+    private String _parameter;
+    private String orderByClause;
+}
+```
+
+```java
+// CompanyAddressService.java
+
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.CompanyAddress;
+import com.example.entity.GetCompanyAddressListRequest;
+
+public interface CompanyAddressService {
+    ApiResponse<List<CompanyAddress>> getCompanyAddressList(GetCompanyAddressListRequest request);
+}
+```
+
+```java
+// CompanyAddressServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.entity.GetCompanyAddressListRequest;
+import com.example.service.CompanyAddressService;
+import com.example.entity.ApiResponse;
+import com.example.entity.CompanyAddress;
+import com.example.mapper.CompanyAddressMapper;
+
+@Service
+public class CompanyAddressServiceImpl implements CompanyAddressService {
+    @Autowired
+    private CompanyAddressMapper companyAddressMapper;
+
+    @Override
+    public ApiResponse<List<CompanyAddress>> getCompanyAddressList(GetCompanyAddressListRequest request) {
+        List<CompanyAddress> addressList = companyAddressMapper.getCompanyAddressList(request);
+        return new ApiResponse<>(200, "Success", addressList);
+    }
+}
+```
+
+```java
+// CompanyAddressController.java
+
+package com.example.controller;
+
+import com.example.entity.GetCompanyAddressListRequest;
+import com.example.service.CompanyAddressService;
+import com.example.entity.ApiResponse;
+import com.example.entity.CompanyAddress;
+
+@RestController
+@RequestMapping("/companyAddress")
+public class CompanyAddressController {
+    @Autowired
+    private CompanyAddressService companyAddressService;
+
+    @GetMapping("/list")
+    public ApiResponse<List<CompanyAddress>> getCompanyAddressList(GetCompanyAddressListRequest request) {
+        return companyAddressService.getCompanyAddressList(request);
+    }
+}
+```
+
+```java
+// CompanyAddressMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.CompanyAddress;
+import com.example.entity.GetCompanyAddressListRequest;
+
+@Mapper
+public interface CompanyAddressMapper {
+    List<CompanyAddress> getCompanyAddressList(GetCompanyAddressListRequest request);
+}
+```
+
+```xml
+<!-- CompanyAddressMapper.xml -->
+
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.example.mapper.CompanyAddressMapper">
+    <select id="getCompanyAddressList" resultType="com.example.model.CompanyAddress">
+        SELECT id, address_name, send_status, receive_status, name, phone, province, city, region, detail_address
+        FROM company_address
+        WHERE 1=1
+        <if test="distinct != null and distinct != ''">
+            AND distinct = #{distinct}
+        </if>
+        <if test="refid != null and refid != ''">
+            AND refid = #{refid}
+        </if>
+        <if test="_parameter != null and _parameter != ''">
+            AND _parameter = #{_parameter}
+        </if>
+        <if test="orderByClause != null and orderByClause != ''">
+            ORDER BY ${orderByClause}
+        </if>
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+ApiResponse.java:17:8
+java: 类CompanyAddress是公共的, 应在名为 CompanyAddress.java 的文件中声明
+ApiResponse.java:33:8
+java: 类GetCompanyAddressListRequest是公共的, 应在名为 GetCompanyAddressListRequest.java 的文件中声明
+ApiResponse.java:30:2
+java: 找不到符号
+  符号: 类 Data
+ApiResponse.java:31:2
+java: 找不到符号
+  符号: 类 NoArgsConstructor
+ApiResponse.java:32:2
+java: 找不到符号
+  符号: 类 AllArgsConstructor
+ApiResponse.java:5:2
+java: 找不到符号
+  符号: 类 Data
+ApiResponse.java:6:2
+java: 找不到符号
+  符号: 类 NoArgsConstructor
+ApiResponse.java:7:2
+java: 找不到符号
+  符号: 类 AllArgsConstructor
+ApiResponse.java:14:2
+java: 找不到符号
+  符号: 类 Data
+ApiResponse.java:15:2
+java: 找不到符号
+  符号: 类 NoArgsConstructor
+ApiResponse.java:16:2
+java: 找不到符号
+  符号: 类 AllArgsConstructor
+CompanyAddressService.java:9:17
+java: 找不到符号
+  符号:   类 List
+  位置: 接口 com.example.service.CompanyAddressService
+org.xml.sax.SAXParseException: 在 publicId 和 systemId 之间需要有空格。
+```
+```功能错误
+There is no getter for property named 'Base_Column_List' in 'class com.example.entity.GetCompanyAddressListRequest'
+### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'distinct = 'DISTINCT'
+org.springframework.jdbc.BadSqlGrammarException: 
+### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: Table 'test.company_address' doesn't exist
+```

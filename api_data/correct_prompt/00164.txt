@@ -1,0 +1,180 @@
+业务功能逻辑：在t_user表中查询用户名等于输入参数的用户，用户对象进行转换和创建时间格式化，并赋值给返回参数的response.
+
+需要检查的代码：
+```java
+// CurrentUserRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CurrentUserRequest {
+    private String userName;
+}
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CurrentUserRequest {
+    private String userName;
+}
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.User;
+import com.example.mapper.UserMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserService {
+    private final UserMapper userMapper;
+
+    @Autowired
+    public UserService(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    public User getCurrentUser(String userName) {
+        return userMapper.findByUserName(userName);
+    }
+}
+```
+
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.entity.User;
+import com.example.service.UserService;
+import com.example.entity.CurrentUserRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class UserController {
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/api/student/user/current")
+    public ApiResponse<User> getCurrentUser(@RequestBody CurrentUserRequest request) {
+        User user = userService.getCurrentUser(request.getUserName());
+        return new ApiResponse<>(1, "成功", user);
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+@Mapper
+public interface UserMapper {
+    @Select("SELECT * FROM t_user WHERE user_name = #{userName}")
+    User findByUserName(@Param("userName") String userName);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="findByUserName" resultType="com.example.entity.User">
+        SELECT * FROM t_user WHERE user_name = #{userName}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\user_current_system\src\main\java\com\example\entity\User.java:24
+java: 需要class, interface或enum
+Caused by: java.lang.IllegalArgumentException: Mapped Statements collection already contains value for com.example.mapper.UserMapper.findByUserName. please check file [D:\迅雷下载\xzs-project_test\user_current_system\target\classes\mapper\UserMapper.xml] and com/example/mapper/UserMapper.java (best guess)
+```
+```功能错误
+
+```

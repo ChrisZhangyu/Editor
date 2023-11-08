@@ -1,0 +1,194 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Good.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_good")
+public class Good {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "good_name", length = 20)
+    private String goodName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+    @Column(name = "price", precision = 10, scale = 2)
+    private Double price;
+
+    @Column(name = "original_price", precision = 10, scale = 2)
+    private Double originalPrice;
+
+    @Column(name = "inventory")
+    private Integer inventory;
+
+    @Column(name = "sold_count")
+    private Integer soldCount;
+
+    @Column(name = "spec", length = 20)
+    private String spec;
+
+    @Column(name = "origin", length = 10)
+    private String origin;
+}
+```
+
+```java
+// GoodService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Good;
+
+public interface GoodService {
+    ApiResponse addGood(Good good, String image);
+}
+```
+
+```java
+// GoodServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Good;
+import com.example.mapper.GoodMapper;
+import com.example.service.GoodService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class GoodServiceImpl implements GoodService {
+
+    private final GoodMapper goodMapper;
+
+    @Autowired
+    public GoodServiceImpl(GoodMapper goodMapper) {
+        this.goodMapper = goodMapper;
+    }
+
+    @Override
+    public ApiResponse addGood(Good good, String image) {
+        if (good.getGoodName() == null || good.getCategorySecondId() == null || good.getPrice() == null
+        || good.getImage() == null || good.getSpec() == null || good.getOrigin() == null) {
+            return new ApiResponse(-1004, "字段不能为空", null);
+        }
+
+        Good existingGood = goodMapper.getGoodByName(good.getGoodName());
+        if (existingGood != null) {
+            return new ApiResponse(-1005, "商品名称已存在", null);
+        }
+
+        if (good.getInventory() == null) {
+            good.setInventory(0);
+        }
+        if (good.getOriginalPrice() == null) {
+            good.setOriginalPrice(good.getPrice());
+        }
+        if (good.getSoldCount() == null) {
+            good.setSoldCount(0);
+        }
+
+        goodMapper.addGood(good);
+
+        return new ApiResponse(100, "成功", good);
+    }
+}
+```
+
+```java
+// GoodController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Good;
+import com.example.service.GoodService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/admin/v1/goods")
+public class GoodController {
+
+    private final GoodService goodService;
+
+    @Autowired
+    public GoodController(GoodService goodService) {
+        this.goodService = goodService;
+    }
+
+    @PostMapping
+    public ApiResponse addGood(@RequestBody Good good, String image) {
+        return goodService.addGood(good, image);
+    }
+}
+```
+
+```java
+// GoodMapper.java
+package com.example.mapper;
+
+import com.example.entity.Good;
+
+public interface GoodMapper {
+    Good getGoodByName(String goodName);
+    void addGood(Good good);
+}
+```
+
+```xml
+<!-- GoodMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.GoodMapper">
+    <select id="getGoodByName" resultType="com.example.entity.Good">
+        SELECT * FROM tb_good WHERE good_name = #{goodName}
+    </select>
+
+    <insert id="addGood">
+        <selectKey keyProperty="goodId" resultType="int" order="AFTER">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO tb_good (category_second_id, good_name, price, inventory, sold_count, original_price, image, spec, origin)
+        VALUES (#{categorySecondId}, #{goodName}, #{price}, #{inventory}, #{soldCount}, #{originalPrice}, #{image}, #{spec}, #{origin})
+    </insert>
+</mapper>
+
+```

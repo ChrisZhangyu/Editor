@@ -1,0 +1,183 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+```
+```java
+// GetReturnReasonRequest.java
+package com.example.entity;
+
+import lombok.Data;
+
+@Data
+public class GetReturnReasonRequest {
+    private Long id;
+}
+```
+```java
+// OmsOrderReturnReason.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderReturnReason {
+    private Long id;
+    private String name;
+    private Integer sort;
+    private Integer status;
+    private Date createTime;
+}
+```
+
+```java
+// OmsOrderReturnReasonService.java
+package com.example.service;
+
+import com.example.entity.OmsOrderReturnReason;
+
+import java.util.List;
+
+public interface OmsOrderReturnReasonService {
+    OmsOrderReturnReason getReturnReasonById(Long id);
+    List<OmsOrderReturnReason> getAllReturnReasons(int pageNum, int pageSize);
+}
+```
+
+```java
+// OmsOrderReturnReasonServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.OmsOrderReturnReasonMapper;
+import com.example.service.OmsOrderReturnReasonService;
+import com.example.entity.OmsOrderReturnReason;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class OmsOrderReturnReasonServiceImpl implements OmsOrderReturnReasonService {
+
+    private OmsOrderReturnReasonMapper returnReasonMapper;
+
+    @Autowired
+    public OmsOrderReturnReasonServiceImpl(OmsOrderReturnReasonMapper returnReasonMapper) {
+        this.returnReasonMapper = returnReasonMapper;
+    }
+
+    @Override
+    public OmsOrderReturnReason getReturnReasonById(Long id) {
+        return returnReasonMapper.getReturnReasonById(id);
+    }
+
+    @Override
+    public List<OmsOrderReturnReason> getAllReturnReasons(int pageNum, int pageSize) {
+        int offset = (pageNum - 1) * pageSize;
+        return returnReasonMapper.getAllReturnReasons(offset, pageSize);
+    }
+}
+```
+
+```java
+// OmsOrderReturnReasonController.java
+package com.example.controller;
+
+import com.example.entity.OmsOrderReturnReason;
+import com.example.entity.ApiResponse;
+import com.example.service.OmsOrderReturnReasonService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/returnReason")
+public class OmsOrderReturnReasonController {
+
+    private OmsOrderReturnReasonService returnReasonService;
+
+    @Autowired
+    public OmsOrderReturnReasonController(OmsOrderReturnReasonService returnReasonService) {
+        this.returnReasonService = returnReasonService;
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<OmsOrderReturnReason> getReturnReasonById(@PathVariable Long id) {
+        OmsOrderReturnReason returnReason = returnReasonService.getReturnReasonById(id);
+        return new ApiResponse<>(200, "Success", returnReason);
+    }
+
+    @GetMapping("/list")
+    public ApiResponse<List<OmsOrderReturnReason>> getAllReturnReasons(@RequestParam(defaultValue = "1") int pageNum,
+                                                                       @RequestParam(defaultValue = "10") int pageSize) {
+        List<OmsOrderReturnReason> returnReasons = returnReasonService.getAllReturnReasons(pageNum, pageSize);
+        return new ApiResponse<>(200, "Success", returnReasons);
+    }
+}
+```
+
+```java
+// OmsOrderReturnReasonMapper.java
+package com.example.mapper;
+
+import com.example.entity.OmsOrderReturnReason;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface OmsOrderReturnReasonMapper {
+    OmsOrderReturnReason getReturnReasonById(@Param("id") Long id);
+    List<OmsOrderReturnReason> getAllReturnReasons(@Param("offset") int offset, @Param("pageSize") int pageSize);
+}
+```
+
+```xml
+<!-- OmsOrderReturnReasonMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.OmsOrderReturnReasonMapper">
+    <resultMap id="BaseResultMap" type="com.example.entity.OmsOrderReturnReason">
+        <id column="id" jdbcType="BIGINT" property="id" />
+        <result column="name" jdbcType="VARCHAR" property="name" />
+        <result column="sort" jdbcType="INTEGER" property="sort" />
+        <result column="status" jdbcType="INTEGER" property="status" />
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    </resultMap>
+    <select id="getReturnReasonById" resultMap="BaseResultMap">
+        SELECT * FROM oms_order_return_reason WHERE id = #{id}
+    </select>
+
+    <select id="getAllReturnReasons" resultType="com.example.entity.OmsOrderReturnReason">
+        SELECT * FROM oms_order_return_reason LIMIT #{offset}, #{pageSize}
+    </select>
+
+</mapper>
+
+```
+

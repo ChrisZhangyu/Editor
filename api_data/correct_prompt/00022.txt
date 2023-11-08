@@ -1,0 +1,225 @@
+业务功能逻辑：在数据库中查询所有商品专题信息，支持去重、排序，并返回查询结果。返回参数{"id": null,  "categoryId": null,  "title": null,  "pic": "专题主图",  "productCount": "关联产品数量",  "recommendStatus": null,  "createTime": null,  "collectCount": null,  "readCount": null,  "commentCount": null,  "albumPics": "画册图片用逗号分割",  "description": null,  "showStatus": "显示状态：0->不显示；1->显示",  "forwardCount": "转发数",  "categoryName": "专题分类名称",  "content": null}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Long id;
+    private Long categoryId;
+    private String title;
+    private String pic;
+    private Integer productCount;
+    private Integer recommendStatus;
+    private Date createTime;
+    private Integer collectCount;
+    private Integer readCount;
+    private Integer commentCount;
+    private String albumPics;
+    private String description;
+    private Integer showStatus;
+    private Integer forwardCount;
+    private String categoryName;
+    private String content;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CmsSubject {
+    private Long id;
+    private Long categoryId;
+    private String title;
+    private String pic;
+    private Integer productCount;
+    private Integer recommendStatus;
+    private Timestamp createTime;
+    private Integer collectCount;
+    private Integer readCount;
+    private Integer commentCount;
+    private String albumPics;
+    private String description;
+    private Integer showStatus;
+    private Integer forwardCount;
+    private String categoryName;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SubjectListAllRequest {
+    private String distinct;
+    private String refid;
+    private String _parameter;
+    private String orderByClause;
+}
+```
+
+```java
+// SubjectService.java
+
+package com.example.service;
+
+import com.example.entity.SubjectListAllRequest;
+import com.example.entity.ApiResponse;
+
+import java.util.List;
+
+public interface SubjectService {
+    List<ApiResponse> getAllSubjects(SubjectListAllRequest request);
+}
+```
+
+```java
+// SubjectServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.mapper.SubjectMapper;
+import com.example.service.SubjectService;
+import com.example.entity.ApiResponse;
+import com.example.entity.SubjectListAllRequest;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class SubjectServiceImpl implements SubjectService {
+    private final SubjectMapper subjectMapper;
+
+    public SubjectServiceImpl(SubjectMapper subjectMapper) {
+        this.subjectMapper = subjectMapper;
+    }
+
+    @Override
+    public List<ApiResponse> getAllSubjects(SubjectListAllRequest request) {
+        return subjectMapper.getAllSubjects(request);
+    }
+}
+```
+
+```java
+// SubjectController.java
+
+package com.example.controller;
+
+import com.example.entity.SubjectListAllRequest;
+import com.example.service.SubjectService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/subject")
+public class SubjectController {
+    private final SubjectService subjectService;
+
+    public SubjectController(SubjectService subjectService) {
+        this.subjectService = subjectService;
+    }
+
+    @GetMapping("/listAll")
+    public List<ApiResponse> getAllSubjects(SubjectListAllRequest request) {
+        return subjectService.getAllSubjects(request);
+    }
+}
+```
+
+```java
+// SubjectMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.SubjectListAllRequest;
+import com.example.entity.ApiResponse;
+
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface SubjectMapper {
+    List<ApiResponse> getAllSubjects(SubjectListAllRequest request);
+}
+```
+
+```xml
+<!-- SubjectMapper.xml -->
+
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.SubjectMapper">
+    <select id="getAllSubjects" resultType="com.example.model.ApiResponse">
+        SELECT id, category_id, title, pic, product_count, recommend_status, create_time, collect_count, read_count, comment_count, album_pics, description, show_status, forward_count, category_name, content
+        FROM subject
+        WHERE 1=1
+        <if test="distinct != null">
+            AND distinct = #{distinct}
+        </if>
+        <if test="refid != null">
+            AND refid = #{refid}
+        </if>
+        <if test="_parameter != null">
+            AND _parameter = #{_parameter}
+        </if>
+        <if test="orderByClause != null">
+            ORDER BY ${orderByClause}
+        </if>
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+ApiResponse.java:31
+java: 需要class, interface或enum
+ApiResponse.java:32
+java: 需要class, interface或enum
+ApiResponse.java:33
+java: 需要class, interface或enum
+ApiResponse.java:35
+java: 需要class, interface或enum
+ApiResponse.java:58
+java: 需要class, interface或enum
+ApiResponse.java:59
+java: 需要class, interface或enum
+ApiResponse.java:60
+java: 需要class, interface或enum
+SubjectServiceImpl.java:20:12
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.service.impl.SubjectServiceImpl
+org.apache.ibatis.type.TypeException: Could not resolve type alias 'com.example.model.ApiResponse'.  Cause: java.lang.ClassNotFoundException: Cannot find class: com.example.model.ApiResponse
+```
+```功能错误
+Cause: org.apache.ibatis.type.TypeException: Could not resolve type alias 'com.example.model.ApiResponse'.  Cause: java.lang.ClassNotFoundException: Cannot find class: com.example.model.ApiResponse at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:800) ~[spring-beans-5.3.8.jar:5.3.8]
+SubjectControllerTest.java:26:29
+### Error querying database.  Cause: org.springframework.jdbc.CannotGetJdbcConnectionException: Failed to obtain JDBC Connection; nested exception is java.sql.SQLSyntaxErrorException: Unknown database 'cms_subject'
+### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'distinct = 'distinct'
+### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: Unknown column 'content' in 'field list'
+```

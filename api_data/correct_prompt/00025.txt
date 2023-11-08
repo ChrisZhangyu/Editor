@@ -1,0 +1,204 @@
+业务功能逻辑：实现了对会员等级的查询操作，并返回符合条件的结果供前端展示。这是一个简单的RESTful API，用于管理会员等级的查询功能。返回参数{  "id": null, "name": null, "growthPoint": null, "defaultStatus": "是否为默认等级：0->不是；1->是", "freeFreightPoint": "免运费标准", "commentGrowthPoint": "每次评价获取的成长值", "priviledgeFreeFreight": "是否有免邮特权", "priviledgeSignIn": "是否有签到特权", "priviledgeComment": "是否有评论获奖励特权", "priviledgePromotion": "是否有专享活动特权", "priviledgeMemberPrice": "是否有会员价格特权", "priviledgeBirthday": "是否有生日特权", "note": null}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Long id;
+    private String name;
+    private Integer growthPoint;
+    private Integer defaultStatus;
+    private Integer freeFreightPoint;
+    private Integer commentGrowthPoint;
+    private Integer priviledgeFreeFreight;
+    private Integer priviledgeSignIn;
+    private Integer priviledgeComment;
+    private Integer priviledgePromotion;
+    private Integer priviledgeMemberPrice;
+    private Integer priviledgeBirthday;
+    private String note;
+}
+
+import lombok.Data;
+
+@Data
+public class MemberLevelListRequest {
+    private Integer defaultStatus;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsResource {
+    /**
+     * 资源ID
+     */
+    private int id;
+    
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+    
+    /**
+     * 资源名称
+     */
+    private String name;
+    
+    /**
+     * 资源URL
+     */
+    private String url;
+    
+    /**
+     * 资源描述
+     */
+    private String description;
+    
+    /**
+     * 分类ID
+     */
+    private int categoryId;
+}
+```
+
+```java
+// MemberLevelService.java
+
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+import java.util.List;
+
+public interface MemberLevelService {
+    List<ApiResponse> getMemberLevels(Integer defaultStatus);
+}
+```
+
+```java
+// MemberLevelServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.service.MemberLevelService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class MemberLevelServiceImpl implements MemberLevelService {
+    @Override
+    public List<ApiResponse> getMemberLevels(Integer defaultStatus) {
+        // TODO: 根据defaultStatus查询会员等级，并返回结果
+        // 这里只是示例，实际应用中需要根据具体的业务逻辑来实现
+        return new ArrayList<>();
+    }
+}
+```
+
+```java
+// MemberLevelController.java
+
+package com.example.controller;
+
+import com.example.service.MemberLevelService;
+import com.example.entity.MemberLevelListRequest;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/memberLevel")
+public class MemberLevelController {
+    private final MemberLevelService memberLevelService;
+
+    @Autowired
+    public MemberLevelController(MemberLevelService memberLevelService) {
+        this.memberLevelService = memberLevelService;
+    }
+
+    @GetMapping("/list")
+    public List<ApiResponse> getMemberLevels(MemberLevelListRequest request) {
+        return memberLevelService.getMemberLevels(request.getDefaultStatus());
+    }
+}
+```
+
+```java
+// MemberLevelMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.ApiResponse;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface MemberLevelMapper {
+    List<ApiResponse> getMemberLevels(@Param("defaultStatus") Integer defaultStatus);
+}
+```
+
+```xml
+<!-- MemberLevelMapper.xml -->
+
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<!-- MemberLevelMapper.xml -->
+<mapper namespace="com.example.mapper.MemberLevelMapper">
+    <select id="getMemberLevels" resultType="com.example.entity.ApiResponse">
+        SELECT id, name, growth_point, default_status, free_freight_point, comment_growth_point,
+        priviledge_free_freight, priviledge_sign_in, priviledge_comment, priviledge_promotion,
+        priviledge_member_price, priviledge_birthday, note
+        FROM member_level
+        WHERE default_status = #{defaultStatus}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+ApiResponse.java:28
+java: 需要class, interface或enum
+ApiResponse.java:35
+java: 需要class, interface或enum
+ApiResponse.java:36
+java: 需要class, interface或enum
+ApiResponse.java:37
+java: 需要class, interface或enum
+Caused by: org.xml.sax.SAXParseException: 在 publicId 和 systemId 之间需要有空格。
+```
+```功能错误
+返回值为空列表
+```

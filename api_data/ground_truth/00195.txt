@@ -1,0 +1,280 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// Subject.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_subject")
+public class Subject {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "level")
+    private int level;
+
+    @Column(name = "level_name")
+    private String levelName;
+
+    @Column(name = "item_order")
+    private int itemOrder;
+
+    @Column(name = "deleted")
+    private boolean deleted;
+}
+```
+
+```java
+// User.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_user")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "user_uuid")
+    private String userUuid;
+
+    @Column(name = "user_name")
+    private String userName;
+
+    @Column(name = "password")
+    private String password;
+
+    @Column(name = "real_name")
+    private String realName;
+
+    @Column(name = "age")
+    private int age;
+
+    @Column(name = "sex")
+    private int sex;
+
+    @Column(name = "birth_day")
+    private Date birthDay;
+
+    @Column(name = "user_level")
+    private int userLevel;
+
+    @Column(name = "phone")
+    private String phone;
+
+    @Column(name = "role")
+    private int role;
+
+    @Column(name = "status")
+    private int status;
+
+    @Column(name = "image_path")
+    private String imagePath;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+
+    @Column(name = "last_active_time")
+    private Date lastActiveTime;
+
+    @Column(name = "deleted")
+    private boolean deleted;
+
+    @Column(name = "wx_open_id")
+    private String wxOpenId;
+}
+```
+
+```java
+// SubjectService.java
+package com.example.service;
+
+import com.example.entity.Subject;
+import java.util.List;
+
+public interface SubjectService {
+    List<Subject> getSubjectsByUserName(String userName);
+}
+```
+
+```java
+// SubjectServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Subject;
+import com.example.entity.User;
+import com.example.mapper.SubjectMapper;
+import com.example.mapper.UserMapper;
+import com.example.service.SubjectService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import java.util.List;
+
+@Service
+public class SubjectServiceImpl implements SubjectService {
+
+    private final UserMapper userMapper;
+    private final SubjectMapper subjectMapper;
+
+    @Autowired
+    public SubjectServiceImpl(UserMapper userMapper, SubjectMapper subjectMapper) {
+        this.userMapper = userMapper;
+        this.subjectMapper = subjectMapper;
+    }
+
+    @Override
+    public List<Subject> getSubjectsByUserName(String userName) {
+        User user = userMapper.getUserByUserName(userName);
+        if (user == null) {
+            return null;
+        }
+        return subjectMapper.getSubjectsByLevel(user.getUserLevel());
+    }
+}
+```
+
+```java
+// SubjectController.java
+package com.example.controller;
+
+import com.example.entity.Subject;
+import com.example.service.SubjectService;
+import com.example.entity.ApiResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+public class SubjectController {
+
+    private final SubjectService subjectService;
+
+    @Autowired
+    public SubjectController(SubjectService subjectService) {
+        this.subjectService = subjectService;
+    }
+
+    @PostMapping("/api/student/education/subject/list")
+    public ApiResponse getSubjectList(@RequestParam String userName) {
+        List<Subject> subjects = subjectService.getSubjectsByUserName(userName);
+        if (subjects == null) {
+            return new ApiResponse(2, "未注册", null);
+        }
+        //没有实现将返回data设置为[{"id"=t_subject.id,"name"=t_subject.name}]
+        List<Map<String, Object>> responses = new ArrayList<>();
+        for(Subject subject : subjects){
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", subject.getId());
+            response.put("name", subject.getName());
+            responses.add(response);
+        }
+        return new ApiResponse(1, "成功", responses);
+    }
+}
+```
+
+```java
+// SubjectMapper.java
+package com.example.mapper;
+
+import com.example.entity.Subject;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import java.util.List;
+
+@Mapper
+public interface SubjectMapper {
+    List<Subject> getSubjectsByLevel(@Param("level") int level);
+}
+```
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import com.example.entity.User;
+
+@Mapper
+public interface UserMapper {
+    User getUserByUserName(@Param("userName") String userName);
+}
+```
+
+```xml
+<!-- SubjectMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.SubjectMapper">
+    <select id="getSubjectsByLevel" resultType="com.example.entity.Subject">
+        SELECT id, name
+        FROM t_subject
+        WHERE level = #{level}
+    </select>
+</mapper>
+
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="getUserByUserName" resultType="com.example.entity.User">
+        SELECT *
+        FROM t_user
+        WHERE user_name = #{userName}
+    </select>
+</mapper>
+```

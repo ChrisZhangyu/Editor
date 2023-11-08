@@ -1,0 +1,186 @@
+```java
+// Book.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Book {
+    private int id;
+    private String isbn;
+    private String path;
+    private String title;
+    private String subtitle;
+    private String originalTitle;
+    private String marketPrice;
+    private String intro;
+    private String binding;
+    private String pages;
+    private String author;
+    private String publisher;
+    private String catalog;
+    private String supply;
+    private int status;
+    private int hot;
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// BookService.java
+package com.example.service;
+
+import com.example.entity.Book;
+
+import java.util.List;
+
+public interface BookService {
+    List<Book> searchBooks(Book book, Integer page, Integer rows);
+}
+```
+
+```java
+// BookServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Book;
+import com.example.mapper.BookMapper;
+import com.example.service.BookService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class BookServiceImpl implements BookService {
+
+    private final BookMapper bookMapper;
+
+    @Autowired
+    public BookServiceImpl(BookMapper bookMapper) {
+        this.bookMapper = bookMapper;
+    }
+
+    @Override
+    public List<Book> searchBooks(Book book, Integer page, Integer rows) {
+        Integer start = (page - 1) * rows;
+        return bookMapper.searchBooks(book, start, rows);
+    }
+}
+```
+
+```java
+// BookController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Book;
+import com.example.service.BookService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/book")
+public class BookController {
+
+    private final BookService bookService;
+
+    @Autowired
+    public BookController(BookService bookService) {
+        this.bookService = bookService;
+    }
+
+    @GetMapping("/listAll")
+    public ApiResponse listAllBooks(@RequestParam(defaultValue = "1") Integer page,
+                                    @RequestParam(defaultValue = "10") Integer rows,
+                                    Book book) {
+        List<Book> books = bookService.searchBooks(book, page, rows);
+        return new ApiResponse(1, "成功", books);
+    }
+}
+```
+
+```java
+// BookMapper.java
+package com.example.mapper;
+
+import com.example.entity.Book;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface BookMapper {
+    List<Book> searchBooks(@Param("book") Book book, @Param("start") Integer start, @Param("rows") Integer rows);
+    Integer countBooks(@Param("book") Book book);
+}
+```
+
+```xml
+<!-- BookMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.BookMapper">
+
+    <select id="searchBooks" resultType="com.example.entity.Book">
+        SELECT * FROM ssm_book
+        <where>
+            <if test="book.author != null and book.author != ''">
+                author LIKE CONCAT('%', #{book.author}, '%')
+            </if>
+            <if test="book.title != null and book.title != ''">
+                AND title LIKE CONCAT('%', #{book.title}, '%')
+            </if>
+            <if test="book.isbn != null and book.isbn != ''">
+                AND isbn = #{book.isbn}
+            </if>
+        </where>
+        ORDER BY id DESC
+        LIMIT #{start}, #{rows}
+    </select>
+
+    <select id="countBooks" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM ssm_book
+        WHERE
+        <if test="book.author != null and book.author != ''">
+            author LIKE CONCAT('%', #{book.author}, '%')
+        </if>
+        <if test="book.title != null and book.title != ''">
+            AND title LIKE CONCAT('%', #{book.title}, '%')
+        </if>
+        <if test="book.isbn != null and book.isbn != ''">
+            AND isbn = #{book.isbn}
+        </if>
+    </select>
+
+</mapper>
+```

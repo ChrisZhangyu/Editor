@@ -1,0 +1,802 @@
+业务功能逻辑：根据输入参数在t_exam_paper表中查询试卷id判断试卷是否做过如果试卷做过则返回{"code":2,"message":"试卷不能重复做","response":0}；如果没做过则通过输入的id从t_question表中获取所有题目的详细信息；根据所有题目id从t_exam_paper_answer表中保存所有题目的答案信息；自定义打分细则将试卷分数评出；获取当前用户id，根据用户id从t_user表中得到user_name、real_name和当前日期类创建一个用户日志对象，设置content为user_name + "提交试卷" + paper_name + " 得分：" + system_score + " 耗时：" + do_time，将这个对象更新到t_user_event_log表中；返回{"code":1,"message":"成功","response":0}.
+
+需要检查的代码：
+```java
+// AnswerSubmitRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AnswerSubmitRequest {
+    private String answer;
+    private int id;
+    private int doTime;
+}
+```
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AnswerSubmitRequest {
+    private String answer;
+    private int id;
+    private int doTime;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+```java
+// ExamPaper.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AnswerSubmitRequest {
+    private String answer;
+    private int id;
+    private int doTime;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+    private int gradeLevel;
+    private int score;
+    private int questionCount;
+    private int suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private int taskExamId;
+}
+```
+```java
+// ExamPaperAnswer.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AnswerSubmitRequest {
+    private String answer;
+    private int id;
+    private int doTime;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+    private int gradeLevel;
+    private int score;
+    private int questionCount;
+    private int suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private int taskExamId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperAnswer {
+    private int id;
+    private int examPaperId;
+    private String paperName;
+    private int paperType;
+    private int subjectId;
+    private int systemScore;
+    private int userScore;
+    private int paperScore;
+    private int questionCorrect;
+    private int questionCount;
+    private int doTime;
+    private int status;
+    private int createUser;
+    private Date createTime;
+    private int taskExamId;
+}
+```
+```java
+// Question.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AnswerSubmitRequest {
+    private String answer;
+    private int id;
+    private int doTime;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+    private int gradeLevel;
+    private int score;
+    private int questionCount;
+    private int suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private int taskExamId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperAnswer {
+    private int id;
+    private int examPaperId;
+    private String paperName;
+    private int paperType;
+    private int subjectId;
+    private int systemScore;
+    private int userScore;
+    private int paperScore;
+    private int questionCorrect;
+    private int questionCount;
+    private int doTime;
+    private int status;
+    private int createUser;
+    private Date createTime;
+    private int taskExamId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Question {
+    private int id;
+    private int questionType;
+    private int subjectId;
+    private int score;
+    private int gradeLevel;
+    private int difficult;
+    private String correct;
+    private int infoTextContentId;
+    private int createUser;
+    private int status;
+    private Date createTime;
+    private boolean deleted;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AnswerSubmitRequest {
+    private String answer;
+    private int id;
+    private int doTime;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+    private int gradeLevel;
+    private int score;
+    private int questionCount;
+    private int suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private int taskExamId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperAnswer {
+    private int id;
+    private int examPaperId;
+    private String paperName;
+    private int paperType;
+    private int subjectId;
+    private int systemScore;
+    private int userScore;
+    private int paperScore;
+    private int questionCorrect;
+    private int questionCount;
+    private int doTime;
+    private int status;
+    private int createUser;
+    private Date createTime;
+    private int taskExamId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Question {
+    private int id;
+    private int questionType;
+    private int subjectId;
+    private int score;
+    private int gradeLevel;
+    private int difficult;
+    private String correct;
+    private int infoTextContentId;
+    private int createUser;
+    private int status;
+    private Date createTime;
+    private boolean deleted;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+```java
+// UserEventLog.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AnswerSubmitRequest {
+    private String answer;
+    private int id;
+    private int doTime;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+    private int gradeLevel;
+    private int score;
+    private int questionCount;
+    private int suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private int taskExamId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperAnswer {
+    private int id;
+    private int examPaperId;
+    private String paperName;
+    private int paperType;
+    private int subjectId;
+    private int systemScore;
+    private int userScore;
+    private int paperScore;
+    private int questionCorrect;
+    private int questionCount;
+    private int doTime;
+    private int status;
+    private int createUser;
+    private Date createTime;
+    private int taskExamId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Question {
+    private int id;
+    private int questionType;
+    private int subjectId;
+    private int score;
+    private int gradeLevel;
+    private int difficult;
+    private String correct;
+    private int infoTextContentId;
+    private int createUser;
+    private int status;
+    private Date createTime;
+    private boolean deleted;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserEventLog {
+    private int id;
+    private int userId;
+    private String userName;
+    private String realName;
+    private String content;
+    private Date createTime;
+}
+```
+
+```java
+// ExamPaperService.java
+package com.example.service;
+
+import com.example.entity.User;
+import com.example.entity.ExamPaperAnswer;
+import com.example.mapper.ExamPaperMapper;
+import com.example.entity.AnswerSubmitRequest;
+import com.example.entity.UserEventLog;
+import com.example.entity.Question;
+import com.example.entity.ApiResponse;
+import com.example.entity.ExamPaper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ExamPaperService {
+    private final ExamPaperMapper examPaperMapper;
+    private final QuestionMapper questionMapper;
+    private final ExamPaperAnswerMapper examPaperAnswerMapper;
+    private final UserEventLogMapper userEventLogMapper;
+    private final UserMapper userMapper;
+
+    @Autowired
+    public ExamPaperService(ExamPaperMapper examPaperMapper, QuestionMapper questionMapper, ExamPaperAnswerMapper examPaperAnswerMapper, UserEventLogMapper userEventLogMapper, UserMapper userMapper) {
+        this.examPaperMapper = examPaperMapper;
+        this.questionMapper = questionMapper;
+        this.examPaperAnswerMapper = examPaperAnswerMapper;
+        this.userEventLogMapper = userEventLogMapper;
+        this.userMapper = userMapper;
+    }
+
+    public ApiResponse answerSubmit(AnswerSubmitRequest request) {
+        // 根据输入参数在t_exam_paper表中查询试卷id判断试卷是否做过
+        ExamPaper examPaper = examPaperMapper.getExamPaperById(request.getId());
+        if (examPaper != null) {
+            return new ApiResponse(2, "试卷不能重复做", 0);
+        }
+
+        // 通过输入的id从t_question表中获取所有题目的详细信息
+        List<Question> questions = questionMapper.getQuestionsByExamPaperId(request.getId());
+
+        // 根据所有题目id从t_exam_paper_answer表中保存所有题目的答案信息
+        for (Question question : questions) {
+            ExamPaperAnswer examPaperAnswer = new ExamPaperAnswer();
+            examPaperAnswer.setExamPaperId(request.getId());
+            examPaperAnswer.setQuestionId(question.getId());
+            examPaperAnswer.setAnswer(request.getAnswer());
+            examPaperAnswerMapper.saveExamPaperAnswer(examPaperAnswer);
+        }
+
+        // 自定义打分细则将试卷分数评出
+        int systemScore = calculateSystemScore(questions);
+
+        // 获取当前用户id
+        int userId = getCurrentUserId();
+
+        // 根据用户id从t_user表中得到user_name、real_name和当前日期类创建一个用户日志对象
+        User user = userMapper.getUserById(userId);
+        UserEventLog userEventLog = new UserEventLog();
+        userEventLog.setUserId(userId);
+        userEventLog.setUserName(user.getUserName());
+        userEventLog.setRealName(user.getRealName());
+        userEventLog.setCreateTime(new Date());
+
+        // 设置content为user_name + "提交试卷" + paper_name + " 得分：" + system_score + " 耗时：" + do_time
+        ExamPaper examPaper = examPaperMapper.getExamPaperById(request.getId());
+        userEventLog.setContent(user.getUserName() + "提交试卷" + examPaper.getName() + " 得分：" + systemScore + " 耗时：" + request.getDoTime());
+
+        // 将这个对象更新到t_user_event_log表中
+        userEventLogMapper.saveUserEventLog(userEventLog);
+
+        return new ApiResponse(1, "成功", 0);
+    }
+
+    private int calculateSystemScore(List<Question> questions) {
+        // 自定义打分细则将试卷分数评出的逻辑
+        // ...
+        return 0;
+    }
+
+    private int getCurrentUserId() {
+        // 获取当前用户id的逻辑
+        // ...
+        return 0;
+    }
+}
+```
+
+
+```java
+// ExamPaperController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.ExamPaperService;
+import com.example.entity.AnswerSubmitRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/wx/student/exampaper/answer")
+public class ExamPaperController {
+    private final ExamPaperService examPaperService;
+
+    @Autowired
+    public ExamPaperController(ExamPaperService examPaperService) {
+        this.examPaperService = examPaperService;
+    }
+
+    @PostMapping("/answerSubmit")
+    public ResponseEntity<ApiResponse> answerSubmit(@RequestBody AnswerSubmitRequest request) {
+        ApiResponse response = examPaperService.answerSubmit(request);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+}
+```
+
+```java
+// ExamPaperMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+import com.example.entity.ExamPaperAnswer;
+import com.example.entity.UserEventLog;
+import com.example.entity.Question;
+import com.example.entity.ExamPaper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.springframework.stereotype.Repository;
+
+@Mapper
+@Repository
+public interface ExamPaperMapper {
+    ExamPaper getExamPaperById(@Param("id") int id);
+}
+
+@Mapper
+@Repository
+public interface QuestionMapper {
+    List<Question> getQuestionsByExamPaperId(@Param("examPaperId") int examPaperId);
+}
+
+@Mapper
+@Repository
+public interface ExamPaperAnswerMapper {
+    void saveExamPaperAnswer(ExamPaperAnswer examPaperAnswer);
+}
+
+@Mapper
+@Repository
+public interface UserEventLogMapper {
+    void saveUserEventLog(UserEventLog userEventLog);
+}
+
+@Mapper
+@Repository
+public interface UserMapper {
+    User getUserById(@Param("id") int id);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="getUserById" parameterType="int" resultType="com.example.entity.User">
+        SELECT * FROM t_user WHERE id = #{id}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\wx_answerSubmit_system\src\main\java\com\example\entity\ApiResponse.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_answerSubmit_system\src\main\java\com\example\entity\ApiResponse.java:18
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_answerSubmit_system\src\main\java\com\example\entity\ApiResponse.java:19
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_answerSubmit_system\src\main\java\com\example\service\ExamPaperService.java:50:28
+java: 找不到符号
+  符号:   方法 setAnswer(java.lang.String)
+  位置: 类型为com.example.entity.ExamPaperAnswer的变量 examPaperAnswer
+D:\迅雷下载\xzs-project_test\wx_answerSubmit_system\src\main\java\com\example\service\ExamPaperService.java:69:19
+java: 已在方法 answerSubmit(com.example.entity.AnswerSubmitRequest)中定义了变量 examPaper
+```
+```功能错误
+未实现打分细则将试卷分数评出的逻辑，未实现获取当前用户id的逻辑
+```

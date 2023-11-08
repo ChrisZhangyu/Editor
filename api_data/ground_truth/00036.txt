@@ -1,0 +1,145 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private String status;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Employee.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Employee {
+    private int empId;
+    private String empName;
+    private String empEmail;
+    private String gender;
+    private int departmentId;
+}
+```
+
+```java
+// EmployeeService.java
+package com.example.service;
+
+import com.example.entity.Employee;
+
+public interface EmployeeService {
+    Employee getEmployeeById(int empId);
+}
+```
+
+```java
+// EmployeeServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.EmployeeService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.example.entity.Employee;
+import com.example.mapper.EmployeeMapper;
+
+@Service
+public class EmployeeServiceImpl implements EmployeeService {
+    private final EmployeeMapper employeeMapper;
+
+    @Autowired
+    public EmployeeServiceImpl(EmployeeMapper employeeMapper) {
+        this.employeeMapper = employeeMapper;
+    }
+
+    @Override
+    public Employee getEmployeeById(int empId) {
+        return employeeMapper.getEmployeeById(empId);
+    }
+}
+```
+
+```java
+// EmployeeController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.entity.Employee;
+import com.example.entity.ApiResponse;
+import com.example.service.EmployeeService;
+
+@RestController
+@RequestMapping("/hrms/emp")
+public class EmployeeController {
+    private final EmployeeService employeeService;
+
+    @Autowired
+    public EmployeeController(EmployeeService employeeService) {
+        this.employeeService = employeeService;
+    }
+
+    @GetMapping("/getEmpById/{empId}")
+    public ApiResponse getEmployeeById(@PathVariable int empId) {
+        Employee employee = employeeService.getEmployeeById(empId);
+        System.out.print(employee);
+        if (employee != null) {
+            return new ApiResponse("success", "操作成功", employee);
+        } else {
+            return new ApiResponse("failure", "操作失败", null);
+        }
+    }
+}
+```
+
+```java
+// EmployeeMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import com.example.entity.Employee;
+
+@Mapper
+public interface EmployeeMapper {
+    Employee getEmployeeById(@Param("empId") int empId);
+}
+```
+
+```xml
+<!-- EmployeeMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.EmployeeMapper">
+
+    <resultMap type="com.example.entity.Employee" id="ArticleResult">
+        <result property="empId" column="emp_id"/>
+        <result property="empName" column="emp_name"/>
+        <result property="empEmail" column="emp_email"/>
+        <result property="gender" column="gender"/>
+        <result property="departmentId" column="department_id"/>
+    </resultMap>
+
+    <select id="getEmployeeById" resultMap="ArticleResult">
+        SELECT * FROM tbl_emp WHERE emp_id = #{empId}
+    </select>
+</mapper>
+```

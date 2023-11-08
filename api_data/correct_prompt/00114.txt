@@ -1,0 +1,281 @@
+业务功能逻辑：个人信息修改：当发起 POST 请求到该接口时，服务器会接收到一个包含更新后用户信息的 JSON 请求体。请求体中的 realName 和 phone 字段不能为空，如果它们为空，服务器会以适当的错误消息和表示验证失败的状态码（例如，400 Bad Request）来响应；如果请求数据有效，服务器会根据当前已认证用户的 id获取要更新的用户。然后将请求体中的属性（realName 和 phone）更新到用户对象的相应字段中，用户的修改时间将被更新为当前日期和时间；使用 userService.updateByIdFilter(user) 方法来更新数据库中的用户信息；最后，返回一个表示用户信息已成功更新的响应。
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// UpdateUserRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateUserRequest {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String realName;
+    private int age;
+    private int role;
+    private int sex;
+    private Date birthDay;
+    private String phone;
+    private Date lastActiveTime;
+    private Date createTime;
+    private Date modifyTime;
+    private int status;
+    private Integer userLevel;
+    private String imagePath;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateUserRequest {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String realName;
+    private int age;
+    private int role;
+    private int sex;
+    private Date birthDay;
+    private String phone;
+    private Date lastActiveTime;
+    private Date createTime;
+    private Date modifyTime;
+    private int status;
+    private Integer userLevel;
+    private String imagePath;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.User;
+import com.example.mapper.UserMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserService {
+    private final UserMapper userMapper;
+
+    @Autowired
+    public UserService(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    public void updateByIdFilter(User user) {
+        userMapper.updateByIdFilter(user);
+    }
+}
+```
+
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.service.UserService;
+import com.example.entity.UpdateUserRequest;
+import com.example.entity.ApiResponse;
+import com.example.entity.User;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/user")
+public class UserController {
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/update")
+    public ResponseEntity<ApiResponse<Object>> updateUser(@RequestBody UpdateUserRequest request) {
+        if (request.getRealName() == null || request.getPhone() == null) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(400, "realName and phone cannot be null", null));
+        }
+
+        User user = userService.getById(request.getId());
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(404, "User not found", null));
+        }
+
+        user.setRealName(request.getRealName());
+        user.setPhone(request.getPhone());
+        user.setModifyTime(new Date());
+
+        userService.updateByIdFilter(user);
+
+        return ResponseEntity.ok(new ApiResponse<>(1, "Success", null));
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface UserMapper {
+    void updateByIdFilter(@Param("user") User user);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.UserMapper">
+    <update id="updateByIdFilter">
+        UPDATE t_user
+        SET
+        user_uuid = #{user.userUuid},
+        user_name = #{user.userName},
+        password = #{user.password},
+        real_name = #{user.realName},
+        age = #{user.age},
+        sex = #{user.sex},
+        birth_day = #{user.birthDay},
+        user_level = #{user.userLevel},
+        phone = #{user.phone},
+        role = #{user.role},
+        status = #{user.status},
+        image_path = #{user.imagePath},
+        create_time = #{user.createTime},
+        modify_time = #{user.modifyTime},
+        last_active_time = #{user.lastActiveTime},
+        deleted = #{user.deleted},
+        wx_open_id = #{user.wxOpenId}
+        WHERE id = #{user.id}
+    </update>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\order_t_user_update_system\src\main\java\com\example\entity\UpdateUserRequest.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_t_user_update_system\src\main\java\com\example\entity\UpdateUserRequest.java:18
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_t_user_update_system\src\main\java\com\example\entity\UpdateUserRequest.java:19
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_t_user_update_system\src\main\java\com\example\entity\UpdateUserRequest.java:21
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_t_user_update_system\src\main\java\com\example\controller\UserController.java:34:49
+java: 不兼容的类型: void无法转换为com.example.entity.User
+```
+```功能错误
+org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'password' in 'class com.example.entity.UpdateUserRequest'
+org.apache.ibatis.binding.BindingException: Mapper method 'com.example.mapper.UserMapper.updateByIdFilter' has an unsupported return type: class com.example.entity.User
+```

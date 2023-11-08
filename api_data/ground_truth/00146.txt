@@ -1,0 +1,237 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// CategorySecond.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_second")
+public class CategorySecond {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+}
+
+```
+
+```java
+// Good.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_good")
+public class Good {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "good_name", length = 20)
+    private String goodName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+    @Column(name = "price", precision = 10, scale = 2)
+    private Double price;
+
+    @Column(name = "original_price", precision = 10, scale = 2)
+    private Double originalPrice;
+
+    @Column(name = "inventory")
+    private Integer inventory;
+
+    @Column(name = "sold_count")
+    private Integer soldCount;
+
+    @Column(name = "spec", length = 20)
+    private String spec;
+
+    @Column(name = "origin", length = 10)
+    private String origin;
+}
+```
+
+```java
+// CategorySecondService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface CategorySecondService {
+    ApiResponse deleteCategorySecond(int categorySecondId);
+}
+```
+
+```java
+// CategorySecondServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.CategorySecondMapper;
+import com.example.entity.ApiResponse;
+import com.example.mapper.GoodMapper;
+import com.example.service.CategorySecondService;
+import com.example.entity.CategorySecond;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class CategorySecondServiceImpl implements CategorySecondService {
+
+    private final CategorySecondMapper categorySecondMapper;
+
+    private final GoodMapper goodMapper;
+
+    @Autowired
+    public CategorySecondServiceImpl(CategorySecondMapper categorySecondMapper, GoodMapper goodMapper) {
+        this.categorySecondMapper = categorySecondMapper;
+        this.goodMapper = goodMapper;
+    }
+
+    @Override
+    public ApiResponse deleteCategorySecond(int categorySecondId) {
+        CategorySecond categorySecond = categorySecondMapper.selectCategorySecondById(categorySecondId);
+        if (categorySecond == null) {
+            return new ApiResponse(-1002, "该分类不存在", null);
+        }
+        int goodsCount = goodMapper.countGoodsId(categorySecondId);
+        if (goodsCount > 0) {
+            return new ApiResponse(-1006, "该分类下有商品存在，不能删除该分类", null);
+        }
+        categorySecondMapper.deleteCategorySecond(categorySecondId);
+        return new ApiResponse(100, "成功", null);
+    }
+}
+```
+
+```java
+// CategorySecondController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.CategorySecondService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/admin/v1/category/second")
+public class CategorySecondController {
+
+    private final CategorySecondService categorySecondService;
+
+    @Autowired
+    public CategorySecondController(CategorySecondService categorySecondService) {
+        this.categorySecondService = categorySecondService;
+    }
+
+    @DeleteMapping("/{categorySecondId}")
+    public ApiResponse deleteCategorySecond(@PathVariable int categorySecondId) {
+        return categorySecondService.deleteCategorySecond(categorySecondId);
+    }
+}
+```
+
+```java
+// CategorySecondMapper.java
+package com.example.mapper;
+
+import com.example.entity.CategorySecond;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface CategorySecondMapper {
+    CategorySecond selectCategorySecondById(int categorySecondId);
+    void deleteCategorySecond(int categorySecondId);
+}
+```
+
+```java
+// GoodMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface GoodMapper {
+    int countGoodsId(int categorySecondId);
+}
+```
+
+```xml
+<!-- CategorySecondMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.CategorySecondMapper">
+    <select id="selectCategorySecondById" resultType="com.example.entity.CategorySecond">
+        SELECT * FROM tb_category_second WHERE category_second_id = #{categorySecondId}
+    </select>
+
+    <delete id="deleteCategorySecond" parameterType="int">
+        DELETE FROM tb_category_second WHERE category_second_id = #{categorySecondId}
+    </delete>
+
+</mapper>
+```
+
+```xml
+<!-- GoodMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.GoodMapper">
+    <select id="countGoodsId" resultType="int">
+        SELECT COUNT(*) FROM tb_good WHERE category_second_id = #{categorySecondId}
+    </select>
+
+</mapper>
+```

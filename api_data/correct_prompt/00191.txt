@@ -1,0 +1,328 @@
+业务功能逻辑：
+在t_user表中查询已存在用户，查询条件是user_name等于userName，如果存在返回(2,"用户已存在",null)；在表中插入用户，字段user_uuid设置为随机生成的UUID字符串，user_name设置为userName，password设置为password采用哈希算法加密后的字符串，role和status设置为1，last_active_time和create_time设置为当前时间，deleted设置为false；在t_user_event_log表中插入用户日志，字段user_id设置为t_user.id，user_name设置为t_user.user_name，real_name设置为t_user.real_name，create_time设置为当前时间；返回(1,"成功",null).
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// User.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_user")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "user_uuid")
+    private String userUuid;
+
+    @Column(name = "user_name")
+    private String userName;
+
+    @Column(name = "password")
+    private String password;
+
+    @Column(name = "real_name")
+    private String realName;
+
+    @Column(name = "age")
+    private int age;
+
+    @Column(name = "sex")
+    private int sex;
+
+    @Column(name = "birth_day")
+    private Date birthDay;
+
+    @Column(name = "user_level")
+    private int userLevel;
+
+    @Column(name = "phone")
+    private String phone;
+
+    @Column(name = "role")
+    private int role;
+
+    @Column(name = "status")
+    private int status;
+
+    @Column(name = "image_path")
+    private String imagePath;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+
+    @Column(name = "last_active_time")
+    private Date lastActiveTime;
+
+    @Column(name = "deleted")
+    private boolean deleted;
+
+    @Column(name = "wx_open_id")
+    private String wxOpenId;
+}
+```
+
+```java
+// UserEventLog.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_user_event_log")
+public class UserEventLog {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "user_id")
+    private int userId;
+
+    @Column(name = "user_name")
+    private String userName;
+
+    @Column(name = "real_name")
+    private String realName;
+
+    @Column(name = "content")
+    private String content;
+
+    @Column(name = "create_time")
+    private Date createTime;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.User;
+
+public interface UserService {
+    ApiResponse registerUser(String userName, String password);
+    User getUserByUserName(String userName);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.User;
+import com.example.entity.UserEventLog;
+import com.example.mapper.UserEventLogMapper;
+import com.example.mapper.UserMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.UUID;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserMapper userMapper;
+    private final UserEventLogMapper userEventLogMapper;
+
+    @Autowired
+    public UserServiceImpl(UserMapper userMapper, UserEventLogMapper userEventLogMapper) {
+        this.userMapper = userMapper;
+        this.userEventLogMapper = userEventLogMapper;
+    }
+
+    @Override
+    public ApiResponse registerUser(String userName, String password) {
+        User existingUser = getUserByUserName(userName);
+        if (existingUser != null) {
+            return new ApiResponse(2, "用户已存在", null);
+        }
+
+        User user = new User();
+        user.setUserUuid(UUID.randomUUID().toString());
+        user.setUserName(userName);
+        // TODO: 使用哈希算法加密password
+        user.setPassword(password);
+        user.setRole(1);
+        user.setStatus(1);
+        user.setLastActiveTime(new Date());
+        user.setCreateTime(new Date());
+        user.setDeleted(false);
+
+        userMapper.insert(user);
+
+        UserEventLog userEventLog = new UserEventLog();
+        userEventLog.setUserId(user.getId());
+        userEventLog.setUserName(user.getUserName());
+        userEventLog.setRealName(user.getRealName());
+        userEventLog.setCreateTime(new Date());
+
+        userEventLogMapper.insert(userEventLog);
+
+        return new ApiResponse(1, "成功", null);
+    }
+
+    @Override
+    public User getUserByUserName(String userName) {
+        return userMapper.getUserByUserName(userName);
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/student/user")
+public class UserController {
+
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/register")
+    public ApiResponse registerUser(@RequestBody UserRegisterRequest request) {
+        return userService.registerUser(request.getUserName(), request.getPassword());
+    }
+}
+```
+
+```java
+// UserEventLogMapper.java
+package com.example.mapper;
+
+import com.example.entity.UserEventLog;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface UserEventLogMapper {
+    void insert(UserEventLog userEventLog);
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface UserMapper {
+    void insert(User user);
+    User getUserByUserName(String userName);
+}
+```
+
+```xml
+<!-- UserEventLogMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.UserEventLogMapper">
+    <insert id="insert" parameterType="com.example.entity.UserEventLog">
+        INSERT INTO t_user (user_id, user_name, real_name, content, create_time)
+        VALUES (#{userId}, #{userName}, #{realName}, #{content}, #{createTime})
+    </insert>
+</mapper>
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.UserMapper">
+    <insert id="insert" parameterType="com.example.entity.User">
+        INSERT INTO t_user (user_uuid, user_name, password, real_name, age, sex, birth_day, user_level, phone,
+        role, status, image_path, create_time, modify_time, last_active_time, deleted, wx_open_id)
+        VALUES (#{userUuid}, #{userName}, #{password}, #{realName}, #{age}, #{sex}, #{birthDay}, #{userLevel}, #{phone},
+        #{role}, #{status}, #{imagePath}, #{createTime}, #{modifyTime}, #{lastActiveTime}, #{deleted}, #{wxOpenId})
+    </insert>
+
+    <select id="getUserByUserName" parameterType="String" resultType="com.example.entity.User">
+        SELECT * FROM t_user WHERE user_name = #{userName}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+UserController.java:22:50
+java: 找不到符号
+  符号:   类 UserRegisterRequest
+  位置: 类 com.example.controller.UserController
+UserController.java:22:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.UserController
+UserService.java:6:5
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.UserService
+UserServiceImpl.java:13:41
+java: 找不到符号
+  符号: 类 UserService
+UserServiceImpl.java:25:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.UserServiceImpl
+```
+
+```功能错误
+没有创建请求参数实体类UserRegisterRequest.
+没有实现哈希算法对password加密的功能逻辑.
+```

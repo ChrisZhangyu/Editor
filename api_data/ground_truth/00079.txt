@@ -1,0 +1,335 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Long id;
+    private Long memberId;
+    private Long couponId;
+    private String orderSn;
+    private String createTime;
+    private String memberUsername;
+    private Double totalAmount;
+    private Double payAmount;
+    private Double freightAmount;
+    private Double promotionAmount;
+    private Double integrationAmount;
+    private Double couponAmount;
+    private Double discountAmount;
+    private Integer payType;
+    private Integer sourceType;
+    private Integer status;
+    private Integer orderType;
+    private String deliveryCompany;
+    private String deliverySn;
+    private Integer autoConfirmDay;
+    private Integer integration;
+    private Integer growth;
+    private String promotionInfo;
+    private Integer billType;
+    private String billHeader;
+    private String billContent;
+    private String billReceiverPhone;
+    private String billReceiverEmail;
+    private String receiverName;
+    private String receiverPhone;
+    private String receiverPostCode;
+    private String receiverProvince;
+    private String receiverCity;
+    private String receiverRegion;
+    private String receiverDetailAddress;
+    private String note;
+    private Integer confirmStatus;
+    private Integer deleteStatus;
+    private Integer useIntegration;
+    private String paymentTime;
+    private String deliveryTime;
+    private String receiveTime;
+    private String commentTime;
+    private String modifyTime;
+}
+```
+```java
+// OmsOrder.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrder {
+    private Long id;
+    private Long memberId;
+    private Long couponId;
+    private String orderSn;
+    private Timestamp createTime;
+    private String memberUsername;
+    private BigDecimal totalAmount;
+    private BigDecimal payAmount;
+    private BigDecimal freightAmount;
+    private BigDecimal promotionAmount;
+    private BigDecimal integrationAmount;
+    private BigDecimal couponAmount;
+    private BigDecimal discountAmount;
+    private Integer payType;
+    private Integer sourceType;
+    private Integer status;
+    private Integer orderType;
+    private String deliveryCompany;
+    private String deliverySn;
+    private Integer autoConfirmDay;
+    private Integer integration;
+    private Integer growth;
+    private String promotionInfo;
+    private Integer billType;
+    private String billHeader;
+    private String billContent;
+    private String billReceiverPhone;
+    private String billReceiverEmail;
+    private String receiverName;
+    private String receiverPhone;
+    private String receiverPostCode;
+    private String receiverProvince;
+    private String receiverCity;
+    private String receiverRegion;
+    private String receiverDetailAddress;
+    private String note;
+    private Integer confirmStatus;
+    private Integer deleteStatus;
+    private Integer useIntegration;
+    private Timestamp paymentTime;
+    private Timestamp deliveryTime;
+    private Timestamp receiveTime;
+    private Timestamp commentTime;
+    private Timestamp modifyTime;
+}
+```
+```java
+// OmsOrderOperateHistory.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderOperateHistory {
+    private Long id;
+    private Long orderId;
+    private String operateMan;
+    private Timestamp createTime;
+    private Integer orderStatus;
+    private String note;
+}
+```
+```java
+// OrderDetailRequest.java
+package com.example.entity;
+
+import lombok.Data;
+
+@Data
+public class OrderDetailRequest {
+    private Long id;
+}
+```
+
+```java
+// OrderService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+import java.util.List;
+
+public interface OrderService {
+    ApiResponse getOrderDetail(Long id);
+}
+```
+
+```java
+// OrderServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.OmsOrder;
+import com.example.entity.OmsOrderOperateHistory;
+import com.example.mapper.OrderOperateHistoryMapper;
+import com.example.service.OrderService;
+import com.example.mapper.OrderMapper;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class OrderServiceImpl implements OrderService {
+
+    private final OrderMapper orderMapper;
+    private final OrderOperateHistoryMapper orderOperateHistoryMapper;
+
+    @Autowired
+    public OrderServiceImpl(OrderMapper orderMapper, OrderOperateHistoryMapper orderOperateHistoryMapper) {
+        this.orderMapper = orderMapper;
+        this.orderOperateHistoryMapper = orderOperateHistoryMapper;
+    }
+
+    @Override
+    public ApiResponse getOrderDetail(Long id) {
+        OmsOrder order = orderMapper.getOrderById(id);
+        List<OmsOrderOperateHistory> operateHistoryList = orderOperateHistoryMapper.getOperateHistoryByOrderId(id);
+
+        ApiResponse response = new ApiResponse();
+        response.setId(order.getId());
+        response.setMemberId(order.getMemberId());
+        response.setCouponId(order.getCouponId());
+        response.setOrderSn(order.getOrderSn());
+        response.setCreateTime(order.getCreateTime().toString());
+        response.setMemberUsername(order.getMemberUsername());
+        response.setTotalAmount(order.getTotalAmount().doubleValue());
+        response.setPayAmount(order.getPayAmount().doubleValue());
+        response.setFreightAmount(order.getFreightAmount().doubleValue());
+        response.setPromotionAmount(order.getPromotionAmount().doubleValue());
+        response.setIntegrationAmount(order.getIntegrationAmount().doubleValue());
+        response.setCouponAmount(order.getCouponAmount().doubleValue());
+        response.setDiscountAmount(order.getDiscountAmount().doubleValue());
+        response.setPayType(order.getPayType());
+        response.setSourceType(order.getSourceType());
+        response.setStatus(order.getStatus());
+        response.setOrderType(order.getOrderType());
+        response.setDeliveryCompany(order.getDeliveryCompany());
+        response.setDeliverySn(order.getDeliverySn());
+        response.setAutoConfirmDay(order.getAutoConfirmDay());
+        response.setIntegration(order.getIntegration());
+        response.setGrowth(order.getGrowth());
+        response.setPromotionInfo(order.getPromotionInfo());
+        response.setBillType(order.getBillType());
+        response.setBillHeader(order.getBillHeader());
+        response.setBillContent(order.getBillContent());
+        response.setBillReceiverPhone(order.getBillReceiverPhone());
+        response.setBillReceiverEmail(order.getBillReceiverEmail());
+        response.setReceiverName(order.getReceiverName());
+        response.setReceiverPhone(order.getReceiverPhone());
+        response.setReceiverPostCode(order.getReceiverPostCode());
+        response.setReceiverProvince(order.getReceiverProvince());
+        response.setReceiverCity(order.getReceiverCity());
+        response.setReceiverRegion(order.getReceiverRegion());
+        response.setReceiverDetailAddress(order.getReceiverDetailAddress());
+        response.setNote(order.getNote());
+        response.setConfirmStatus(order.getConfirmStatus());
+        response.setDeleteStatus(order.getDeleteStatus());
+        response.setUseIntegration(order.getUseIntegration());
+        response.setPaymentTime(order.getPaymentTime().toString());
+        response.setDeliveryTime(order.getDeliveryTime().toString());
+        response.setReceiveTime(order.getReceiveTime().toString());
+        response.setCommentTime(order.getCommentTime().toString());
+        response.setModifyTime(order.getModifyTime().toString());
+
+        return response;
+    }
+}
+```
+
+```java
+// OrderController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.OrderService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/order")
+public class OrderController {
+
+    private final OrderService orderService;
+
+    @Autowired
+    public OrderController(OrderService orderService) {
+        this.orderService = orderService;
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse getOrderDetail(@PathVariable Long id) {
+        return orderService.getOrderDetail(id);
+    }
+}
+```
+
+```java
+// OrderMapper.java
+package com.example.mapper;
+
+import com.example.entity.OmsOrder;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface OrderMapper {
+    OmsOrder getOrderById(@Param("id") Long id);
+}
+```
+```java
+// OrderOperateHistoryMapper.java
+package com.example.mapper;
+
+import com.example.entity.OmsOrderOperateHistory;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface OrderOperateHistoryMapper {
+    List<OmsOrderOperateHistory> getOperateHistoryByOrderId(@Param("orderId") Long orderId);
+}
+```
+
+```xml
+<!-- OrderOperateHistoryMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.OrderOperateHistoryMapper">
+    <resultMap id="BaseResultMap" type="com.example.entity.OmsOrderOperateHistory">
+        <id column="id" property="id" />
+        <result column="order_id" property="orderId" />
+        <result column="operate_man" property="operateMan" />
+        <result column="create_time" property="createTime" />
+        <result column="order_status" property="orderStatus" />
+        <result column="note" property="note" />
+    </resultMap>
+
+    <select id="getOperateHistoryByOrderId" resultMap="BaseResultMap">
+        SELECT * FROM oms_order_operate_history WHERE order_id = #{orderId}
+    </select>
+</mapper>
+
+```
+

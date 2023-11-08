@@ -1,0 +1,370 @@
+业务功能逻辑：
+1. 学科获取: POST /api/student/education/subject/list; x-www-form-urlencoded; ("userName": ""); ApiResponse{"code":1,"message":"成功","response":null}.
+2. 在t_user表中查询用户，查询条件是user_name等于userName，如果不存在返回(2,"未注册",null)；在t_subject表中查询所有学科，查询条件是level等于t_user.user_level，返回response设置为[{"id"=t_subject.id,"name"=t_subject.name}].
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// TaskExam.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_task_exam")
+public class TaskExam {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "title")
+    private String title;
+
+    @Column(name = "grade_level")
+    private int gradeLevel;
+
+    @Column(name = "frame_text_content_id")
+    private int frameTextContentId;
+
+    @Column(name = "create_user")
+    private int createUser;
+
+    @Column(name = "create_time")
+    private String createTime;
+
+    @Column(name = "deleted")
+    private boolean deleted;
+
+    @Column(name = "create_user_name")
+    private String createUserName;
+}
+```
+
+```java
+// TaskExamCustomerAnswer.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_task_exam_customer_answer")
+public class TaskExamCustomerAnswer {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
+
+    @Column(name = "task_exam_id")
+    private Integer taskExamId;
+
+    @Column(name = "create_user")
+    private Integer createUser;
+
+    @Column(name = "create_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createTime;
+
+    @Column(name = "text_content_id")
+    private Integer textContentId;
+}
+```
+
+```java
+// User.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_user")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "user_uuid")
+    private String userUuid;
+
+    @Column(name = "user_name")
+    private String userName;
+
+    @Column(name = "password")
+    private String password;
+
+    @Column(name = "real_name")
+    private String realName;
+
+    @Column(name = "age")
+    private int age;
+
+    @Column(name = "sex")
+    private int sex;
+
+    @Column(name = "birth_day")
+    private Date birthDay;
+
+    @Column(name = "user_level")
+    private int userLevel;
+
+    @Column(name = "phone")
+    private String phone;
+
+    @Column(name = "role")
+    private int role;
+
+    @Column(name = "status")
+    private int status;
+
+    @Column(name = "image_path")
+    private String imagePath;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+
+    @Column(name = "last_active_time")
+    private Date lastActiveTime;
+
+    @Column(name = "deleted")
+    private boolean deleted;
+
+    @Column(name = "wx_open_id")
+    private String wxOpenId;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.User;
+
+public interface UserService {
+    ApiResponse getTask(String userName);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.TaskExam;
+import com.example.entity.User;
+import com.example.mapper.TaskExamCustomerAnswerMapper;
+import com.example.mapper.TaskExamMapper;
+import com.example.mapper.UserMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private TaskExamMapper taskExamMapper;
+
+    @Autowired
+    private TaskExamCustomerAnswerMapper taskExamCustomerAnswerMapper;
+
+    @Override
+    public ApiResponse getTask(String userName) {
+        User user = userMapper.findByUserName(userName);
+        if (user == null) {
+            return new ApiResponse(2, "未注册", null);
+        }
+
+        List<TaskExam> tasks = taskExamMapper.findByGradeLevel(user.getUserLevel());
+        if (tasks.isEmpty()) {
+            return new ApiResponse(2, "成功", new ArrayList<>());
+        }
+
+        List<Object> responseData = new ArrayList<>();
+        for (TaskExam task : tasks) {
+            List<Object> paperItems = taskExamCustomerAnswerMapper.findByCreateUserAndTaskExamId(user.getId(), task.getId());
+            responseData.add(new ApiResponse(task.getId(), task.getTitle(), paperItems));
+        }
+
+        return new ApiResponse(1, "成功", responseData);
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class UserController {
+
+    @Autowired
+    private UserService userService;
+
+    @PostMapping("/api/student/dashboard/task")
+    public ApiResponse getTask(@RequestBody UserRequest userRequest) {
+        return userService.getTask(userRequest.getUserName());
+    }
+}
+```
+
+```java
+// TaskExamCustomerAnswerMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface TaskExamCustomerAnswerMapper {
+    List<Object> findByCreateUserAndTaskExamId(@Param("createUser") int createUser, @Param("taskExamId") int taskExamId);
+}
+```
+
+```java
+// TaskExamMapper.java
+package com.example.mapper;
+
+import com.example.entity.TaskExam;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface TaskExamMapper {
+    List<TaskExam> findByGradeLevel(@Param("gradeLevel") int gradeLevel);
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface UserMapper {
+    User findByUserName(@Param("userName") String userName);
+}
+```
+
+```xml
+<!-- TaskExamCustomerAnswerMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.TaskExamCustomerAnswerMapper">
+    <select id="findByCreateUserAndTaskExamId" resultType="java.lang.Object">
+        SELECT * FROM t_task_exam_customer_answer WHERE create_user = #{createUser} AND task_exam_id = #{taskExamId}
+    </select>
+</mapper>
+
+```
+
+```xml
+<!-- TaskExamMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.TaskExamMapper">
+    <select id="findByGradeLevel" resultType="com.example.entity.TaskExam">
+        SELECT * FROM t_task_exam WHERE grade_level = #{gradeLevel}
+    </select>
+</mapper>
+
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="findByUserName" resultType="com.example.entity.User">
+        SELECT * FROM t_user WHERE user_name = #{userName}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+UserController.java:16:45
+java: 找不到符号
+  符号:   类 UserRequest
+  位置: 类 com.example.controller.UserController
+UserController.java:16:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.UserController
+UserServiceImpl.java:15:41
+java: 找不到符号
+  符号: 类 UserService
+UserServiceImpl.java:27:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.UserServiceImpl
+```
+
+```功能错误
+UserController.java模块中getTask接口的输入参数错误,应该是@(@RequestBody UserRequest userRequest).
+没有实现将返回response设置为[{"id"=t_task_exam.id,"title"=t_task_exam.title,"paperItems"=[{t_task_exam_customer_answer记录}]}].
+```

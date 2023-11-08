@@ -1,0 +1,160 @@
+﻿
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private boolean success;
+}
+```
+```java
+// Store.java
+package com.example.entity;
+
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Store {
+    private int id;
+    private String category;
+    private String number;
+    private String level;
+    private String page;
+    private int status;
+}
+```
+
+```java
+// StoreService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface StoreService {
+    ApiResponse closeStore(String ids);
+}
+```
+
+```java
+// StoreServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.StoreMapper;
+import com.example.entity.ApiResponse;
+import com.example.service.StoreService;
+import com.example.entity.Store;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional
+public class StoreServiceImpl implements StoreService {
+
+    private final StoreMapper storeMapper;
+
+    @Autowired
+    public StoreServiceImpl(StoreMapper storeMapper) {
+        this.storeMapper = storeMapper;
+    }
+
+    @Override
+    public ApiResponse closeStore(String ids) {
+        String[] idArray = ids.split(",");
+        for (String id : idArray) {
+            Store store = storeMapper.findById(Integer.parseInt(id));
+            if (store != null && store.getStatus() != 0) {
+                storeMapper.updateStatus(store.getId(), 0);
+            }
+        }
+        return new ApiResponse(1, true);
+    }
+}
+```
+
+```java
+// StoreController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.StoreService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class StoreController {
+
+    private final StoreService storeService;
+
+    @Autowired
+    public StoreController(StoreService storeService) {
+        this.storeService = storeService;
+    }
+
+    @GetMapping("/store/closeStore")
+    public ApiResponse closeStore(@RequestParam("ids") String ids) {
+        return storeService.closeStore(ids);
+    }
+}
+```
+
+```java
+// StoreMapper.java
+package com.example.mapper;
+
+import com.example.entity.Store;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface StoreMapper {
+    Store findById(@Param("id") int id);
+    void updateStatus(@Param("id") int id, @Param("status") int status);
+}
+```
+
+```xml
+<!-- StoreMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.StoreMapper">
+    <resultMap id="storeResultMap" type="com.example.entity.Store">
+        <id property="id" column="id"/>
+        <result property="category" column="category"/>
+        <result property="number" column="number"/>
+        <result property="level" column="level"/>
+        <result property="page" column="page"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
+    <select id="findById" resultMap="storeResultMap">
+        SELECT * FROM ssm_store WHERE id = #{id}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE ssm_store SET status = #{status} WHERE id = #{id}
+    </update>
+</mapper>
+
+```

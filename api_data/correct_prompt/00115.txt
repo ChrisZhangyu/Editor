@@ -1,0 +1,237 @@
+业务功能逻辑：根据传入的参数查询用户信息，如果用户名存在，返回一个包含用户信息的列表，如果用户名不存，返回一个包含错误消息的响应，提示"用户名不存在"。
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// SelectByUserNameRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SelectByUserNameRequest {
+    private String userName;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SelectByUserNameRequest {
+    private String userName;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.User;
+
+import java.util.List;
+
+public interface UserService {
+    List<User> selectByUserName(String userName);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.UserService;
+import com.example.entity.User;
+import com.example.mapper.UserMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserMapper userMapper;
+
+    @Autowired
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public List<User> selectByUserName(String userName) {
+        return userMapper.selectByUserName(userName);
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.service.UserService;
+import com.example.entity.ApiResponse;
+import com.example.entity.User;
+import com.example.entity.SelectByUserNameRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/user")
+public class UserController {
+
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/selectByUserName")
+    public ApiResponse<List<User>> selectByUserName(@RequestBody SelectByUserNameRequest request) {
+        List<User> userList = userService.selectByUserName(request.getUserName());
+        if (userList.isEmpty()) {
+            return new ApiResponse<>(0, "用户名不存在", null);
+        } else {
+            return new ApiResponse<>(1, "成功", userList);
+        }
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface UserMapper {
+    List<User> selectByUserName(@Param("userName") String userName);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+
+    <select id="selectByUserName" resultType="com.example.entity.User">
+        SELECT * FROM t_user WHERE user_name = #{userName}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\order_t_user_select_system\src\main\java\com\example\entity\SelectByUserNameRequest.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_t_user_select_system\src\main\java\com\example\entity\SelectByUserNameRequest.java:18
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_t_user_select_system\src\main\java\com\example\entity\SelectByUserNameRequest.java:19
+java: 需要class, interface或enum
+
+```
+```功能错误
+
+```

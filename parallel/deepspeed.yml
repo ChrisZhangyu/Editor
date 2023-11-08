@@ -1,0 +1,16 @@
+train_micro_batch_size_per_gpu: 1
+train_batch_size: 128
+zero_optimization:
+  stage: 1
+steps_per_print: 20
+bf16: 
+  enabled: true
+zero_allow_untested_optimizer: true
+model_topo: 
+  process_topology: 
+    axes: [pipe, data]
+    dims: [4, 1]
+    parts: [12, 13, 12, 12]  # llama-7b
+use_grad_ckpt: false
+use_flash_attn: false
+gradient_accumulation_steps: 4

@@ -1,0 +1,230 @@
+```java
+// ApiResponse.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Long id;
+    private String name;
+    private Integer growthPoint;
+    private Integer defaultStatus;
+    private Integer freeFreightPoint;
+    private Integer commentGrowthPoint;
+    private Integer priviledgeFreeFreight;
+    private Integer priviledgeSignIn;
+    private Integer priviledgeComment;
+    private Integer priviledgePromotion;
+    private Integer priviledgeMemberPrice;
+    private Integer priviledgeBirthday;
+    private String note;
+}
+
+
+```
+```java
+// MemberLevelListRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class MemberLevelListRequest {
+    private Integer defaultStatus;
+}
+```
+```java
+// UmsResource.java
+package com.example.entity;
+
+import lombok.Data;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsResource {
+    /**
+     * 资源ID
+     */
+    private int id;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 资源名称
+     */
+    private String name;
+
+    /**
+     * 资源URL
+     */
+    private String url;
+
+    /**
+     * 资源描述
+     */
+    private String description;
+
+    /**
+     * 分类ID
+     */
+    private int categoryId;
+}
+```
+
+```java
+// MemberLevelService.java
+
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+import java.util.List;
+
+public interface MemberLevelService {
+    List<ApiResponse> getMemberLevels(Integer defaultStatus);
+}
+```
+
+```java
+// MemberLevelServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.mapper.MemberLevelMapper;
+import com.example.service.MemberLevelService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class MemberLevelServiceImpl implements MemberLevelService {
+    @Autowired
+    private MemberLevelMapper memberLevelMapper;
+
+    @Override
+    public List<ApiResponse> getMemberLevels(Integer defaultStatus) {
+        // TODO: 根据defaultStatus查询会员等级，并返回结果
+        if (defaultStatus <= 0)
+            return null;
+        return memberLevelMapper.getMemberLevels(defaultStatus);
+    }
+}
+```
+
+```java
+// MemberLevelController.java
+
+package com.example.controller;
+
+import com.example.service.MemberLevelService;
+import com.example.entity.MemberLevelListRequest;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/memberLevel")
+public class MemberLevelController {
+    private final MemberLevelService memberLevelService;
+
+    @Autowired
+    public MemberLevelController(MemberLevelService memberLevelService) {
+        this.memberLevelService = memberLevelService;
+    }
+
+    @GetMapping("/list")
+    public List<ApiResponse> getMemberLevels(MemberLevelListRequest request) {
+        return memberLevelService.getMemberLevels(request.getDefaultStatus());
+    }
+}
+```
+
+```java
+// MemberLevelMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.ApiResponse;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface MemberLevelMapper {
+    List<ApiResponse> getMemberLevels(@Param("defaultStatus") Integer defaultStatus);
+}
+```
+
+```xml
+<!-- MemberLevelMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- MemberLevelMapper.xml -->
+<mapper namespace="com.example.mapper.MemberLevelMapper">
+    <resultMap id="BaseResultMap" type="com.example.entity.ApiResponse">
+        <id column="id" jdbcType="BIGINT" property="id" />
+        <result column="name" jdbcType="VARCHAR" property="name" />
+        <result column="growth_point" jdbcType="INTEGER" property="growthPoint" />
+        <result column="default_status" jdbcType="INTEGER" property="defaultStatus" />
+        <result column="free_freight_point" jdbcType="DECIMAL" property="freeFreightPoint" />
+        <result column="comment_growth_point" jdbcType="INTEGER" property="commentGrowthPoint" />
+        <result column="priviledge_free_freight" jdbcType="INTEGER" property="priviledgeFreeFreight" />
+        <result column="priviledge_sign_in" jdbcType="INTEGER" property="priviledgeSignIn" />
+        <result column="priviledge_comment" jdbcType="INTEGER" property="priviledgeComment" />
+        <result column="priviledge_promotion" jdbcType="INTEGER" property="priviledgePromotion" />
+        <result column="priviledge_member_price" jdbcType="INTEGER" property="priviledgeMemberPrice" />
+        <result column="priviledge_birthday" jdbcType="INTEGER" property="priviledgeBirthday" />
+        <result column="note" jdbcType="VARCHAR" property="note" />
+    </resultMap>
+    <sql id="Base_Column_List">
+        id, name, growth_point, default_status, free_freight_point, comment_growth_point,
+        priviledge_free_freight, priviledge_sign_in, priviledge_comment, priviledge_promotion,
+        priviledge_member_price, priviledge_birthday, note
+    </sql>
+    <select id="getMemberLevels" resultMap="BaseResultMap">
+        SELECT distinct <include refid="Base_Column_List" />
+        id, name, growth_point, default_status, free_freight_point, comment_growth_point,
+        priviledge_free_freight, priviledge_sign_in, priviledge_comment, priviledge_promotion,
+        priviledge_member_price, priviledge_birthday, note
+        FROM ums_member_level
+        WHERE default_status = #{defaultStatus}
+        ORDER BY ums_member_level.id ASC
+    </select>
+</mapper>
+
+```
+

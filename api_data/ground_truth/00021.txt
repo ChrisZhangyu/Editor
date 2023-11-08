@@ -1,0 +1,208 @@
+```java
+// ApiResponse.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    /**
+     * 主键ID
+     */
+    private Long id;
+
+    /**
+     * 名称
+     */
+    private String name;
+
+    /**
+     * 副标题
+     */
+    private String subTitle;
+
+    /**
+     * 排序
+     */
+    private Integer sort;
+
+    /**
+     * 显示状态
+     */
+    private Integer showStatus;
+}
+
+
+
+```
+```java
+// PreferenceAreaListAllRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PreferenceAreaListAllRequest {
+    private boolean distinct;
+    private String refid;
+    private Object _parameter;
+    private String orderByClause;
+}
+```
+```java
+// PreferenceAreaListAllResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PreferenceAreaListAllResponse {
+    private Long id;
+    private String name;
+    private String subTitle;
+    private Integer sort;
+    private Integer showStatus;
+}
+```
+
+```java
+// PreferenceAreaService.java
+
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.PreferenceAreaListAllRequest;
+import com.example.entity.PreferenceAreaListAllResponse;
+
+import java.util.List;
+
+public interface PreferenceAreaService {
+    List<ApiResponse> listAll(PreferenceAreaListAllRequest request);
+}
+```
+
+```java
+// PreferenceAreaServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.PreferenceAreaListAllRequest;
+import com.example.mapper.PreferenceAreaMapper;
+import com.example.entity.PreferenceAreaListAllResponse;
+import com.example.service.PreferenceAreaService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class PreferenceAreaServiceImpl implements PreferenceAreaService {
+    private final PreferenceAreaMapper preferenceAreaMapper;
+
+    @Autowired
+    public PreferenceAreaServiceImpl(PreferenceAreaMapper preferenceAreaMapper) {
+        this.preferenceAreaMapper = preferenceAreaMapper;
+    }
+
+    @Override
+    public List<ApiResponse> listAll(PreferenceAreaListAllRequest request) {
+        // 实现获取所有商品优选的逻辑
+        return preferenceAreaMapper.listAll(request);
+    }
+}
+```
+
+```java
+// PreferenceAreaController.java
+
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.PreferenceAreaListAllResponse;
+import com.example.service.PreferenceAreaService;
+import com.example.entity.PreferenceAreaListAllRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/preferenceArea")
+public class PreferenceAreaController {
+    private final PreferenceAreaService preferenceAreaService;
+
+    @Autowired
+    public PreferenceAreaController(PreferenceAreaService preferenceAreaService) {
+        this.preferenceAreaService = preferenceAreaService;
+    }
+
+    @GetMapping("/listAll")
+    public List<ApiResponse> listAll(PreferenceAreaListAllRequest request) {
+        return preferenceAreaService.listAll(request);
+    }
+}
+```
+
+```java
+// PreferenceAreaMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.PreferenceAreaListAllRequest;
+import com.example.entity.PreferenceAreaListAllResponse;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface PreferenceAreaMapper {
+    List<ApiResponse> listAll(PreferenceAreaListAllRequest request);
+}
+```
+
+```xml
+<!-- PreferenceAreaMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.PreferenceAreaMapper">
+    <resultMap id="PreferenceAreaResultMap" type="com.example.entity.PreferenceAreaListAllResponse">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="sub_title" property="subTitle" />
+        <result column="sort" property="sort" />
+        <result column="show_status" property="showStatus" />
+    </resultMap>
+
+    <select id="listAll" resultMap="PreferenceAreaResultMap">
+        SELECT
+        <if test="distinct">DISTINCT</if>
+        id, name, sub_title, sort, show_status
+        FROM cms_prefrence_area
+        <if test="orderByClause != null">ORDER BY ${orderByClause}</if>
+    </select>
+</mapper>
+
+```
+

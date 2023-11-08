@@ -1,0 +1,303 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// Message.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Message {
+    private int id;
+    private String title;
+    private String content;
+    private Date createTime;
+    private int sendUserId;
+    private String sendUserName;
+    private String sendRealName;
+    private int receiveUserCount;
+    private int readCount;
+}
+```
+```java
+// MessagePageRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class MessagePageRequest {
+    private String userName;
+    private int pageIndex;
+    private int pageSize;
+}
+
+```
+```java
+// MessageUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class MessageUser {
+    private int id;
+    private int messageId;
+    private int receiveUserId;
+    private String receiveUserName;
+    private String receiveRealName;
+    private boolean readed;
+    private Date createTime;
+    private Date readTime;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}```
+
+```java
+// MessageService.java
+package com.example.service;
+
+import com.example.entity.Message;
+import com.example.entity.MessagePageRequest;
+
+import java.util.List;
+
+public interface MessageService {
+    List<Message> getMessagePage(MessagePageRequest request);
+}
+```
+
+```java
+// MessageServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Message;
+import com.example.entity.MessageUser;
+import com.example.entity.User;
+import com.example.mapper.MessageRepositoryMapper;
+import com.example.mapper.MessageUserRepositoryMapper;
+import com.example.mapper.UserRepositoryMapper;
+import com.example.service.MessageService;
+import com.example.entity.MessagePageRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class MessageServiceImpl implements MessageService {
+
+    private final UserRepositoryMapper userRepository;
+    private final MessageUserRepositoryMapper messageUserRepository;
+    private final MessageRepositoryMapper messageRepository;
+
+    @Autowired
+    public MessageServiceImpl(UserRepositoryMapper userRepository, MessageUserRepositoryMapper messageUserRepository, MessageRepositoryMapper messageRepository) {
+        this.userRepository = userRepository;
+        this.messageUserRepository = messageUserRepository;
+        this.messageRepository = messageRepository;
+    }
+
+    @Override
+    public List<Message> getMessagePage(MessagePageRequest request) {
+        User user = userRepository.findByUserName(request.getUserName());
+        if (user == null) {
+            return null;
+        }
+
+        List<MessageUser> messageUsers = messageUserRepository.findByReceiveUserId(user.getId(), request.getPageIndex(), request.getPageSize());
+        if (messageUsers.isEmpty()) {
+            return null;
+        }
+
+        List<Integer> messageIds = messageUsers.stream().map(MessageUser::getMessageId).collect(Collectors.toList());
+        List<Message> messages = messageRepository.findByIds(messageIds);
+
+        return messages;
+    }
+}
+```
+
+```java
+// MessageController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Message;
+import com.example.service.MessageService;
+import com.example.entity.MessagePageRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+public class MessageController {
+
+    private final MessageService messageService;
+
+    @Autowired
+    public MessageController(MessageService messageService) {
+        this.messageService = messageService;
+    }
+
+    @PostMapping("/api/student/user/message/page")
+    public ApiResponse<List<Message>> getMessagePage(@RequestBody MessagePageRequest request) {
+        List<Message> messages = messageService.getMessagePage(request);
+        if (messages == null) {
+            return new ApiResponse<>(0, "用户不存在或没有消息", null);
+        } else {
+            return new ApiResponse<>(1, "成功", messages);
+        }
+    }
+}
+```
+
+```java
+// MessageRepositoryMapper.java
+package com.example.mapper;
+
+import com.example.entity.Message;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface MessageRepositoryMapper {
+    List<Message> findByIds(@Param("messageIds") List<Integer> messageIds);
+}
+
+```
+```java
+// MessageUserRepositoryMapper.java
+package com.example.mapper;
+
+
+import com.example.entity.MessageUser;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface MessageUserRepositoryMapper {
+    List<MessageUser> findByReceiveUserId(@Param("receiveUserId") int receiveUserId, @Param("pageIndex") int pageIndex, @Param("pageSize") int pageSize);
+}```
+```java
+// UserRepositoryMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface UserRepositoryMapper {
+    User findByUserName(String userName);
+}
+
+```
+
+```xml
+<!-- UserRepositoryMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- UserRepository.xml -->
+<mapper namespace="com.example.mapper.UserRepositoryMapper">
+    <resultMap id="userResultMap" type="com.example.entity.User">
+        <id property="id" column="id"/>
+        <result property="userUuid" column="user_uuid"/>
+        <result property="userName" column="user_name"/>
+        <result property="password" column="password"/>
+        <result property="realName" column="real_name"/>
+        <result property="age" column="age"/>
+        <result property="sex" column="sex"/>
+        <result property="birthDay" column="birth_day"/>
+        <result property="userLevel" column="user_level"/>
+        <result property="phone" column="phone"/>
+        <result property="role" column="role"/>
+        <result property="status" column="status"/>
+        <result property="imagePath" column="image_path"/>
+        <result property="createTime" column="create_time"/>
+        <result property="modifyTime" column="modify_time"/>
+        <result property="lastActiveTime" column="last_active_time"/>
+        <result property="deleted" column="deleted"/>
+        <result property="wxOpenId" column="wx_open_id"/>
+    </resultMap>
+    <select id="findByUserName" resultMap="userResultMap">
+        SELECT * FROM t_user WHERE user_name = #{userName}
+    </select>
+</mapper>
+
+```
+

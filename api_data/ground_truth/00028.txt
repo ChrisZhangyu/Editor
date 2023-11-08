@@ -1,0 +1,279 @@
+```java
+// ApiResponse.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer count;
+}```
+```java
+// PmsSkuStock.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PmsSkuStock {
+    /**
+     * 主键ID
+     */
+    private Long id;
+
+    /**
+     * 商品ID
+     */
+    private Long productId;
+
+    /**
+     * SKU编码
+     */
+    private String skuCode;
+
+    /**
+     * 价格
+     */
+    private BigDecimal price;
+
+    /**
+     * 库存
+     */
+    private Integer stock;
+
+    /**
+     * 低库存预警值
+     */
+    private Integer lowStock;
+
+    /**
+     * 图片
+     */
+    private String pic;
+
+    /**
+     * 销量
+     */
+    private Integer sale;
+
+    /**
+     * 促销价格
+     */
+    private BigDecimal promotionPrice;
+
+    /**
+     * 锁定库存
+     */
+    private Integer lockStock;
+
+    /**
+     * 商品规格数据
+     */
+    private String spData;
+}
+```
+```java
+// SkuStockList.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SkuStockList {
+    private Integer id;
+    private Integer productId;
+    private String skuCode;
+    private Double price;
+    private Integer stock;
+    private Integer lowStock;
+    private String pic;
+    private Integer sale;
+    private Double promotionPrice;
+    private Integer lockStock;
+    private String spData;
+}
+```
+```java
+// UpdateSkuStockRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateSkuStockRequest {
+    private String pid;
+    private SkuStockList skuStockList;
+    public void setSkuStockList(SkuStockList skuStockList) {
+        this.skuStockList = skuStockList;
+    }
+}
+
+```
+
+```java
+// SkuService.java
+
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.SkuStockList;
+import com.example.entity.UpdateSkuStockRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.List;
+
+public interface SkuService {
+    Integer updateSkuStock(String pid, UpdateSkuStockRequest skuStockRequest);
+}
+```
+
+```java
+// SkuServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.entity.SkuStockList;
+import com.example.entity.UpdateSkuStockRequest;
+import com.example.mapper.SkuMapper;
+import com.example.service.SkuService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class SkuServiceImpl implements SkuService {
+
+    @Autowired
+    private SkuMapper skuMapper;
+    @Override
+    public Integer updateSkuStock(String pid, UpdateSkuStockRequest skuStockRequest) {
+        Integer count = 0;
+        // 调用数据访问层的 Dao 层进行数据库操作
+        // 执行批量更新操作
+        // 返回更新结果
+        if (pid == null || skuStockRequest == null)
+            return count;
+        else{
+            count += 1;
+            skuMapper.replaceList(pid, skuStockRequest);
+        }
+        return count;
+    }
+}
+```
+
+```java
+// SkuController.java
+
+package com.example.controller;
+
+import com.example.entity.UpdateSkuStockRequest;
+import com.example.service.SkuService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/sku")
+public class SkuController {
+    private final SkuService skuService;
+
+    @Autowired
+    public SkuController(SkuService skuService) {
+        this.skuService = skuService;
+    }
+
+    @PostMapping("/update/{pid}")
+    public Integer updateSkuStock(@PathVariable String pid, @RequestBody UpdateSkuStockRequest request) {
+        return skuService.updateSkuStock(pid, request);
+    }
+}
+```
+
+```java
+// SkuMapper.java
+
+package com.example.mapper;
+
+
+import com.example.entity.ApiResponse;
+import com.example.entity.UpdateSkuStockRequest;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface SkuMapper {
+    // 定义数据库操作方法
+    void replaceList(@Param("pid") String pid,@Param("request") UpdateSkuStockRequest request);
+}
+```
+
+```xml
+<!-- SkuMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- skuMapper.xml -->
+<mapper namespace="com.example.mapper.SkuMapper">
+    <resultMap id="BaseResultMap" type="com.example.entity.SkuStockList">
+        <id column="id" jdbcType="BIGINT" property="id" />
+        <result column="product_id" jdbcType="BIGINT" property="productId" />
+        <result column="sku_code" jdbcType="VARCHAR" property="skuCode" />
+        <result column="price" jdbcType="DECIMAL" property="price" />
+        <result column="stock" jdbcType="INTEGER" property="stock" />
+        <result column="low_stock" jdbcType="INTEGER" property="lowStock" />
+        <result column="pic" jdbcType="VARCHAR" property="pic" />
+        <result column="sale" jdbcType="INTEGER" property="sale" />
+        <result column="promotion_price" jdbcType="DECIMAL" property="promotionPrice" />
+        <result column="lock_stock" jdbcType="INTEGER" property="lockStock" />
+        <result column="sp_data" jdbcType="VARCHAR" property="spData" />
+    </resultMap>
+    <update id="replaceList" parameterType="com.example.entity.UpdateSkuStockRequest">
+        UPDATE pms_sku_stock
+        SET product_id = #{request.skuStockList.productId},
+        sku_code = #{request.skuStockList.skuCode},
+        price = #{request.skuStockList.price},
+        stock = #{request.skuStockList.stock},
+        low_stock = #{request.skuStockList.lowStock},
+        pic = #{request.skuStockList.pic},
+        sale = #{request.skuStockList.sale},
+        promotion_price = #{request.skuStockList.promotionPrice},
+        lock_stock = #{request.skuStockList.lockStock},
+        sp_data = #{request.skuStockList.spData}
+        WHERE product_id = #{pid}
+    </update>
+</mapper>
+```
+

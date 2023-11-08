@@ -1,0 +1,459 @@
+业务功能逻辑：根据user_name获取当前用户id；根据输入参数和id信息获取试卷答案详细信息；返回{"code":1,"message":"成功","response":{"total":248,"list":[{"id":262,"createTime":"2021-09-15 14:42:22","userScore":"0","subjectName":"语文","subjectId":4,"questionCount":2,"questionCorrect":1,"paperScore":"1","doTime":"2秒","paperType":7,"paperTypeStr":"随机试卷","systemScore":"0","status":2,"paperName":"智能训练试卷 - 51","userName":null}]}}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// ExamPaperAnswer.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperAnswer {
+    private int id;
+    private int examPaperId;
+    private String paperName;
+    private int paperType;
+    private int subjectId;
+    private int systemScore;
+    private int userScore;
+    private int paperScore;
+    private int questionCorrect;
+    private int questionCount;
+    private int doTime;
+    private int status;
+    private int createUser;
+    private Date createTime;
+    private int taskExamId;
+}
+```
+```java
+// GetAnswerDetailRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperAnswer {
+    private int id;
+    private int examPaperId;
+    private String paperName;
+    private int paperType;
+    private int subjectId;
+    private int systemScore;
+    private int userScore;
+    private int paperScore;
+    private int questionCorrect;
+    private int questionCount;
+    private int doTime;
+    private int status;
+    private int createUser;
+    private Date createTime;
+    private int taskExamId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class GetAnswerDetailRequest {
+    private String userName;
+    // 其他参数...
+}
+```
+```java
+// PageListRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperAnswer {
+    private int id;
+    private int examPaperId;
+    private String paperName;
+    private int paperType;
+    private int subjectId;
+    private int systemScore;
+    private int userScore;
+    private int paperScore;
+    private int questionCorrect;
+    private int questionCount;
+    private int doTime;
+    private int status;
+    private int createUser;
+    private Date createTime;
+    private int taskExamId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class GetAnswerDetailRequest {
+    private String userName;
+    // 其他参数...
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PageListRequest {
+    private int pageIndex;
+    private int pageSize;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperAnswer {
+    private int id;
+    private int examPaperId;
+    private String paperName;
+    private int paperType;
+    private int subjectId;
+    private int systemScore;
+    private int userScore;
+    private int paperScore;
+    private int questionCorrect;
+    private int questionCount;
+    private int doTime;
+    private int status;
+    private int createUser;
+    private Date createTime;
+    private int taskExamId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class GetAnswerDetailRequest {
+    private String userName;
+    // 其他参数...
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PageListRequest {
+    private int pageIndex;
+    private int pageSize;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+
+```java
+// AnswerDetailService.java
+package com.example.service;
+
+import com.example.entity.ExamPaperAnswer;
+import com.example.entity.GetAnswerDetailRequest;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class AnswerDetailService {
+
+    public PageListResponse<ExamPaperAnswer> getAnswerDetail(GetAnswerDetailRequest request) {
+        // TODO: 根据用户名和其他参数获取答卷详细信息，并返回PageListResponse对象
+    }
+}
+```
+```java
+// ExamPaperAnswerService.java
+package com.example.service;
+
+import com.example.entity.ExamPaperAnswer;
+import com.example.entity.GetAnswerDetailRequest;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class AnswerDetailService {
+
+    public PageListResponse<ExamPaperAnswer> getAnswerDetail(GetAnswerDetailRequest request) {
+        // TODO: 根据用户名和其他参数获取答卷详细信息，并返回PageListResponse对象
+    }
+}
+import com.example.entity.ExamPaperAnswer;
+import com.example.entity.PageListRequest;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class ExamPaperAnswerService {
+
+    public PageListResponse<ExamPaperAnswer> getPageList(PageListRequest request) {
+        // TODO: 根据请求参数获取答卷列表数据，并返回PageListResponse对象
+    }
+}
+```
+
+
+```java
+// AnswerDetailController.java
+package com.example.controller;
+
+import com.example.entity.ExamPaperAnswer;
+import com.example.entity.ApiResponse;
+import com.example.entity.GetAnswerDetailRequest;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/wx/student/exampaper/answer")
+public class AnswerDetailController {
+
+    @GetMapping("/detail")
+    public ApiResponse<PageListResponse<ExamPaperAnswer>> getAnswerDetail(GetAnswerDetailRequest request) {
+        // TODO: 根据用户名和其他参数获取答卷详细信息，并返回ApiResponse对象
+    }
+}
+```
+```java
+// ExamPaperAnswerController.java
+package com.example.controller;
+
+import com.example.entity.ExamPaperAnswer;
+import com.example.entity.ApiResponse;
+import com.example.entity.GetAnswerDetailRequest;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/wx/student/exampaper/answer")
+public class AnswerDetailController {
+
+    @GetMapping("/detail")
+    public ApiResponse<PageListResponse<ExamPaperAnswer>> getAnswerDetail(GetAnswerDetailRequest request) {
+        // TODO: 根据用户名和其他参数获取答卷详细信息，并返回ApiResponse对象
+    }
+}
+import com.example.entity.ExamPaperAnswer;
+import com.example.entity.ApiResponse;
+import com.example.entity.PageListRequest;
+
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/wx/student/exampaper/answer")
+public class ExamPaperAnswerController {
+
+    @PostMapping("/pageList")
+    public ApiResponse<PageListResponse<ExamPaperAnswer>> getPageList(@RequestBody PageListRequest request) {
+        // TODO: 根据请求参数获取答卷列表数据，并返回ApiResponse对象
+    }
+}
+```
+
+```java
+// AnswerDetailMapper.java
+package com.example.mapper;
+
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface AnswerDetailMapper {
+    // TODO: 定义查询答卷详细信息的方法
+}
+```
+```java
+// ExamPaperAnswerMapper.java
+package com.example.mapper;
+
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface AnswerDetailMapper {
+    // TODO: 定义查询答卷详细信息的方法
+}
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface ExamPaperAnswerMapper {
+    // TODO: 定义查询答卷列表的方法
+}
+```
+
+```xml
+<!-- ExamPaperAnswerMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ExamPaperAnswerMapper">
+
+    <!-- TODO: 定义查询答卷列表的SQL语句 -->
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\answer_pageList_system\src\main\java\com\example\controller\ExamPaperAnswerController.java:20
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\answer_pageList_system\src\main\java\com\example\service\impl\ExamPaperAnswerServiceImpl.java:5:34
+java: 程序包jdk.jfr.internal.jfc.model不存在
+```
+```功能错误
+功能基本没实现，全部都是需要重写的
+```

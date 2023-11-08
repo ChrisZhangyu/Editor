@@ -1,0 +1,227 @@
+业务功能逻辑：
+根据输入参数分页查询tb_category_second表记录列表；遍历列表，根据tb_category_second.category_first_id在tb_category_first表中查询类别记录，tb_category_second.category_name设置为tb_category_first.category_name，返回data设置为{["categorySecondId"=tb_category_second.category_second_id,"categoryFirstId"=tb_category_second.category_first_id,"categoryName"=tb_category_second.category_name,"image"=tb_category_second.image,"categoryFirstName"=tb_category_first.category_name, ""]}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// CategoryFirst.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_first")
+public class CategoryFirst {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+}
+```
+
+```java
+// CategorySecond.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_second")
+public class CategorySecond {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+}
+```
+
+```java
+// CategorySecondService.java
+package com.example.service;
+
+import com.example.entity.CategorySecond;
+
+import java.util.List;
+
+public interface CategorySecondService {
+    List<CategorySecond> getCategorySeconds(int page, int rows);
+}
+```
+
+```java
+// CategorySecondServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.CategoryFirst;
+import com.example.entity.CategorySecond;
+import com.example.mapper.CategoryFirstMapper;
+import com.example.mapper.CategorySecondMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class CategorySecondServiceImpl implements CategorySecondService {
+
+    private final CategorySecondMapper categorySecondMapper;
+    private final CategoryFirstMapper categoryFirstMapper;
+
+    @Autowired
+    public CategorySecondServiceImpl(CategorySecondMapper categorySecondMapper, CategoryFirstMapper categoryFirstMapper) {
+        this.categorySecondMapper = categorySecondMapper;
+        this.categoryFirstMapper = categoryFirstMapper;
+    }
+
+    @Override
+    public List<CategorySecond> getCategorySeconds(int page, int rows) {
+        List<CategorySecond> categorySeconds = categorySecondMapper.getCategorySeconds(page, rows);
+        List<CategorySecond> result = new ArrayList<>();
+        for (CategorySecond categorySecond : categorySeconds) {
+            CategoryFirst categoryFirst = categoryFirstMapper.getCategoryFirstById(categorySecond.getCategoryFirstId());
+            categorySecond.setCategoryName(categoryFirst.getCategoryName());
+            result.add(categorySecond);
+        }
+        return result;
+    }
+}
+```
+
+```java
+// CategorySecondController.java
+package com.example.controller;
+
+import com.example.entity.CategorySecond;
+import com.example.service.CategorySecondService;
+import com.example.vo.ApiResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/user/v1/category")
+public class CategorySecondController {
+
+    private final CategorySecondService categorySecondService;
+
+    @Autowired
+    public CategorySecondController(CategorySecondService categorySecondService) {
+        this.categorySecondService = categorySecondService;
+    }
+
+    @GetMapping("/second")
+    public ApiResponse getCategorySeconds(@RequestParam int page, @RequestParam int rows) {
+        List<CategorySecond> categorySeconds = categorySecondService.getCategorySeconds(page, rows);
+        return new ApiResponse(100, "成功", categorySeconds);
+    }
+}
+```
+
+```java
+// CategoryFirstMapper.java
+package com.example.mapper;
+
+import com.example.entity.CategoryFirst;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface CategoryFirstMapper {
+    CategoryFirst getCategoryFirstById(@Param("categoryFirstId") int categoryFirstId);
+}
+```
+
+```java
+// CategorySecondMapper.java
+package com.example.mapper;
+
+import com.example.entity.CategorySecond;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface CategorySecondMapper {
+    List<CategorySecond> getCategorySeconds(@Param("page") int page, @Param("rows") int rows);
+}
+```
+
+```xml
+<!-- CategorySecondMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.CategorySecondMapper">
+    <select id="getCategorySeconds" resultType="com.example.entity.CategorySecond">
+        SELECT * FROM tb_category_second LIMIT #{page}, #{rows}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+CategorySecondController.java:5:22
+java: 程序包com.example.vo不存在
+CategorySecondController.java:26:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.CategorySecondController
+CategorySecondServiceImpl.java:14:51
+java: 找不到符号
+  符号: 类 CategorySecondService
+Invalid bound statement (not found): com.example.mapper.CategoryFirstMapper.getCategoryFirstById
+```
+
+```功能错误
+没有实现CategoryFirstMapper.java对应的CategoryFirstMapper.xml文件.
+tb_category_second表分页查询中的LIMIT计算错误，没有从结果集的第(page-1)*rows行开始返回.
+```

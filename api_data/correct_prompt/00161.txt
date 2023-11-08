@@ -1,0 +1,770 @@
+业务功能逻辑：根据输入参数在t_exam_paper表、t_question表和t_exam_paper_question_customer_answer表中查询试卷题目所有信息；返回{"code":1,"message":"成功","response":{"id":66,"level":1,"subjectId":4,"paperType":1,"name":"20200912卷","suggestTime":30,"limitDateTime":null,"titleItems":[{"name":"一、解答题","questionItems":[{"id":66,"questionType":1,"subjectId":4,"title":"中华四大名著都有哪些，下列正确的是","gradeLevel":1,"items":[{"prefix":"A","content":"红楼梦","score":null}],"analyze":"题目比较简单，自行分析","correctArray":null,"correct":"A","score":"2.5","difficult":3,"itemOrder":1,"knowledgeIdList":[8,9]}]}],"score":"20","classes":null}}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// ExamPaper.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper")
+public class ExamPaper {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    private String name;
+
+    @Column(name = "subject_id")
+    private int subjectId;
+
+    @Column(name = "paper_type")
+    private int paperType;
+
+    @Column(name = "grade_level")
+    private int gradeLevel;
+
+    private int score;
+
+    @Column(name = "question_count")
+    private int questionCount;
+
+    @Column(name = "suggest_time")
+    private int suggestTime;
+
+    @Column(name = "limit_start_time")
+    private Date limitStartTime;
+
+    @Column(name = "limit_end_time")
+    private Date limitEndTime;
+
+    @Column(name = "frame_text_content_id")
+    private int frameTextContentId;
+
+    @Column(name = "create_user")
+    private int createUser;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    private boolean deleted;
+
+    @Column(name = "task_exam_id")
+    private int taskExamId;
+}
+```
+```java
+// ExamPaperQuestionCustomerAnswer.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper")
+public class ExamPaper {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    private String name;
+
+    @Column(name = "subject_id")
+    private int subjectId;
+
+    @Column(name = "paper_type")
+    private int paperType;
+
+    @Column(name = "grade_level")
+    private int gradeLevel;
+
+    private int score;
+
+    @Column(name = "question_count")
+    private int questionCount;
+
+    @Column(name = "suggest_time")
+    private int suggestTime;
+
+    @Column(name = "limit_start_time")
+    private Date limitStartTime;
+
+    @Column(name = "limit_end_time")
+    private Date limitEndTime;
+
+    @Column(name = "frame_text_content_id")
+    private int frameTextContentId;
+
+    @Column(name = "create_user")
+    private int createUser;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    private boolean deleted;
+
+    @Column(name = "task_exam_id")
+    private int taskExamId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper_question_customer_answer")
+public class ExamPaperQuestionCustomerAnswer {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @Column(name = "question_id")
+    private int questionId;
+
+    @Column(name = "exam_paper_id")
+    private int examPaperId;
+
+    @Column(name = "exam_paper_answer_id")
+    private int examPaperAnswerId;
+
+    @Column(name = "question_type")
+    private int questionType;
+
+    @Column(name = "subject_id")
+    private int subjectId;
+
+    @Column(name = "customer_score")
+    private int customerScore;
+
+    @Column(name = "question_score")
+    private int questionScore;
+
+    @Column(name = "question_text_content_id")
+    private int questionTextContentId;
+
+    private String answer;
+
+    @Column(name = "text_content_id")
+    private int textContentId;
+
+    @Column(name = "do_right")
+    private boolean doRight;
+
+    @Column(name = "create_user")
+    private int createUser;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "item_order")
+    private int itemOrder;
+}
+```
+```java
+// ExamPaperSelectRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper")
+public class ExamPaper {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    private String name;
+
+    @Column(name = "subject_id")
+    private int subjectId;
+
+    @Column(name = "paper_type")
+    private int paperType;
+
+    @Column(name = "grade_level")
+    private int gradeLevel;
+
+    private int score;
+
+    @Column(name = "question_count")
+    private int questionCount;
+
+    @Column(name = "suggest_time")
+    private int suggestTime;
+
+    @Column(name = "limit_start_time")
+    private Date limitStartTime;
+
+    @Column(name = "limit_end_time")
+    private Date limitEndTime;
+
+    @Column(name = "frame_text_content_id")
+    private int frameTextContentId;
+
+    @Column(name = "create_user")
+    private int createUser;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    private boolean deleted;
+
+    @Column(name = "task_exam_id")
+    private int taskExamId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper_question_customer_answer")
+public class ExamPaperQuestionCustomerAnswer {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @Column(name = "question_id")
+    private int questionId;
+
+    @Column(name = "exam_paper_id")
+    private int examPaperId;
+
+    @Column(name = "exam_paper_answer_id")
+    private int examPaperAnswerId;
+
+    @Column(name = "question_type")
+    private int questionType;
+
+    @Column(name = "subject_id")
+    private int subjectId;
+
+    @Column(name = "customer_score")
+    private int customerScore;
+
+    @Column(name = "question_score")
+    private int questionScore;
+
+    @Column(name = "question_text_content_id")
+    private int questionTextContentId;
+
+    private String answer;
+
+    @Column(name = "text_content_id")
+    private int textContentId;
+
+    @Column(name = "do_right")
+    private boolean doRight;
+
+    @Column(name = "create_user")
+    private int createUser;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "item_order")
+    private int itemOrder;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperSelectRequest {
+    private int id;
+}
+```
+```java
+// Question.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper")
+public class ExamPaper {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    private String name;
+
+    @Column(name = "subject_id")
+    private int subjectId;
+
+    @Column(name = "paper_type")
+    private int paperType;
+
+    @Column(name = "grade_level")
+    private int gradeLevel;
+
+    private int score;
+
+    @Column(name = "question_count")
+    private int questionCount;
+
+    @Column(name = "suggest_time")
+    private int suggestTime;
+
+    @Column(name = "limit_start_time")
+    private Date limitStartTime;
+
+    @Column(name = "limit_end_time")
+    private Date limitEndTime;
+
+    @Column(name = "frame_text_content_id")
+    private int frameTextContentId;
+
+    @Column(name = "create_user")
+    private int createUser;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    private boolean deleted;
+
+    @Column(name = "task_exam_id")
+    private int taskExamId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper_question_customer_answer")
+public class ExamPaperQuestionCustomerAnswer {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @Column(name = "question_id")
+    private int questionId;
+
+    @Column(name = "exam_paper_id")
+    private int examPaperId;
+
+    @Column(name = "exam_paper_answer_id")
+    private int examPaperAnswerId;
+
+    @Column(name = "question_type")
+    private int questionType;
+
+    @Column(name = "subject_id")
+    private int subjectId;
+
+    @Column(name = "customer_score")
+    private int customerScore;
+
+    @Column(name = "question_score")
+    private int questionScore;
+
+    @Column(name = "question_text_content_id")
+    private int questionTextContentId;
+
+    private String answer;
+
+    @Column(name = "text_content_id")
+    private int textContentId;
+
+    @Column(name = "do_right")
+    private boolean doRight;
+
+    @Column(name = "create_user")
+    private int createUser;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "item_order")
+    private int itemOrder;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperSelectRequest {
+    private int id;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_question")
+public class Question {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @Column(name = "question_type")
+    private int questionType;
+
+    @Column(name = "subject_id")
+    private int subjectId;
+
+    private int score;
+
+    @Column(name = "grade_level")
+    private int gradeLevel;
+
+    private int difficult;
+
+    private String correct;
+
+    @Column(name = "info_text_content_id")
+    private int infoTextContentId;
+
+    @Column(name = "create_user")
+    private int createUser;
+
+    private int status;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    private boolean deleted;
+}
+```
+
+```java
+// ExamPaperService.java
+package com.example.service;
+
+import com.example.entity.ExamPaper;
+import com.example.entity.ExamPaperQuestionCustomerAnswer;
+
+import com.example.demo.model.ExamPaper;
+import com.example.demo.model.ExamPaperQuestionCustomerAnswer;
+
+public interface ExamPaperService {
+    ExamPaper getExamPaperById(int id);
+    ExamPaperQuestionCustomerAnswer getExamPaperQuestionCustomerAnswerById(int id);
+}
+```
+
+```java
+// ExamPaperServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ExamPaperQuestionCustomerAnswer;
+import com.example.mapper.ExamPaperMapper;
+import com.example.entity.ExamPaper;
+import com.example.mapper.ExamPaperQuestionCustomerAnswerMapper;
+import com.example.service.ExamPaperService;
+
+import com.example.demo.mapper.ExamPaperMapper;
+import com.example.demo.mapper.ExamPaperQuestionCustomerAnswerMapper;
+import com.example.demo.model.ExamPaper;
+import com.example.demo.model.ExamPaperQuestionCustomerAnswer;
+import com.example.demo.service.ExamPaperService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ExamPaperServiceImpl implements ExamPaperService {
+    private final ExamPaperMapper examPaperMapper;
+    private final ExamPaperQuestionCustomerAnswerMapper examPaperQuestionCustomerAnswerMapper;
+
+    @Autowired
+    public ExamPaperServiceImpl(ExamPaperMapper examPaperMapper, ExamPaperQuestionCustomerAnswerMapper examPaperQuestionCustomerAnswerMapper) {
+        this.examPaperMapper = examPaperMapper;
+        this.examPaperQuestionCustomerAnswerMapper = examPaperQuestionCustomerAnswerMapper;
+    }
+
+    @Override
+    public ExamPaper getExamPaperById(int id) {
+        return examPaperMapper.getExamPaperById(id);
+    }
+
+    @Override
+    public ExamPaperQuestionCustomerAnswer getExamPaperQuestionCustomerAnswerById(int id) {
+        return examPaperQuestionCustomerAnswerMapper.getExamPaperQuestionCustomerAnswerById(id);
+    }
+}
+```
+
+```java
+// ExamPaperController.java
+package com.example.controller;
+
+import com.example.entity.ExamPaperQuestionCustomerAnswer;
+import com.example.entity.ExamPaperSelectRequest;
+import com.example.entity.ExamPaper;
+import com.example.entity.ApiResponse;
+import com.example.service.ExamPaperService;
+
+import com.example.demo.model.ApiResponse;
+import com.example.demo.model.ExamPaper;
+import com.example.demo.model.ExamPaperQuestionCustomerAnswer;
+import com.example.demo.model.ExamPaperSelectRequest;
+import com.example.demo.service.ExamPaperService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/wx/student/exampaper")
+public class ExamPaperController {
+    private final ExamPaperService examPaperService;
+
+    @Autowired
+    public ExamPaperController(ExamPaperService examPaperService) {
+        this.examPaperService = examPaperService;
+    }
+
+    @PostMapping("/select/{id}")
+    public ApiResponse<ExamPaper> selectExamPaper(@PathVariable int id, @RequestBody ExamPaperSelectRequest request) {
+        ExamPaper examPaper = examPaperService.getExamPaperById(id);
+        return new ApiResponse<>(1, "成功", examPaper);
+    }
+
+    @GetMapping("/answer/{id}")
+    public ApiResponse<ExamPaperQuestionCustomerAnswer> getAnswerById(@PathVariable int id) {
+        ExamPaperQuestionCustomerAnswer answer = examPaperService.getExamPaperQuestionCustomerAnswerById(id);
+        return new ApiResponse<>(1, "成功", answer);
+    }
+}
+```
+
+```java
+// ExamPaperMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+
+import com.example.demo.model.ExamPaper;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface ExamPaperMapper {
+    ExamPaper getExamPaperById(@Param("id") int id);
+}
+```
+```java
+// ExamPaperQuestionCustomerAnswerMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+
+import com.example.demo.model.ExamPaper;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface ExamPaperMapper {
+    ExamPaper getExamPaperById(@Param("id") int id);
+}
+import com.example.entity.ExamPaperQuestionCustomerAnswer;
+
+import com.example.demo.model.ExamPaperQuestionCustomerAnswer;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface ExamPaperQuestionCustomerAnswerMapper {
+    ExamPaperQuestionCustomerAnswer getExamPaperQuestionCustomerAnswerById(@Param("id") int id);
+}
+```
+
+```xml
+<!-- ExamPaperQuestionCustomerAnswerMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.ExamPaperQuestionCustomerAnswerMapper">
+    <select id="getExamPaperQuestionCustomerAnswerById" parameterType="int" resultType="com.example.demo.model.ExamPaperQuestionCustomerAnswer">
+        SELECT * FROM t_exam_paper_question_customer_answer WHERE id = #{id}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:18
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:19
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:21
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:22
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:74
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:75
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:76
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:78
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:79
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:133
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:134
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:135
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:144
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:145
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:146
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:148
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\entity\Question.java:149
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\controller\ExamPaperController.java:9:30
+java: 程序包com.example.demo.model不存在
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\service\ExamPaperService.java:6:30
+java: 程序包com.example.demo.model不存在
+D:\迅雷下载\xzs-project_test\wx_exam_paper_select_system\src\main\java\com\example\service\ExamPaperService.java:7:30
+java: 程序包com.example.demo.model不存在
+Caused by: java.lang.ClassNotFoundException: Cannot find class: com.example.demo.model.ExamPaper
+```
+```功能错误
+缺少t_question表的查询
+缺少resultmap映射无法获取数据库信息
+```

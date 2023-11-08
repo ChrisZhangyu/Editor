@@ -1,0 +1,343 @@
+业务功能逻辑：
+创建对象PostVO{id="",userId="",avatar="",alias="",username="",title="",comments="",top="",essence=bool,collects=int,tags=list<bms_tag>,view=int,createTime,modifyTime}；分页查询帖子列表，选择条件是：在bms_post和ums_user表中选择PostVO需要返回的字段，以bms_post.user_id与ums_user.id匹配为条件将两表连接，查询条件为传入的参数tab的值不等于 'hot'，按 create_time字段进行降序排序，如果tab的值等于 'hot'，按view字段降序排序，然后按create_time字段降序排序；查询后的结果映射到PostVO中，返回data为{[PostVO]}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+```
+
+```java
+// BmsTag.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_tag")
+public class BmsTag {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "topic_count")
+    private int topicCount;
+}
+```
+
+```java
+// Post.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_post")
+public class Post {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "title")
+    private String title;
+
+    @Column(name = "content", columnDefinition = "longtext")
+    private String content;
+
+    @Column(name = "user_id", length = 20)
+    private String userId;
+
+    @Column(name = "comments")
+    private int comments;
+
+    @Column(name = "collects")
+    private int collects;
+
+    @Column(name = "view")
+    private int view;
+
+    @Column(name = "top")
+    private boolean top;
+
+    @Column(name = "essence")
+    private boolean essence;
+
+    @Column(name = "section_id")
+    private String sectionId;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    /**
+     * 用户ID
+     */
+    private String id;
+
+    /**
+     * 用户名
+     */
+    private String username;
+
+    /**
+     * 别名
+     */
+    private String alias;
+
+    /**
+     * 密码
+     */
+    private String password;
+
+    /**
+     * 头像
+     */
+    private String avatar;
+
+    /**
+     * 邮箱
+     */
+    private String email;
+
+    /**
+     * 手机号码
+     */
+    private String mobile;
+
+    /**
+     * 积分
+     */
+    private int score;
+
+    /**
+     * 令牌
+     */
+    private String token;
+
+    /**
+     * 个人简介
+     */
+    private String bio;
+
+    /**
+     * 是否激活
+     */
+    private boolean active;
+
+    /**
+     * 状态
+     */
+    private boolean status;
+
+    /**
+     * 角色ID
+     */
+    private String roleId;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 修改时间
+     */
+    private Date modifyTime;
+}
+```
+
+```java
+// PostService.java
+package com.example.service;
+
+import java.util.List;
+
+public interface PostService {
+    List<PostVO> getPostList(String tab, int pageNo, int pageSize);
+}
+```
+
+```java
+// PostServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.PostService;
+import com.example.mapper.PostMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class PostServiceImpl implements PostService {
+    private final PostMapper postMapper;
+
+    @Autowired
+    public PostServiceImpl(PostMapper postMapper) {
+        this.postMapper = postMapper;
+    }
+
+    @Override
+    public List<PostVO> getPostList(String tab, int pageNo, int pageSize) {
+        // 根据传入的参数进行查询逻辑
+        List<PostVO> postList = postMapper.getPostList(tab, pageNo, pageSize);
+        return postList;
+    }
+}
+```
+
+```java
+// PostController.java
+package com.example.controller;
+
+import com.example.service.PostService;
+import com.example.entity.ApiResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/post")
+public class PostController {
+    private final PostService postService;
+
+    @Autowired
+    public PostController(PostService postService) {
+        this.postService = postService;
+    }
+
+    @GetMapping("/list")
+    public ApiResponse<List<PostVO>> getPostList(@RequestParam("tab") String tab,
+                                                 @RequestParam("pageNo") int pageNo,
+                                                 @RequestParam("pageSize") int pageSize) {
+        List<PostVO> postList = postService.getPostList(tab, pageNo, pageSize);
+        return new ApiResponse<>(200, "操作成功", postList);
+    }
+}
+```
+
+```java
+// PostMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface PostMapper {
+    List<PostVO> getPostList(@Param("tab") String tab,
+                             @Param("pageNo") int pageNo,
+                             @Param("pageSize") int pageSize);
+}
+```
+
+```xml
+<!-- PostMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.PostMapper">
+    <resultMap id="postResultMap" type="com.example.entity.PostVO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="avatar" column="avatar"/>
+        <result property="alias" column="alias"/>
+        <result property="username" column="username"/>
+        <result property="title" column="title"/>
+        <result property="comments" column="comments"/>
+        <result property="top" column="top"/>
+        <result property="essence" column="essence"/>
+        <result property="collects" column="collects"/>
+        <result property="tags" column="tags"/>
+        <result property="view" column="view"/>
+        <result property="createTime" column="create_time"/>
+        <result property="modifyTime" column="modify_time"/>
+    </resultMap>
+
+    <select id="getPostList" resultMap="postResultMap">
+        SELECT p.id, p.user_id, u.avatar, u.alias, u.username, p.title, p.comments, p.top, p.essence, p.collects, p.tags, p.view, p.create_time, p.modify_time
+        FROM bms_post p
+        JOIN ums_user u ON p.user_id = u.id
+        WHERE p.tab != 'hot'
+        ORDER BY
+        <if test="tab == 'hot'">
+            p.view DESC,
+        </if>
+        p.create_time DESC
+        LIMIT #{pageSize} OFFSET #{pageNo} * #{pageSize}
+    </select>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+PostController.java:24:29
+java: 找不到符号
+  符号:   类 PostVO
+  位置: 类 com.example.controller.PostController
+PostServiceImpl.java:19:12
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.service.impl.PostServiceImpl
+Error querying database.  Cause: java.sql.SQLSyntaxErrorException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '* 10' at line 10
+The error may exist in file [PostMapper.xml]
+```
+
+```功能错误
+没有创建对象PostVO.
+按输入参数tab进行排序的实现过程错误.
+返回信息data的内容格式错误.
+```

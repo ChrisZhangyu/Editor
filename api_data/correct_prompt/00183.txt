@@ -1,0 +1,308 @@
+业务功能逻辑：根据输入参数在t_message_user表中查询readed是否为true，如果readed为true则返回{"code":1,"message":"成功","response":null}；如果readed不为true设置readed为true，read_time为当前日期，更新表t_message_user，并在表t_message中的read_count上的值+1；返回{"code":1,"message":"成功","response":null}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+```java
+// MessageReadRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+
+import lombok.Data;
+
+@Data
+public class MessageReadRequest {
+    private int id;
+}
+```
+```java
+// TMessage.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+
+import lombok.Data;
+
+@Data
+public class MessageReadRequest {
+    private int id;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TMessage {
+    private int id;
+    private String title;
+    private String content;
+    private Date createTime;
+    private int sendUserId;
+    private String sendUserName;
+    private String sendRealName;
+    private int receiveUserCount;
+    private int readCount;
+}
+```
+```java
+// TMessageUser.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+
+import lombok.Data;
+
+@Data
+public class MessageReadRequest {
+    private int id;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TMessage {
+    private int id;
+    private String title;
+    private String content;
+    private Date createTime;
+    private int sendUserId;
+    private String sendUserName;
+    private String sendRealName;
+    private int receiveUserCount;
+    private int readCount;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TMessageUser {
+    private int id;
+    private int messageId;
+    private int receiveUserId;
+    private String receiveUserName;
+    private String receiveRealName;
+    private boolean readed;
+    private Date createTime;
+    private Date readTime;
+}
+```
+
+```java
+// MessageService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface MessageService {
+    ApiResponse markMessageAsRead(int id);
+}
+```
+
+```java
+// MessageServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.TMessageUserMapper;
+import com.example.service.MessageService;
+import com.example.entity.TMessage;
+import com.example.entity.ApiResponse;
+import com.example.mapper.TMessageMapper;
+import com.example.entity.TMessageUser;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class MessageServiceImpl implements MessageService {
+
+    private final TMessageUserMapper messageUserMapper;
+    private final TMessageMapper messageMapper;
+
+    @Autowired
+    public MessageServiceImpl(TMessageUserMapper messageUserMapper, TMessageMapper messageMapper) {
+        this.messageUserMapper = messageUserMapper;
+        this.messageMapper = messageMapper;
+    }
+
+    @Override
+    public ApiResponse markMessageAsRead(int id) {
+        TMessageUser messageUser = messageUserMapper.findById(id);
+        if (messageUser == null) {
+            return new ApiResponse(0, "消息不存在", null);
+        }
+
+        if (messageUser.isReaded()) {
+            return new ApiResponse(1, "成功", null);
+        }
+
+        messageUser.setReaded(true);
+        messageUser.setReadTime(new Date());
+        messageUserMapper.update(messageUser);
+
+        TMessage message = messageMapper.findById(messageUser.getMessageId());
+        if (message != null) {
+            message.setReadCount(message.getReadCount() + 1);
+            messageMapper.update(message);
+        }
+
+        return new ApiResponse(1, "成功", null);
+    }
+}
+```
+
+```java
+// MessageController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.MessageService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/wx/student/user/message")
+public class MessageController {
+
+    private final MessageService messageService;
+
+    @Autowired
+    public MessageController(MessageService messageService) {
+        this.messageService = messageService;
+    }
+
+    @PostMapping("/read/{id}")
+    public ApiResponse markMessageAsRead(@PathVariable int id) {
+        return messageService.markMessageAsRead(id);
+    }
+}
+```
+
+```java
+// TMessageMapper.java
+package com.example.mapper;
+
+import com.example.entity.TMessage;
+
+public interface TMessageMapper {
+    TMessage findById(int id);
+    void update(TMessage message);
+}
+```
+```java
+// TMessageUserMapper.java
+package com.example.mapper;
+
+import com.example.entity.TMessage;
+
+public interface TMessageMapper {
+    TMessage findById(int id);
+    void update(TMessage message);
+}
+import com.example.entity.TMessageUser;
+
+public interface TMessageUserMapper {
+    TMessageUser findById(int id);
+    void update(TMessageUser messageUser);
+}
+```
+
+```xml
+<!-- TMessageUserMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.TMessageUserMapper">
+    <select id="findById" parameterType="int" resultType="com.example.entity.TMessageUser">
+        SELECT * FROM t_message_user WHERE id = #{id}
+    </select>
+
+    <update id="update" parameterType="com.example.entity.TMessageUser">
+        UPDATE t_message_user
+        SET readed = #{readed}, read_time = #{readTime}
+        WHERE id = #{id}
+    </update>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\wx_user_message_read_system\src\main\java\com\example\entity\MessageReadRequest.java:17
+java: 需要class, interface或enum
+resultmap映射
+```
+```功能错误
+
+```

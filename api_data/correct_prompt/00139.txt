@@ -1,0 +1,198 @@
+业务功能逻辑：
+根据categoryName在tb_category_first表中获取记录列表，如果列表不为空则获取第一条记录，如果为空返回(-1005, "分类名称已存在",null)；在tb_category_first表中插入记录，category_name设置为categoryName，返回data设置为{tb_category_first记录}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// CategoryFirst.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_first")
+public class CategoryFirst {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+}
+```
+
+```java
+// CategoryFirstService.java
+package com.example.service;
+
+import com.example.entity.CategoryFirst;
+
+import java.util.List;
+
+public interface CategoryFirstService {
+    List<CategoryFirst> getCategoryFirstList();
+
+    void addCategoryFirst(String categoryName);
+}
+```
+
+```java
+// CategoryFirstServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.CategoryFirst;
+import com.example.mapper.CategoryFirstMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class CategoryFirstServiceImpl implements CategoryFirstService {
+    private final CategoryFirstMapper categoryFirstMapper;
+
+    @Autowired
+    public CategoryFirstServiceImpl(CategoryFirstMapper categoryFirstMapper) {
+        this.categoryFirstMapper = categoryFirstMapper;
+    }
+
+    @Override
+    public List<CategoryFirst> getCategoryFirstList() {
+        return categoryFirstMapper.getCategoryFirstList();
+    }
+
+    @Override
+    public void addCategoryFirst(String categoryName) {
+        CategoryFirst existingCategory = categoryFirstMapper.getCategoryFirstByName(categoryName);
+        if (existingCategory != null) {
+            throw new RuntimeException("分类名称已存在");
+        }
+
+        CategoryFirst categoryFirst = new CategoryFirst();
+        categoryFirst.setCategoryName(categoryName);
+        categoryFirstMapper.insertCategoryFirst(categoryFirst);
+    }
+}
+```
+
+```java
+// CategoryFirstController.java
+package com.example.controller;
+
+import com.example.entity.CategoryFirst;
+import com.example.service.CategoryFirstService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/admin/v1/category")
+public class CategoryFirstController {
+    private final CategoryFirstService categoryFirstService;
+
+    @Autowired
+    public CategoryFirstController(CategoryFirstService categoryFirstService) {
+        this.categoryFirstService = categoryFirstService;
+    }
+
+    @PostMapping("/first")
+    public ApiResponse addCategoryFirst(@RequestParam("categoryName") String categoryName) {
+        categoryFirstService.addCategoryFirst(categoryName);
+        return new ApiResponse(100, "成功", null);
+    }
+}
+```
+
+```java
+// CategoryFirstMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface CategoryFirstMapper {
+    List<CategoryFirst> getCategoryFirstList();
+
+    CategoryFirst getCategoryFirstByName(@Param("categoryName") String categoryName);
+
+    void insertCategoryFirst(CategoryFirst categoryFirst);
+}
+```
+
+```xml
+<!-- CategoryFirstMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.CategoryFirstMapper">
+    <select id="getCategoryFirstList" resultType="com.example.entity.CategoryFirst">
+        SELECT * FROM tb_category_first
+    </select>
+
+    <select id="getCategoryFirstByName" resultType="com.example.entity.CategoryFirst">
+        SELECT * FROM tb_category_first WHERE category_name = #{categoryName}
+    </select>
+
+    <insert id="insertCategoryFirst">
+        INSERT INTO tb_category_first (category_name) VALUES (#{categoryName})
+    </insert>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+CategoryFirstController.java:22:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.CategoryFirstController
+ategoryFirstMapper.java:10:10
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 接口 com.example.mapper.CategoryFirstMapper
+CategoryFirstMapper.java:12:5
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 接口 com.example.mapper.CategoryFirstMapper
+CategoryFirstMapper.java:14:30
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 接口 com.example.mapper.CategoryFirstMapper
+CategoryFirstServiceImpl.java:11:50
+java: 找不到符号
+  符号: 类 CategoryFirstService
+Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.RuntimeException: 分类名称已存在] with root cause
+```
+
+```功能错误
+功能没有实现：如果在tb_category_first表中查询到的记录列表为空时返回(-1005, "分类名称已存在",null).
+```

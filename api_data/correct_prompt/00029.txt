@@ -1,0 +1,151 @@
+业务功能逻辑：根据传入的id查询订单设置信息，并将其返回给调用者; 返回{"code","data"}.
+
+需要检查的代码：
+```java
+// OmsOrderSetting.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderSetting {
+    /**
+     * 主键ID
+     */
+    private Long id;
+    
+    /**
+     * 秒杀订单超时时间（单位：分钟）
+     */
+    private Integer flashOrderOvertime;
+    
+    /**
+     * 普通订单超时时间（单位：分钟）
+     */
+    private Integer normalOrderOvertime;
+    
+    /**
+     * 自动确认收货时间（单位：天）
+     */
+    private Integer confirmOvertime;
+    
+    /**
+     * 自动完成交易时间（单位：天）
+     */
+    private Integer finishOvertime;
+    
+    /**
+     * 自动好评时间（单位：天）
+     */
+    private Integer commentOvertime;
+}
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OrderSetting {
+    private int id;
+    // 其他订单设置字段...
+}
+```
+
+```java
+// OrderSettingService.java
+
+package com.example.service;
+
+import com.example.entity.OrderSetting;
+
+public interface OrderSettingService {
+    OrderSetting getOrderSettingById(int id);
+}
+```
+
+```java
+// OrderSettingServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.mapper.OrderSettingMapper;
+import com.example.entity.OrderSetting;
+import com.example.service.OrderSettingService;
+
+@Service
+public class OrderSettingServiceImpl implements OrderSettingService {
+    @Autowired
+    private OrderSettingMapper orderSettingMapper;
+
+    @Override
+    public OrderSetting getOrderSettingById(int id) {
+        return orderSettingMapper.getOrderSettingById(id);
+    }
+}
+```
+
+```java
+// OrderSettingController.java
+
+package com.example.controller;
+
+import com.example.entity.OrderSetting;
+import com.example.service.OrderSettingService;
+
+@RestController
+@RequestMapping("/orderSetting")
+public class OrderSettingController {
+    @Autowired
+    private OrderSettingService orderSettingService;
+
+    @GetMapping("/{id}")
+    public ApiResponse<OrderSetting> getOrderSettingById(@PathVariable int id) {
+        OrderSetting orderSetting = orderSettingService.getOrderSettingById(id);
+        return new ApiResponse<>(200, "success", orderSetting);
+    }
+}
+```
+
+```java
+// OrderSettingMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.OrderSetting;
+
+public interface OrderSettingMapper {
+    OrderSetting getOrderSettingById(int id);
+}
+```
+
+```xml
+<!-- OrderSettingMapper.xml -->
+
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.OrderSettingMapper">
+    <select id="getOrderSettingById" resultType="com.example.entity.OrderSetting">
+        SELECT * FROM order_setting WHERE id = #{id}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+xzs-project_test\order_setting_system\src\main\java\com\example\entity\OmsOrderSetting.java:47:8
+java: 类 OrderSetting 是公共的, 应在名为 OrderSetting.java 的文件中声明
+xzs-project_test\order_setting_system\src\main\java\com\example\controller\OrderSettingController.java:19:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.OrderSettingController
+```
+```功能错误
+返回空列表
+### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: Table 'test.order_setting' doesn't exist
+```

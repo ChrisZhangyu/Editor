@@ -1,0 +1,346 @@
+﻿
+```java
+// ExamPaper.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+
+    private int score;
+    private int questionCount;
+
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+
+}
+```
+```java
+// TaskEditRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskEditRequest {
+    private int id;
+    private int gradeLevel;
+    private String title;
+    private List<ExamPaper> paperItems;
+}
+
+
+```
+```java
+// TaskEditResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskEditResponse {
+    private int code;
+    private String message;
+    private TaskExam response;
+}```
+```java
+// TaskExam.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskExam {
+    private int id;
+    private String title;
+    private int gradeLevel;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private String createUserName;
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public int getGradeLevel() {
+        return gradeLevel;
+    }
+
+    public void setGradeLevel(int gradeLevel) {
+        this.gradeLevel = gradeLevel;
+    }
+
+    public int getFrameTextContentId() {
+        return frameTextContentId;
+    }
+
+    public void setFrameTextContentId(int frameTextContentId) {
+        this.frameTextContentId = frameTextContentId;
+    }
+
+    public int getCreateUser() {
+        return createUser;
+    }
+
+    public void setCreateUser(int createUser) {
+        this.createUser = createUser;
+    }
+
+    public Date getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
+    }
+
+    public String getCreateUserName() {
+        return createUserName;
+    }
+
+    public void setCreateUserName(String createUserName) {
+        this.createUserName = createUserName;
+    }
+}
+```
+
+```java
+// TaskService.java
+package com.example.service;
+
+import com.example.entity.TaskEditRequest;
+import com.example.entity.TaskEditResponse;
+
+public interface TaskService {
+    TaskEditResponse editTask(TaskEditRequest request);
+}
+```
+
+```java
+// TaskServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.TaskEditResponse;
+import com.example.mapper.ExamPaperMapper;
+import com.example.mapper.TaskExamMapper;
+import com.example.entity.TaskExam;
+import com.example.service.TaskService;
+import com.example.entity.ExamPaper;
+import com.example.entity.TaskEditRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class TaskServiceImpl implements TaskService {
+    @Autowired
+    private TaskExamMapper taskExamMapper;
+    @Autowired
+    private ExamPaperMapper examPaperMapper;
+
+    @Override
+    public TaskEditResponse editTask(TaskEditRequest request) {
+        TaskEditResponse response = new TaskEditResponse();
+        response.setCode(1);
+        response.setMessage("成功");
+
+        // 检查任务是否存在
+        TaskExam taskExam = taskExamMapper.findById(request.getId());
+        if (taskExam == null) {
+            response.setCode(0);
+            response.setMessage("任务不存在");
+            return response;
+        }
+
+        // 检查paperItems列表是否为空
+        List<ExamPaper> paperItems = request.getPaperItems();
+        if (paperItems == null || paperItems.isEmpty()) {
+            response.setCode(0);
+            response.setMessage("paperItems列表不能为空");
+            return response;
+        }
+
+        // 验证paperItems列表中的每个paperItem
+        for (ExamPaper paperItem : paperItems) {
+            if (paperItem.getId() == 0 || paperItem.getName().isEmpty() || paperItem.getQuestionCount() == 0 ||
+                    paperItem.getScore() == 0 || paperItem.getCreateTime() == null || paperItem.getCreateUser() == 0 ||
+                    paperItem.getSubjectId() == 0 || paperItem.getFrameTextContentId() == 0) {
+                response.setCode(0);
+                response.setMessage("paperItems中的数据格式无效");
+                return response;
+            }
+        }
+
+        // 更新t_task_exam表中的任务信息
+        taskExam.setGradeLevel(request.getGradeLevel());
+        taskExam.setTitle(request.getTitle());
+        taskExamMapper.update(taskExam);
+
+        // 更新t_exam_paper表中的任务信息
+        for (ExamPaper paperItem : paperItems) {
+            examPaperMapper.update(paperItem);
+        }
+
+        response.setResponse(taskExam);
+        return response;
+    }
+}
+```
+
+```java
+// TaskController.java
+package com.example.controller;
+
+import com.example.entity.TaskEditResponse;
+import com.example.service.TaskService;
+import com.example.entity.TaskEditRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/task")
+public class TaskController {
+    @Autowired
+    private TaskService taskService;
+
+    @PostMapping("/edit")
+    public TaskEditResponse editTask(@RequestBody TaskEditRequest request) {
+        return taskService.editTask(request);
+    }
+}
+```
+
+```java
+// ExamPaperMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface ExamPaperMapper {
+    void update(ExamPaper examPaper);
+}
+```
+```java
+// TaskExamMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+import com.example.entity.TaskExam;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface TaskExamMapper {
+    TaskExam findById(int id);
+    void update(TaskExam taskExam);
+}
+
+
+```
+
+```xml
+<!-- TaskExamMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.TaskExamMapper">
+    <resultMap id="taskExamResultMap" type="com.example.entity.TaskExam">
+        <id column="id" property="id" />
+        <result column="title" property="title" />
+        <result column="grade_level" property="gradeLevel" />
+        <result column="frame_text_content_id" property="frameTextContentId" />
+        <result column="create_user" property="createUser" />
+        <result column="create_time" property="createTime" />
+        <result column="deleted" property="deleted" />
+        <result column="create_user_name" property="createUserName" />
+    </resultMap>
+    
+    <select id="findById" resultMap="taskExamResultMap">
+        SELECT * FROM t_task_exam WHERE id = #{id}
+    </select>
+    
+    <update id="update">
+        UPDATE t_task_exam SET
+        title = #{title},
+        grade_level = #{gradeLevel}
+
+        WHERE id = #{id}
+    </update>
+</mapper>
+```
+```xml
+<!-- ExamPaperMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ExamPaperMapper">
+    <update id="update">
+        UPDATE t_exam_paper SET
+        name = #{name},
+        subject_id = #{subjectId},
+        paper_type = #{paperType},
+        score = #{score},
+        question_count = #{questionCount},
+        frame_text_content_id = #{frameTextContentId},
+        create_user = #{createUser},
+        create_time = #{createTime}
+        WHERE id = #{id}
+    </update>
+</mapper>
+```

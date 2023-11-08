@@ -1,0 +1,212 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Cart.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_cart")
+public class Cart {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "cart_id")
+    private Integer cartId;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "amount")
+    private Double amount;
+}
+```
+
+```java
+// CartDetail.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_cart_detail")
+public class CartDetail {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "cart_detail_id")
+    private Long cartDetailId;
+
+    @Column(name = "cart_id")
+    private Long cartId;
+
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "count")
+    private Integer count;
+}
+```
+
+```java
+// CartService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+import com.example.entity.CartDetail;
+import com.example.entity.Cart;
+
+public interface CartService {
+    ApiResponse getCartDetailByUserIdAndGoodId(int userId, int goodId);
+}
+```
+
+```java
+// CartServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.CartDetail;
+import com.example.entity.Cart;
+import com.example.mapper.CartDetailMapper;
+import com.example.mapper.CartMapper;
+import com.example.service.CartService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class CartServiceImpl implements CartService {
+
+    @Autowired
+    private CartMapper cartMapper;
+
+    @Autowired
+    private CartDetailMapper cartDetailMapper;
+
+    @Override
+    public ApiResponse getCartDetailByUserIdAndGoodId(int userId, int goodId) {
+        List<Cart> cartList = cartMapper.getCartByUserId(userId);
+        if (cart == null) {
+            return new ApiResponse(-1002, "购物车不存在", null);
+        }
+
+        Cart cart = cartList.get(0);
+        CartDetail cartDetail = cartDetailMapper.getCartDetailByCartIdAndGoodId(cart.getCartId(), goodId);
+        if (cartDetail == null) {
+            return new ApiResponse(-1002, "购物车不存在", null);
+        }
+
+        return new ApiResponse(100, "成功", cartDetail);
+    }
+}
+```
+
+```java
+// CartController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.CartService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/user/v1/user")
+public class CartController {
+
+    @Autowired
+    private CartService cartService;
+
+    @GetMapping("/{userId}/cartDetail/good/{goodId}")
+    public ApiResponse getCartDetailByUserIdAndGoodId(@PathVariable int userId, @PathVariable int goodId) {
+        return cartService.getCartDetailByUserIdAndGoodId(userId, goodId);
+    }
+}
+```
+
+```java
+// CartDetailMapper.java
+package com.example.mapper;
+
+import com.example.entity.CartDetail;
+import org.apache.ibatis.annotations.Param;
+
+public interface CartDetailMapper {
+    CartDetail getCartDetailByCartIdAndGoodId(@Param("cartId") int cartId, @Param("goodId") int goodId);
+}
+```
+```java
+// CartMapper.java
+package com.example.mapper;
+
+import com.example.entity.Cart;
+
+import java.util.List;
+
+public interface CartMapper {
+    List<Cart> getCartByUserId(int userId);
+}
+```
+
+```xml
+<!-- CartDetailMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.CartDetailMapper">
+    <select id="getCartDetailByCartIdAndGoodId" parameterType="map" resultType="com.example.entity.CartDetail">
+        SELECT * FROM tb_cart_detail WHERE cart_id = #{cartId} AND good_id = #{goodId}
+    </select>
+</mapper>
+
+```
+
+```xml
+<!-- CartMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.CartMapper">
+    <select id="getCartByUserId" parameterType="int" resultType="com.example.entity.Cart">
+        SELECT * FROM tb_cart WHERE user_id = #{userId}
+    </select>
+</mapper>
+
+```

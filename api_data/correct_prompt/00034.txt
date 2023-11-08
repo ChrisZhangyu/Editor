@@ -1,0 +1,161 @@
+业务功能逻辑：
+在tbl_emp表中插入employee对象，插入失败返回信息message都设置为"操作失败".
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private String status;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Employee.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Employee {
+    private int empId;
+    private String empName;
+    private String empEmail;
+    private String gender;
+    private int departmentId;
+}
+```
+
+```java
+// EmployeeService.java
+package com.example.service;
+
+import com.example.entity.Employee;
+
+public interface EmployeeService {
+    void addEmployee(Employee employee);
+}
+```
+
+```java
+// EmployeeServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Employee;
+import com.example.mapper.EmployeeMapper;
+import com.example.service.EmployeeService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class EmployeeServiceImpl implements EmployeeService {
+
+    private final EmployeeMapper employeeMapper;
+
+    @Autowired
+    public EmployeeServiceImpl(EmployeeMapper employeeMapper) {
+        this.employeeMapper = employeeMapper;
+    }
+
+    @Override
+    public void addEmployee(Employee employee) {
+        int result = employeeMapper.addEmployee(employee);
+        if (result <= 0) {
+            throw new RuntimeException("操作失败");
+        }
+    }
+}
+```
+
+```java
+// EmployeeController.java
+package com.example.controller;
+
+import com.example.entity.Employee;
+import com.example.entity.ApiResponse;
+import com.example.service.EmployeeService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/hrms/emp")
+public class EmployeeController {
+
+    private final EmployeeService employeeService;
+
+    @Autowired
+    public EmployeeController(EmployeeService employeeService) {
+        this.employeeService = employeeService;
+    }
+
+    @PostMapping("/addEmp")
+    public ResponseEntity<ApiResponse> addEmployee(@RequestBody Employee employee) {
+        try {
+            employeeService.addEmployee(employee);
+            ApiResponse response = new ApiResponse("success", "操作成功", null);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            ApiResponse response = new ApiResponse("error", "操作失败", null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+}
+```
+
+```java
+// EmployeeMapper.java
+package com.example.mapper;
+
+import com.example.entity.Employee;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface EmployeeMapper {
+    @Insert("INSERT INTO tbl_emp(empId, empName, empEmail, gender, departmentId) " +
+            "VALUES(#{empId}, #{empName}, #{empEmail}, #{gender}, #{departmentId})")
+    int addEmployee(Employee employee);
+}```
+
+```xml
+<!-- EmployeeMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.EmployeeMapper">
+    <insert id="addEmployee" parameterType="com.example.entity.Employee">
+        INSERT INTO tbl_emp(empId, empName, empEmail, gender, departmentId)
+        VALUES(#{empId}, #{empName}, #{empEmail}, #{gender}, #{departmentId})
+    </insert>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+Mapped Statements collection already contains value for com.example.mapper.EmployeeMapper.insertEmployee.
+Cause: java.sql.SQLSyntaxErrorException: Unknown column 'empId' in 'field list' The error may exist in file [EmployeeMapper.xml].
+```
+
+```功能错误
+返回信息内容格式不匹配.
+```

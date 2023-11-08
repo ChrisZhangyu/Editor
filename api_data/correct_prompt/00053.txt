@@ -1,0 +1,252 @@
+﻿业务功能逻辑：
+更新商店:根据传入的参数检查表ssm_store中是否有相同的number或者表中的level是否小于1，如果至少满足其中一个条件，发送一个失败响应，将 "success" 键设置为false；否则，根据传入的参数检查表ssm_store中id是否存在，如果id不存在，则插入新商店信息；如果id存在，则更新现有商店信息；操作成功后返回{"success", true}；否则，返回{"success", false}。
+
+需要检查的代码：
+```java
+// Store.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Store {
+    private Integer id;
+    private String category;
+    private String number;
+    private String level;
+    private String page;
+    private Integer status;
+}
+```
+```java
+// StoreRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Store {
+    private Integer id;
+    private String category;
+    private String number;
+    private String level;
+    private String page;
+    private Integer status;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class StoreRequest {
+    private Integer id;
+    private String category;
+    private String number;
+    private String level;
+    private String page;
+    private Integer status;
+}
+```
+```java
+// StoreResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Store {
+    private Integer id;
+    private String category;
+    private String number;
+    private String level;
+    private String page;
+    private Integer status;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class StoreRequest {
+    private Integer id;
+    private String category;
+    private String number;
+    private String level;
+    private String page;
+    private Integer status;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class StoreResponse {
+    private boolean success;
+}
+```
+
+```java
+// StoreService.java
+package com.example.service;
+
+import com.example.entity.StoreRequest;
+import com.example.entity.StoreResponse;
+
+public interface StoreService {
+    StoreResponse save(StoreRequest request);
+}
+```
+
+```java
+// StoreServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.StoreRequest;
+import com.example.service.StoreService;
+import com.example.entity.StoreResponse;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class StoreServiceImpl implements StoreService {
+    @Override
+    public StoreResponse save(StoreRequest request) {
+        StoreResponse response = new StoreResponse();
+        
+        // 根据传入的参数检查其在表ssm_store中是否有相同的number或者level是否小于1
+        // 如果满足条件，发送一个失败响应
+        // 设置response的success为false
+        // 返回response
+        
+        // 否则，根据传入的参数检查表ssm_store中id是否存在
+        // 如果id不存在，则插入新商店信息
+        // 如果id存在，则更新现有商店信息
+        // 操作成功后设置response的success为true
+        // 返回response
+        
+        return response;
+    }
+}
+```
+
+```java
+// StoreController.java
+package com.example.controller;
+
+import com.example.service.StoreService;
+import com.example.entity.StoreResponse;
+import com.example.entity.StoreRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/store")
+public class StoreController {
+    private final StoreService storeService;
+    
+    @Autowired
+    public StoreController(StoreService storeService) {
+        this.storeService = storeService;
+    }
+    
+    @PostMapping("/save")
+    public StoreResponse save(@RequestBody StoreRequest request) {
+        return storeService.save(request);
+    }
+}
+```
+
+```java
+// StoreMapper.java
+package com.example.mapper;
+
+import com.example.entity.Store;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface StoreMapper {
+    // 根据id查询商店信息
+    Store findById(Integer id);
+    
+    // 插入新商店信息
+    void insert(Store store);
+    
+    // 更新商店信息
+    void update(Store store);
+}
+```
+
+```xml
+<!-- StoreMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.StoreMapper">
+    <resultMap id="storeResultMap" type="com.example.model.Store">
+        <id property="id" column="id"/>
+        <result property="category" column="category"/>
+        <result property="number" column="number"/>
+        <result property="level" column="level"/>
+        <result property="page" column="page"/>
+        <result property="status" column="status"/>
+    </resultMap>
+    
+    <select id="findById" resultMap="storeResultMap">
+        SELECT * FROM ssm_store WHERE id = #{id}
+    </select>
+    
+    <insert id="insert">
+        INSERT INTO ssm_store (category, number, level, page, status)
+        VALUES (#{category}, #{number}, #{level}, #{page}, #{status})
+    </insert>
+    
+    <update id="update">
+        UPDATE ssm_store
+        SET category = #{category}, number = #{number}, level = #{level}, page = #{page}, status = #{status}
+        WHERE id = #{id}
+    </update>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+类的路径名错误，
+Could not resolve type alias 'com.example.model.Store'.  Cause: java.lang.ClassNotFoundException: Cannot find class: com.example.model.Store
+```
+```功能错误
+StoreServiceImpl.java中各功能逻辑并未实现。
+```
+```功能错误
+在StoreMapper.xml中没有定义findByNumber方法,
+ERROR 31320 --- [nio-8080-exec-4] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.example.mapper.StoreMapper.findByNumber] with root cause.
+```

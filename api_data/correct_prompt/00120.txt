@@ -1,0 +1,464 @@
+业务功能逻辑：根据user_id在t_user表中查询学生年级user_level；根据传入参数在t_exam_paper表中查询对应的考试试卷分页信息；返回{"code":1,"message":"成功","response":{"total":9,"list":[{"id":66,"name":"固定试卷","questionCount":1,"score":50,"createTime":"2021-09-10 16:06:45","createUser":2,"subjectId":4,"subjectName":"语文","paperType":1,"frameTextContentId":294,"startTime":"","endTime":"","paperTypeStr":"固定试卷","scoreStr":"5","suggestTimeStr":"20分钟"}]}}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// ExamPaper.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+    private int gradeLevel;
+    private int score;
+    private int questionCount;
+    private int suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private int taskExamId;
+}
+```
+```java
+// ExamPaperRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+    private int gradeLevel;
+    private int score;
+    private int questionCount;
+    private int suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private int taskExamId;
+}
+
+import lombok.Data;
+
+@Data
+public class ExamPaperRequest {
+    private int paperType;
+    private int pageIndex;
+    private int pageSize;
+}
+```
+```java
+// PageResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+    private int gradeLevel;
+    private int score;
+    private int questionCount;
+    private int suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private int taskExamId;
+}
+
+import lombok.Data;
+
+@Data
+public class ExamPaperRequest {
+    private int paperType;
+    private int pageIndex;
+    private int pageSize;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PageResponse<T> {
+    private int total;
+    private T list;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+    private int gradeLevel;
+    private int score;
+    private int questionCount;
+    private int suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private int taskExamId;
+}
+
+import lombok.Data;
+
+@Data
+public class ExamPaperRequest {
+    private int paperType;
+    private int pageIndex;
+    private int pageSize;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PageResponse<T> {
+    private int total;
+    private T list;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+
+```java
+// ExamPaperService.java
+package com.example.service;
+
+import com.example.entity.ExamPaper;
+import com.example.entity.ApiResponse;
+
+import java.util.List;
+
+public interface ExamPaperService {
+    ApiResponse<List<ExamPaper>> getExamPaperList(String userName, int pageIndex, int pageSize);
+}
+```
+
+```java
+// ExamPaperServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.ExamPaperMapper;
+import com.example.entity.PageResponse;
+import com.example.entity.ApiResponse;
+import com.example.service.ExamPaperService;
+import com.example.entity.ExamPaper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ExamPaperServiceImpl implements ExamPaperService {
+
+    private final ExamPaperMapper examPaperMapper;
+    private final UserMapper userMapper;
+
+    @Autowired
+    public ExamPaperServiceImpl(ExamPaperMapper examPaperMapper, UserMapper userMapper) {
+        this.examPaperMapper = examPaperMapper;
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public ApiResponse<List<ExamPaper>> getExamPaperList(String userName, int pageIndex, int pageSize) {
+        int userLevel = userMapper.getUserLevelByUserName(userName);
+        List<ExamPaper> examPaperList = examPaperMapper.getExamPaperList(userLevel, pageIndex, pageSize);
+        int total = examPaperMapper.getExamPaperCount(userLevel);
+        return new ApiResponse<>(1, "成功", new PageResponse<>(total, examPaperList));
+    }
+}
+```
+
+```java
+// ExamPaperController.java
+package com.example.controller;
+
+import com.example.entity.ExamPaperRequest;
+import com.example.entity.ApiResponse;
+import com.example.service.ExamPaperService;
+import com.example.entity.ExamPaper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/wx/student/exampaper")
+public class ExamPaperController {
+
+    private final ExamPaperService examPaperService;
+
+    @Autowired
+    public ExamPaperController(ExamPaperService examPaperService) {
+        this.examPaperService = examPaperService;
+    }
+
+    @PostMapping("/pageList")
+    public ApiResponse<List<ExamPaper>> getExamPaperList(@RequestBody ExamPaperRequest request) {
+        return examPaperService.getExamPaperList(request.getUserName(), request.getPageIndex(), request.getPageSize());
+    }
+}
+```
+
+```java
+// ExamPaperMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface ExamPaperMapper {
+    List<ExamPaper> getExamPaperList(@Param("userLevel") int userLevel, @Param("pageIndex") int pageIndex, @Param("pageSize") int pageSize);
+
+    int getExamPaperCount(@Param("userLevel") int userLevel);
+}
+```
+
+```xml
+<!-- ExamPaperMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ExamPaperMapper">
+
+    <select id="getExamPaperList" resultType="com.example.entity.ExamPaper">
+        SELECT * FROM t_exam_paper WHERE grade_level = #{userLevel}
+        LIMIT #{pageIndex}, #{pageSize}
+    </select>
+
+    <select id="getExamPaperCount" resultType="int">
+        SELECT COUNT(*) FROM t_exam_paper WHERE grade_level = #{userLevel}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\ExamPaper.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\ExamPaper.java:18
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\ExamPaper.java:19
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\ExamPaper.java:21
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\ExamPaperRequest.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\ExamPaperRequest.java:18
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\ExamPaperRequest.java:19
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\ExamPaperRequest.java:21
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\ExamPaperRequest.java:44
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\User.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\User.java:18
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\User.java:19
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\User.java:21
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\User.java:44
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\User.java:53
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\User.java:54
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\User.java:55
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\User.java:65
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\User.java:66
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\User.java:67
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\entity\User.java:69
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\service\impl\ExamPaperServiceImpl.java:18:19
+java: 找不到符号
+  符号:   类 UserMapper
+  位置: 类 com.example.service.impl.ExamPaperServiceImpl
+D:\迅雷下载\xzs-project_test\wx_pageList_system\src\main\java\com\example\service\impl\ExamPaperServiceImpl.java:34:31
+java: 不兼容的类型: 无法推断com.example.entity.ApiResponse<>的类型参数
+    原因: 推论变量 T 具有不兼容的上限
+      等式约束条件：java.util.List<com.example.entity.ExamPaper>
+      下限：com.example.entity.PageResponse<T>
+```
+```功能错误
+org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.example.mapper.UserMapper.getUserLevelByUserId
+返回examPaperList为空
+```

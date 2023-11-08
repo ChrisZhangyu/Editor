@@ -1,0 +1,185 @@
+```java
+// Administrator.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_administrator")
+public class Administrator {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "administrator_id")
+    private Integer administratorId;
+
+    @Column(name = "user_name", length = 30)
+    private String userName;
+
+    @Column(name = "pass_word", length = 30)
+    private String passWord;
+
+    @Column(name = "nick_name", length = 30)
+    private String nickName;
+
+    @Column(name = "super_level")
+    private Boolean superLevel;
+
+    @Column(name = "phone")
+    private Long phone;
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// AdminService.java
+package com.example.service;
+
+import com.example.entity.Administrator;
+import com.example.entity.ApiResponse;
+import org.springframework.web.bind.annotation.RequestParam;
+
+public interface AdminService {
+    ApiResponse createAdmin(String userName, String passWord, String nickName, Long phone, Boolean superLevel);
+}
+```
+
+```java
+// AdminServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Administrator;
+import com.example.entity.ApiResponse;
+import com.example.mapper.AdminMapper;
+import com.example.service.AdminService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class AdminServiceImpl implements AdminService {
+
+    private final AdminMapper adminMapper;
+
+    @Autowired
+    public AdminServiceImpl(AdminMapper adminMapper) {
+        this.adminMapper = adminMapper;
+    }
+
+    @Override
+    public ApiResponse createAdmin(String userName, String passWord, String nickName, Long phone, Boolean superLevel) {
+        // 判断输入参数是否为空
+        if (passWord == null || userName == null || phone == null) {
+            return new ApiResponse(-1004, "字段不能为空", null);
+        }
+
+        // 判断用户名是否已存在
+        Administrator existingAdmin = adminMapper.getAdminByUserName(userName);
+        if (existingAdmin != null) {
+            return new ApiResponse(-1005, "用户名已存在", null);
+        }
+
+
+        Administrator administrator = new Administrator();
+        administrator.setUserName(userName);
+        administrator.setPassWord(passWord);
+        administrator.setPhone(phone);
+        administrator.setNickName(nickName);
+        administrator.setSuperLevel(superLevel);
+
+        // 插入管理员记录
+        adminMapper.createAdmin(administrator);
+        administrator.setAdministratorId(administrator.getAdministratorId());
+
+        return new ApiResponse(100, "成功", administrator);
+    }
+}
+```
+
+```java
+// AdminController.java
+package com.example.controller;
+
+import com.example.entity.Administrator;
+import com.example.entity.ApiResponse;
+import com.example.service.AdminService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/admin/v1/admins")
+public class AdminController {
+
+    private final AdminService adminService;
+
+    @Autowired
+    public AdminController(AdminService adminService) {
+        this.adminService = adminService;
+    }
+
+    @PostMapping
+    public ApiResponse createAdmin(@RequestParam String userName, @RequestParam String passWord,
+                                   @RequestParam String nickName, @RequestParam Long phone,
+                                   @RequestParam Boolean superLevel) {
+        return adminService.createAdmin(userName, passWord, nickName, phone, superLevel);
+    }
+}
+```
+
+```java
+// AdminMapper.java
+package com.example.mapper;
+
+import com.example.entity.Administrator;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface AdminMapper {
+    Administrator getAdminByUserName(@Param("userName") String userName);
+
+    void createAdmin(Administrator administrator);
+}
+```
+
+```xml
+<!-- AdminMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.AdminMapper">
+    <select id="getAdminByUserName" resultType="com.example.entity.Administrator">
+        SELECT * FROM tb_administrator WHERE user_name = #{userName}
+    </select>
+
+    <insert id="createAdmin">
+        <selectKey keyProperty="administratorId" resultType="int" order="AFTER">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO tb_administrator (user_name, pass_word, nick_name, super_level, phone)
+        VALUES (#{userName}, #{passWord}, #{nickName}, #{superLevel}, #{phone})
+    </insert>
+</mapper>
+```

@@ -1,0 +1,247 @@
+业务功能逻辑：
+根据page和rows分页查询tb_category_first表中所有的记录列表，遍历列表，在tb_category_second表中依次查询所有的小类别，查询条件是category_first_id等于tb_category_first.category_first_id，返回data设置为{["categoryFirstId"=tb_category_first,"categoryName"=tb_category_first.category_name,"categorySeconds"=[{tb_category_second记录}]]}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// CategoryFirst.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_first")
+public class CategoryFirst {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+}
+```
+
+```java
+// CategorySecond.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_second")
+public class CategorySecond {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+}
+```
+
+```java
+// CategoryService.java
+package com.example.service;
+
+import java.util.List;
+
+public interface CategoryService {
+    ApiResponse getCategoryFirst();
+
+    ApiResponse getCategorySecond(int categoryFirstId);
+}
+```
+
+```java
+// CategoryServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import java.util.List;
+
+@Service
+public class CategoryServiceImpl implements CategoryService {
+    private final CategoryMapper categoryMapper;
+
+    @Autowired
+    public CategoryServiceImpl(CategoryMapper categoryMapper) {
+        this.categoryMapper = categoryMapper;
+    }
+
+    @Override
+    public ApiResponse getCategoryFirst() {
+        List<CategoryFirst> categoryFirstList = categoryMapper.getCategoryFirstList();
+        return new ApiResponse(100, "成功", categoryFirstList);
+    }
+
+    @Override
+    public ApiResponse getCategorySecond(int categoryFirstId) {
+        List<CategorySecond> categorySecondList = categoryMapper.getCategorySecondListByFirstId(categoryFirstId);
+        return new ApiResponse(100, "成功", categorySecondList);
+    }
+}
+```
+
+```java
+// CategoryController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/user/v1/category")
+public class CategoryController {
+    private final CategoryService categoryService;
+
+    @Autowired
+    public CategoryController(CategoryService categoryService) {
+        this.categoryService = categoryService;
+    }
+
+    @GetMapping("/first")
+    public ApiResponse getCategoryFirst(@RequestParam("page") int page, @RequestParam("rows") int rows) {
+        // 分页查询逻辑
+        return categoryService.getCategoryFirst();
+    }
+}
+```
+
+```java
+// CategoryMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import java.util.List;
+
+@Mapper
+public interface CategoryMapper {
+    List<CategoryFirst> getCategoryFirstList();
+
+    List<CategorySecond> getCategorySecondListByFirstId(@Param("categoryFirstId") int categoryFirstId);
+}
+```
+
+```xml
+<!-- CategoryMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.CategoryMapper">
+    <select id="getCategoryFirstList" resultType="com.example.entity.CategoryFirst">
+        SELECT * FROM tb_category_first
+    </select>
+
+    <select id="getCategorySecondListByFirstId" resultType="com.example.entity.CategorySecond">
+        SELECT * FROM tb_category_second WHERE category_first_id = #{categoryFirstId}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+ategoryController.java:12:19
+java: 找不到符号
+  符号:   类 CategoryService
+  位置: 类 com.example.controller.CategoryController
+CategoryController.java:15:31
+java: 找不到符号
+  符号:   类 CategoryService
+  位置: 类 com.example.controller.CategoryController
+CategoryController.java:20:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.CategoryController
+CategoryMapper.java:9:10
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 接口 com.example.mapper.CategoryMapper
+CategoryMapper.java:11:10
+java: 找不到符号
+  符号:   类 CategorySecond
+  位置: 接口 com.example.mapper.CategoryMapper
+CategoryService.java:6:5
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.CategoryService
+CategoryService.java:8:5
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.CategoryService
+CategoryServiceImpl.java:8:45
+java: 找不到符号
+  符号: 类 CategoryService
+CategoryServiceImpl.java:9:19
+java: 找不到符号
+  符号:   类 CategoryMapper
+  位置: 类 com.example.service.impl.CategoryServiceImpl
+CategoryServiceImpl.java:12:32
+java: 找不到符号
+  符号:   类 CategoryMapper
+  位置: 类 com.example.service.impl.CategoryServiceImpl
+CategoryServiceImpl.java:17:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.CategoryServiceImpl
+CategoryServiceImpl.java:23:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.CategoryServiceImpl
+CategoryServiceImpl.java:21:14
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 类 com.example.service.impl.CategoryServiceImpl
+CategoryServiceImpl.java:27:14
+java: 找不到符号
+  符号:   类 CategorySecond
+  位置: 类 com.example.service.impl.CategoryServiceImpl
+```
+
+```功能错误
+功能没有实现：根据page和rows分页查询tb_category_first表中所有的记录列表.
+功能没有实现：返回data设置为{"categoryFirstId"=tb_category_first,"categoryName"=tb_category_first.category_name,"categorySeconds"=[{tb_category_second记录}]}.
+```

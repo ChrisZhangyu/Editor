@@ -1,0 +1,249 @@
+﻿业务功能逻辑：
+题目分页:根据传入的请求参数在表t_question查询题目分页信息，如果查询成功，返回{ "code": 1,"message": "成功","response": { "total": 7,"list": [{ "id": 64, "questionType": 5,  "textContentId": null,"createTime": "2021-01-21 11:45:57",   "subjectId": 1,  "createUser": 2,  "score": "10", "status": 1,   "correct": "",   "analyzeTextContentId": null,   "difficult": "",  "shortTitle": "" }]}}。；否则返回提示"失败"的JSON响应。
+需要检查的代码：
+```java
+// Question.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Question {
+    private Integer id;
+    private Integer questionType;
+    private Integer subjectId;
+    private Integer score;
+    private Integer gradeLevel;
+    private Integer difficult;
+    private String correct;
+    private Integer infoTextContentId;
+    private Integer createUser;
+    private Integer status;
+    private Date createTime;
+    private Boolean deleted;
+}
+```
+```java
+// QuestionPageRequest.java
+package com.example.entity;
+
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class QuestionPageRequest {
+    private Integer id;
+    private Integer questionType;
+    private Integer level;
+    private Integer subjectId;
+    private Integer pageIndex;
+    private Integer pageSize;
+}
+```
+```java
+// QuestionPageResponse.java
+package com.example.entity;
+
+
+
+import com.example.entity.Question;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class QuestionPageResponse {
+    private Integer code;
+    private String message;
+    private QuestionPageData response;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class QuestionPageData {
+        private Integer total;
+        private List<Question> list;
+    }
+}
+```
+
+```java
+// QuestionService.java
+package com.example.service;
+
+import com.example.entity.QuestionPageRequest;
+import com.example.entity.QuestionPageResponse;
+
+public interface QuestionService {
+    QuestionPageResponse getQuestionPage(QuestionPageRequest request);
+}
+```
+
+```java
+// QuestionServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.QuestionService;
+import com.example.mapper.QuestionMapper;
+import com.example.entity.Question;
+import com.example.entity.QuestionPageResponse;
+import com.example.entity.QuestionPageRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class QuestionServiceImpl implements QuestionService {
+
+    private final QuestionMapper questionMapper;
+
+    @Autowired
+    public QuestionServiceImpl(QuestionMapper questionMapper) {
+        this.questionMapper = questionMapper;
+    }
+
+    @Override
+    public QuestionPageResponse getQuestionPage(QuestionPageRequest request) {
+        QuestionPageResponse response = new QuestionPageResponse();
+        try {
+            Integer total = questionMapper.getQuestionCount(request);
+            List<Question> list = questionMapper.getQuestionPage(request);
+            QuestionPageResponse.QuestionPageData data = new QuestionPageResponse.QuestionPageData(total, list);
+            response.setCode(1);
+            response.setMessage("成功");
+            response.setResponse(data);
+        } catch (Exception e) {
+            response.setCode(0);
+            response.setMessage("失败");
+        }
+        return response;
+    }
+}
+```
+
+```java
+// QuestionController.java
+package com.example.controller;
+
+import com.example.service.QuestionService;
+import com.example.entity.QuestionPageResponse;
+import com.example.entity.QuestionPageRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/question")
+public class QuestionController {
+
+    private final QuestionService questionService;
+
+    @Autowired
+    public QuestionController(QuestionService questionService) {
+        this.questionService = questionService;
+    }
+
+    @PostMapping("/page")
+    public QuestionPageResponse getQuestionPage(@RequestBody QuestionPageRequest request) {
+        return questionService.getQuestionPage(request);
+    }
+}
+```
+
+```java
+// QuestionMapper.java
+package com.example.mapper;
+
+import com.example.entity.QuestionPageRequest;
+import com.example.entity.Question;
+
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface QuestionMapper {
+    Integer getQuestionCount(QuestionPageRequest request);
+    List<Question> getQuestionPage(QuestionPageRequest request);
+}
+```
+
+```xml
+<!-- QuestionMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.QuestionMapper">
+
+    <select id="getQuestionCount" parameterType="com.example.model.QuestionPageRequest" resultType="java.lang.Integer" >
+        SELECT COUNT(*) FROM t_question
+        <where>
+            <if test="id != null">
+                AND id = #{id}
+            </if>
+            <if test="questionType != null">
+                AND question_type = #{questionType}
+            </if>
+            <if test="level != null">
+                AND grade_level = #{level}
+            </if>
+            <if test="subjectId != null">
+                AND subject_id = #{subjectId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getQuestionPage" parameterType="com.example.model.QuestionPageRequest" resultType="com.example.model.Question" resultMap="QuestionResult">
+        SELECT * FROM t_question
+        <where>
+            <if test="id != null">
+                AND id = #{id}
+            </if>
+            <if test="questionType != null">
+                AND question_type = #{questionType}
+            </if>
+            <if test="level != null">
+                AND grade_level = #{level}
+            </if>
+            <if test="subjectId != null">
+                AND subject_id = #{subjectId}
+            </if>
+        </where>
+        LIMIT #{pageIndex}, #{pageSize}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+1.Caused by: java.lang.ClassNotFoundException: Cannot find class: com.example.model.QuestionPageRequest
+2.Caused by: java.lang.ClassNotFoundException: Cannot find class: com.example.model.Question
+```
+```语法错误
+在QuestionMapper.xml 中缺少Question实体类属性与表t_question字段间的映射语句。
+```

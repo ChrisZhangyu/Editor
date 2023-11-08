@@ -1,0 +1,152 @@
+```java
+// Article.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Article {
+    private int id;
+    private String articleTitle;
+    private String articleCreateDate;
+    private String articleContent;
+    private int isTop;
+    private String addName;
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// ArticleService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface ArticleService {
+    ApiResponse findById(int id);
+    // 其他方法...
+}
+```
+
+```java
+// ArticleServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Article;
+import com.example.mapper.ArticleMapper;
+import com.example.service.ArticleService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ArticleServiceImpl implements ArticleService {
+    private final ArticleMapper articleMapper;
+
+    @Autowired
+    public ArticleServiceImpl(ArticleMapper articleMapper) {
+        this.articleMapper = articleMapper;
+    }
+
+    @Override
+    public ApiResponse findById(int id) {
+        Article article = articleMapper.findById(id);
+        if (article != null) {
+            return new ApiResponse(1, "成功", article);
+        } else {
+            return new ApiResponse(0, "文章不存在", null);
+        }
+    }
+    // 其他方法...
+}
+```
+
+```java
+// ArticleController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.ArticleService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class ArticleController {
+    private final ArticleService articleService;
+
+    @Autowired
+    public ArticleController(ArticleService articleService) {
+        this.articleService = articleService;
+    }
+
+    @GetMapping("/article/findById")
+    public ApiResponse findById(@RequestParam int id) {
+        return articleService.findById(id);
+    }
+    // 其他方法...
+}
+
+```
+
+```java
+// ArticleMapper.java
+package com.example.mapper;
+
+import com.example.entity.Article;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface ArticleMapper {
+    Article findById(@Param("id") int id);
+    // 其他方法...
+}
+
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ArticleMapper">
+
+    <resultMap type="com.example.entity.Article" id="ArticleResult">
+        <result property="id" column="id"/>
+        <result property="articleTitle" column="article_title"/>
+        <result property="articleCreateDate" column="article_create_date"/>
+        <result property="articleContent" column="article_content"/>
+        <result property="isTop" column="is_top"/>
+        <result property="addName" column="add_name"/>
+    </resultMap>
+
+<!--    <select id="findById" resultType="com.example.entity.Article">-->
+    <select id="findById" resultMap="ArticleResult">
+        SELECT * FROM ssm_article WHERE id = #{id}
+    </select>
+    <!-- 其他SQL语句... -->
+</mapper>
+```

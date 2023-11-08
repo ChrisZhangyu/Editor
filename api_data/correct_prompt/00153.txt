@@ -1,0 +1,163 @@
+﻿业务功能逻辑：
+用户查询：从路径参数 id 中获取用户的id,根据该id从表t_user中检索用户的信息，如果检索成功，则返回用户的信息，并提示"查询成功"。如果查询的id不存在，则检索失败，提示"用户id不存在"。
+
+需要检查的代码：
+```java
+// SelectUserRequest.java
+package com.example.entity;
+
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SelectUserRequest {
+    private Integer id;
+}
+```
+
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private Integer id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private Integer age;
+    private Integer sex;
+    private Date birthDay;
+    private Integer userLevel;
+    private String phone;
+    private Integer role;
+    private Integer status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private Boolean deleted;
+    private String wxOpenId;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.SelectUserResponse;
+
+public interface UserService {
+    SelectUserResponse selectUser(Integer id);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.User;
+import com.example.service.UserService;
+import com.example.entity.SelectUserResponse;
+import com.example.mapper.UserMapper;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserServiceImpl implements UserService {
+    private final UserMapper userMapper;
+
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public SelectUserResponse selectUser(Integer id) {
+        SelectUserResponse response = new SelectUserResponse();
+        User user = userMapper.selectUserById(id);
+        if (user != null) {
+            response.setCode(1);
+            response.setMessage("成功");
+            response.setResponse(user);
+        } else {
+            response.setCode(0);
+            response.setMessage("用户id不存在");
+        }
+        return response;
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.service.UserService;
+import com.example.entity.SelectUserResponse;
+
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/admin/user")
+public class UserController {
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/select/{id}")
+    public SelectUserResponse selectUser(@PathVariable Integer id) {
+        return userService.selectUser(id);
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+
+public interface UserMapper {
+    User selectUserById(Integer id);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="selectUserById" resultType="com.example.entity.User">
+        SELECT * FROM t_user WHERE id = #{id}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+UserServiceImpl.java:5:26
+java: 找不到符号
+  符号:   类 SelectUserResponse
+  位置: 程序包 com.example.entity
+```
+```语法错误
+在UserMapper.xml中缺少User实体类属性与表t_user字段间的映射语句，导致返回结果不完整{
+"code": 1,"message": "成功","response": {"id": 1,"userUuid": null,"userName": null,"password": "password1","realName": null,"age": 30,"sex": 1,"birthDay": null,"userLevel": null,"phone": "123-456-7890","role": 1,"status": 1,"imagePath": null,"createTime": null,"modifyTime": null,"lastActiveTime": null,"deleted": true,"wxOpenId": null}}
+```

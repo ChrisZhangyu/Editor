@@ -1,0 +1,286 @@
+业务功能逻辑：
+根据categorySecondId在tb_category_second表中查询记录，如果为空返回(-1002, "该分类不存在", null)；根据categoryName在tb_category_second表中查询记录，如果不为空且tb_category_second.category_second_id不等于categorySecondId，则返回(-1005, "分类名称已存在",null)；在tb_category_second表中更新记录，字段category_first_id设置为categoryFirstId，category_name设置为categoryName，image设置为image，返回data设置为{tb_category_second新记录}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// CategorySecond.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_second")
+public class CategorySecond {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+}
+```
+
+```java
+// CategorySecondService.java
+package com.example.service;
+
+import java.util.List;
+
+public interface CategorySecondService {
+    CategorySecond getCategorySecondById(int categorySecondId);
+    List<CategorySecond> getAllCategorySeconds();
+    ApiResponse updateCategorySecond(int categorySecondId, int categoryFirstId, String categoryName, String image);
+}
+```
+
+```java
+// CategorySecondServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class CategorySecondServiceImpl implements CategorySecondService {
+
+    private final CategorySecondMapper categorySecondMapper;
+
+    @Autowired
+    public CategorySecondServiceImpl(CategorySecondMapper categorySecondMapper) {
+        this.categorySecondMapper = categorySecondMapper;
+    }
+
+    @Override
+    public CategorySecond getCategorySecondById(int categorySecondId) {
+        return categorySecondMapper.getCategorySecondById(categorySecondId);
+    }
+
+    @Override
+    public List<CategorySecond> getAllCategorySeconds() {
+        return categorySecondMapper.getAllCategorySeconds();
+    }
+
+    @Override
+    public ApiResponse updateCategorySecond(int categorySecondId, int categoryFirstId, String categoryName, String image) {
+        CategorySecond existingCategorySecond = categorySecondMapper.getCategorySecondById(categorySecondId);
+        if (existingCategorySecond == null) {
+            return new ApiResponse(-1002, "该分类不存在", null);
+        }
+
+        CategorySecond categorySecondWithSameName = categorySecondMapper.getCategorySecondByName(categoryName);
+        if (categorySecondWithSameName != null && categorySecondWithSameName.getCategorySecondId() != categorySecondId) {
+            return new ApiResponse(-1005, "分类名称已存在", null);
+        }
+
+        CategorySecond updatedCategorySecond = new CategorySecond();
+        updatedCategorySecond.setCategorySecondId(categorySecondId);
+        updatedCategorySecond.setCategoryFirstId(categoryFirstId);
+        updatedCategorySecond.setCategoryName(categoryName);
+        updatedCategorySecond.setImage(image);
+
+        categorySecondMapper.updateCategorySecond(updatedCategorySecond);
+
+        return new ApiResponse(100, "成功", updatedCategorySecond);
+    }
+}
+```
+
+```java
+// CategorySecondController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/admin/v1/category/second")
+public class CategorySecondController {
+
+    private final CategorySecondService categorySecondService;
+
+    @Autowired
+    public CategorySecondController(CategorySecondService categorySecondService) {
+        this.categorySecondService = categorySecondService;
+    }
+
+    @GetMapping("/{categorySecondId}")
+    public CategorySecond getCategorySecondById(@PathVariable int categorySecondId) {
+        return categorySecondService.getCategorySecondById(categorySecondId);
+    }
+
+    @GetMapping("/")
+    public List<CategorySecond> getAllCategorySeconds() {
+        return categorySecondService.getAllCategorySeconds();
+    }
+
+    @PostMapping("/{categorySecondId}")
+    public ApiResponse updateCategorySecond(@PathVariable int categorySecondId,
+                                            @RequestParam int categoryFirstId,
+                                            @RequestParam String categoryName,
+                                            @RequestParam String image) {
+        return categorySecondService.updateCategorySecond(categorySecondId, categoryFirstId, categoryName, image);
+    }
+}
+```
+
+```java
+// CategorySecondMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface CategorySecondMapper {
+    CategorySecond getCategorySecondById(int categorySecondId);
+    List<CategorySecond> getAllCategorySeconds();
+    CategorySecond getCategorySecondByName(String categoryName);
+    void updateCategorySecond(CategorySecond categorySecond);
+}
+```
+
+```xml
+<!-- CategorySecondMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.CategorySecondMapper">
+
+    <select id="getCategorySecondById" resultType="com.example.entity.CategorySecond">
+        SELECT * FROM tb_category_second WHERE category_second_id = #{categorySecondId}
+    </select>
+
+    <select id="getAllCategorySeconds" resultType="com.example.entity.CategorySecond">
+        SELECT * FROM tb_category_second
+    </select>
+
+    <select id="getCategorySecondByName" resultType="com.example.entity.CategorySecond">
+        SELECT * FROM tb_category_second WHERE category_name = #{categoryName}
+    </select>
+
+    <update id="updateCategorySecond">
+        UPDATE tb_category_second
+        SET category_first_id = #{categoryFirstId},
+            category_name = #{categoryName},
+            image = #{image}
+        WHERE category_second_id = #{categorySecondId}
+    </update>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+CategorySecondController.java:12:19
+java: 找不到符号
+  符号:   类 CategorySecondService
+  位置: 类 com.example.controller.CategorySecondController
+CategorySecondController.java:15:37
+java: 找不到符号
+  符号:   类 CategorySecondService
+  位置: 类 com.example.controller.CategorySecondController
+CategorySecondController.java:20:12
+java: 找不到符号
+  符号:   类 CategorySecond
+  位置: 类 com.example.controller.CategorySecondController
+CategorySecondController.java:25:17
+java: 找不到符号
+  符号:   类 CategorySecond
+  位置: 类 com.example.controller.CategorySecondController
+CategorySecondController.java:30:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.CategorySecondController
+CategorySecondMapper.java:10:5
+java: 找不到符号
+  符号:   类 CategorySecond
+  位置: 接口 com.example.mapper.CategorySecondMapper
+CategorySecondMapper.java:11:10
+java: 找不到符号
+  符号:   类 CategorySecond
+  位置: 接口 com.example.mapper.CategorySecondMapper
+CategorySecondMapper.java:12:5
+java: 找不到符号
+  符号:   类 CategorySecond
+  位置: 接口 com.example.mapper.CategorySecondMapper
+CategorySecondMapper.java:13:31
+java: 找不到符号
+  符号:   类 CategorySecond
+  位置: 接口 com.example.mapper.CategorySecondMapper
+CategorySecondService.java:6:5
+java: 找不到符号
+  符号:   类 CategorySecond
+CategorySecondService.java:7:10
+java: 找不到符号
+  符号:   类 CategorySecond
+  位置: 接口 com.example.service.CategorySecondService
+CategorySecondService.java:8:5
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.CategorySecondService
+CategorySecondServiceImpl.java:9:51
+java: 找不到符号
+  符号: 类 CategorySecondService
+CategorySecondServiceImpl.java:11:19
+java: 找不到符号
+  符号:   类 CategorySecondMapper
+  位置: 类 com.example.service.impl.CategorySecondServiceImpl
+CategorySecondServiceImpl.java:14:38
+java: 找不到符号
+  符号:   类 CategorySecondMapper
+  位置: 类 com.example.service.impl.CategorySecondServiceImpl
+CategorySecondServiceImpl.java:19:12
+java: 找不到符号
+  符号:   类 CategorySecond
+  位置: 类 com.example.service.impl.CategorySecondServiceImpl
+CategorySecondServiceImpl.java:24:17
+java: 找不到符号
+  符号:   类 CategorySecond
+  位置: 类 com.example.service.impl.CategorySecondServiceImpl
+CategorySecondServiceImpl.java:29:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.CategorySecondServiceImpl
+```
+
+```功能错误
+在CategorySecondController.java模块中错误地生成了getCategorySecondById和getAllCategorySeconds函数接口，应该删除，同时删除CategorySecondService.java模块中相应地实现接口getCategorySecondById和getAllCategorySeconds.
+```

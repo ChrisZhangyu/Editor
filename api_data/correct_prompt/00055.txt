@@ -1,0 +1,116 @@
+﻿业务功能逻辑：
+查询用户积分列表：根据传入的offset和limit参数从表score中来查询指定范围内的积分列表，如果查询成功，则返回查询到的积分列表信息，以JSON格式返回给客户端，否则返回一个失败的JSON响应，提示"查询失败"。
+
+需要检查的代码：
+
+```java
+// ScoreService.java
+package com.example.service;
+
+import com.example.entity.Score;
+
+
+import java.util.List;
+
+public interface ScoreService {
+    List<Score> queryLimit(Integer offset, Integer limit);
+}
+```
+
+```java
+// ScoreServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.ScoreMapper;
+import com.example.service.ScoreService;
+import com.example.entity.Score;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ScoreServiceImpl implements ScoreService {
+    private final ScoreMapper scoreMapper;
+
+    @Autowired
+    public ScoreServiceImpl(ScoreMapper scoreMapper) {
+        this.scoreMapper = scoreMapper;
+    }
+
+    @Override
+    public List<Score> queryLimit(Integer offset, Integer limit) {
+        return scoreMapper.queryLimit(offset, limit);
+    }
+}
+```
+
+```java
+// ScoreController.java
+package com.example.controller;
+
+import com.example.service.ScoreService;
+import com.example.entity.Score;
+
+import com.example.entity.Score;
+import com.example.service.ScoreService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+public class ScoreController {
+    private final ScoreService scoreService;
+
+    @Autowired
+    public ScoreController(ScoreService scoreService) {
+        this.scoreService = scoreService;
+    }
+
+    @GetMapping("/score/queryLimit")
+    public List<Score> queryLimit(@RequestParam Integer offset, @RequestParam Integer limit) {
+        return scoreService.queryLimit(offset, limit);
+    }
+}
+```
+
+```java
+// ScoreMapper.java
+package com.example.mapper;
+
+import com.example.entity.Score;
+
+
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface ScoreMapper {
+    List<Score> queryLimit(@Param("offset") Integer offset, @Param("limit") Integer limit);
+}
+```
+
+```xml
+<!-- ScoreMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ScoreMapper">
+    <select id="queryLimit" resultType="com.example.entity.Score">
+        SELECT * FROM score LIMIT #{offset}, #{limit}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+SScoreController.java:4:26
+java: 程序包com.example.entity不存在
+```

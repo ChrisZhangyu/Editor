@@ -1,0 +1,389 @@
+业务功能逻辑：
+判断输入tags是否为空，不为空则遍历tags，在bms_tag表中查找与name相等的记录，如果记录为空，则根据输入参数创建对象插入到bms_tag表中，主键id使用长度19且只包含数字的字符串，如果记录不为空，更新topic_count对象加1；在bms_post_tag表中进行删除操作，删除条件是topic_id与输入postId相等；将tag列表插入到bms_post_tag表中：tag_id设置为tag.id，topic_id设置为postId；返回信息data设置为{bms_post_tag的记录}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// BmsPostTag.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_post_tag")
+public class BmsPostTag {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+
+    @Column(name = "tag_id", length = 20)
+    private String tagId;
+
+    @Column(name = "topic_id", length = 20)
+    private String topicId;
+}
+```
+
+```java
+// BmsTag.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_tag")
+public class BmsTag {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "topic_count")
+    private int topicCount;
+}
+```
+
+```java
+// CreateTopicDTO.java
+package com.example.entity;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CreateTopicDTO {
+    private String title;
+    private String content;
+    private List<String> tags;
+}
+```
+
+```java
+// PostService.java
+package com.example.service;
+
+import com.example.entity.Post;
+
+public interface PostService {
+    ApiResponse createPost(String postId, CreateTopicDTO createTopicDTO);
+}
+```
+
+```java
+// PostServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Post;
+import com.example.mapper.PostMapper;
+import com.example.mapper.PostTagMapper;
+import com.example.mapper.TagMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+public class PostServiceImpl implements PostService {
+
+    private final PostMapper postMapper;
+    private final TagMapper tagMapper;
+    private final PostTagMapper postTagMapper;
+
+    @Autowired
+    public PostServiceImpl(PostMapper postMapper, TagMapper tagMapper, PostTagMapper postTagMapper) {
+        this.postMapper = postMapper;
+        this.tagMapper = tagMapper;
+        this.postTagMapper = postTagMapper;
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse createPost(String postId, CreateTopicDTO createTopicDTO) {
+        // 判断输入tags是否为空
+        if (createTopicDTO.getTags() != null && !createTopicDTO.getTags().isEmpty()) {
+            // 遍历tags
+            for (String tagName : createTopicDTO.getTags()) {
+                // 在bms_tag表中查找与name相等的记录
+                Tag tag = tagMapper.getTagByName(tagName);
+                if (tag == null) {
+                    // 如果记录为空，则根据输入参数创建对象插入到bms_tag表中
+                    tag = new Tag();
+                    tag.setId(generateId());
+                    tag.setName(tagName);
+                    tagMapper.insertTag(tag);
+                } else {
+                    // 如果记录不为空，更新topic_count对象加1
+                    tag.setTopicCount(tag.getTopicCount() + 1);
+                    tagMapper.updateTag(tag);
+                }
+
+                // 在bms_post_tag表中进行删除操作，删除条件是topic_id与输入postId相等
+                postTagMapper.deletePostTagByPostId(postId);
+
+                // 将tag列表插入到bms_post_tag表中
+                PostTag postTag = new PostTag();
+                postTag.setPostId(postId);
+                postTag.setTagId(tag.getId());
+                postTagMapper.insertPostTag(postTag);
+            }
+        }
+
+        // 返回信息data设置为{bms_post_tag的记录}
+        List<PostTag> postTags = postTagMapper.getPostTagsByPostId(postId);
+        return new ApiResponse(200, "操作成功", postTags);
+    }
+
+    private String generateId() {
+        // 生成长度为19且只包含数字的字符串
+        // 省略生成逻辑
+        return "";
+    }
+}
+```
+
+```java
+// PostController.java
+package com.example.controller;
+
+import com.example.dto.CreateTopicDTO;
+import com.example.service.PostService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class PostController {
+
+    private final PostService postService;
+
+    @Autowired
+    public PostController(PostService postService) {
+        this.postService = postService;
+    }
+
+    @PostMapping("/post/create")
+    public ResponseEntity<ApiResponse> createPost(
+            @RequestHeader("postId") String postId,
+            @RequestBody CreateTopicDTO createTopicDTO) {
+        ApiResponse response = postService.createPost(postId, createTopicDTO);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+}
+```
+
+```java
+// PostMapper.java
+package com.example.mapper;
+
+import com.example.entity.Post;
+
+public interface PostMapper {
+    void insertPost(Post post);
+    // 其他操作数据库的方法
+}
+```
+
+```java
+// PostTagMapper.java
+package com.example.mapper;
+
+import com.example.entity.PostTag;
+
+public interface PostTagMapper {
+    void deletePostTagByPostId(String postId);
+    List<PostTag> getPostTagsByPostId(String postId);
+    void insertPostTag(PostTag postTag);
+    // 其他操作数据库的方法
+}
+```
+
+```java
+// TagMapper.java
+package com.example.mapper;
+
+import com.example.entity.Tag;
+
+public interface TagMapper {
+    Tag getTagByName(String name);
+    void insertTag(Tag tag);
+    void updateTag(Tag tag);
+    // 其他操作数据库的方法
+}
+```
+
+```xml
+<!-- PostMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.PostMapper">
+    <!-- 其他操作数据库的SQL语句 -->
+</mapper>
+```
+
+```xml
+<!-- PostTagMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.PostTagMapper">
+    <!-- 其他操作数据库的SQL语句 -->
+</mapper>
+```
+
+```xml
+<!-- TagMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.TagMapper">
+    <!-- 其他操作数据库的SQL语句 -->
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+PostController.java:3:23
+java: 程序包com.example.dto不存在
+PostController.java:26:26
+java: 找不到符号
+  符号:   类 CreateTopicDTO
+  位置: 类 com.example.controller.PostController
+PostController.java:24:27
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.PostController
+PostService.java:3:26
+java: 找不到符号
+  符号:   类 Post
+  位置: 程序包 com.example.entity
+PostService.java:6:43
+java: 找不到符号
+  符号:   类 CreateTopicDTO
+  位置: 接口 com.example.service.PostService
+ostService.java:6:5
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.PostService
+ApiResponse.java:3:2
+java: 找不到符号
+  符号: 类 Data
+ApiResponse.java:4:2
+java: 找不到符号
+  符号: 类 NoArgsConstructor
+ApiResponse.java:5:2
+java: 找不到符号
+  符号: 类 AllArgsConstructor
+CreateTopicDTO.java:5:2
+java: 找不到符号
+  符号: 类 Data
+CreateTopicDTO.java:6:2
+java: 找不到符号
+  符号: 类 NoArgsConstructor
+CreateTopicDTO.java:7:2
+java: 找不到符号
+  符号: 类 AllArgsConstructor
+PostMapper.java:3:26
+java: 找不到符号
+  符号:   类 Post
+  位置: 程序包 com.example.entity
+PostMapper.java:6:21
+java: 找不到符号
+  符号:   类 Post
+  位置: 接口 com.example.mapper.PostMapper
+PostTagMapper.java:3:26
+java: 找不到符号
+  符号:   类 PostTag
+  位置: 程序包 com.example.entity
+PostTagMapper.java:7:5
+java: 找不到符号
+  符号:   类 List
+  位置: 接口 com.example.mapper.PostTagMapper
+PostTagMapper.java:7:10
+java: 找不到符号
+  符号:   类 PostTag
+  位置: 接口 com.example.mapper.PostTagMapper
+PostTagMapper.java:8:24
+java: 找不到符号
+  符号:   类 PostTag
+  位置: 接口 com.example.mapper.PostTagMapper
+TagMapper.java:3:26
+java: 找不到符号
+  符号:   类 Tag
+  位置: 程序包 com.example.entity
+TagMapper.java:6:5
+java: 找不到符号
+  符号:   类 Tag
+  位置: 接口 com.example.mapper.TagMapper
+TagMapper.java:7:20
+java: 找不到符号
+  符号:   类 Tag
+  位置: 接口 com.example.mapper.TagMapper
+TagMapper.java:8:20
+java: 找不到符号
+  符号:   类 Tag
+  位置: 接口 com.example.mapper.TagMapper
+PostServiceImpl.java:3:26
+java: 找不到符号
+  符号:   类 Post
+  位置: 程序包 com.example.entity
+PostServiceImpl.java:14:41
+java: 找不到符号
+  符号: 类 PostService
+PostServiceImpl.java:29:50
+java: 找不到符号
+  符号:   类 CreateTopicDTO
+  位置: 类 com.example.service.impl.PostServiceImpl
+PostServiceImpl.java:29:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.PostServiceImpl
+PostServiceImpl.java:54:24
+java: 找不到符号
+  符号:   方法 setPostId(java.lang.String)
+  位置: 类型为com.example.entity.BmsPostTag的变量 postTag
+org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.example.mapper.PostTagMapper.getPostTagsByPostId.
+org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.example.mapper.PostTagMapper.deletePostTagByPostId.
+org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.example.mapper.PostTagMapper.insertPostTag.
+org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.example.mapper.TagMapper.getTagByName.
+org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.example.mapper.TagMapper.insertTag.
+org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.example.mapper.TagMapper.updateTag
+```
+
+```功能错误
+定义了与功能逻辑无关的PostMapper类，需要相应的实现模块.
+bms_post表中主键id使用长度19且只包含数字的字符串没有实现.
+```

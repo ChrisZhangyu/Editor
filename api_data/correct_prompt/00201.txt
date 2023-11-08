@@ -1,0 +1,195 @@
+业务功能逻辑：根据输入参数在表oms_order_return_reason中分页查询全部退货原因信息。返回参数{reasonList{id, name, sort:, status=int, createTime}}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import com.example.entity.OmsOrderReturnReason;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private List<OmsOrderReturnReason> reasonList;
+}
+```
+```java
+// OmsOrderReturnReason.java
+package com.example.entity;
+
+import com.example.entity.OmsOrderReturnReason;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private List<OmsOrderReturnReason> reasonList;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderReturnReason {
+    private Long id;
+    private String name;
+    private Integer sort;
+    private Integer status;
+    private Date createTime;
+}
+```
+```java
+// ReturnReasonListRequest.java
+package com.example.entity;
+
+import com.example.entity.OmsOrderReturnReason;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private List<OmsOrderReturnReason> reasonList;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderReturnReason {
+    private Long id;
+    private String name;
+    private Integer sort;
+    private Integer status;
+    private Date createTime;
+}
+
+import lombok.Data;
+
+@Data
+public class ReturnReasonListRequest {
+    private Integer pageSize;
+    private Integer pageNum;
+}
+```
+
+```java
+// ReturnReasonService.java
+package com.example.service;
+
+import com.example.entity.ReturnReasonListRequest;
+import com.example.entity.ApiResponse;
+
+public interface ReturnReasonService {
+    ApiResponse getReturnReasonList(ReturnReasonListRequest request);
+}
+```
+
+```java
+// ReturnReasonServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.OmsOrderReturnReason;
+import com.example.mapper.OmsOrderReturnReasonMapper;
+import com.example.service.ReturnReasonService;
+import com.example.entity.ReturnReasonListRequest;
+
+@Service
+public class ReturnReasonServiceImpl implements ReturnReasonService {
+
+    @Autowired
+    private OmsOrderReturnReasonMapper returnReasonMapper;
+
+    @Override
+    public ApiResponse getReturnReasonList(ReturnReasonListRequest request) {
+        Integer pageSize = request.getPageSize();
+        Integer pageNum = request.getPageNum();
+        Integer offset = (pageNum - 1) * pageSize;
+        List<OmsOrderReturnReason> reasonList = returnReasonMapper.getReturnReasonList(offset, pageSize);
+        return new ApiResponse(reasonList);
+    }
+}
+```
+
+```java
+// ReturnReasonController.java
+package com.example.controller;
+
+import com.example.service.ReturnReasonService;
+import com.example.entity.ReturnReasonListRequest;
+import com.example.entity.ApiResponse;
+
+@RestController
+@RequestMapping("/returnReason")
+public class ReturnReasonController {
+
+    @Autowired
+    private ReturnReasonService returnReasonService;
+
+    @GetMapping("/list")
+    public ApiResponse getReturnReasonList(ReturnReasonListRequest request) {
+        return returnReasonService.getReturnReasonList(request);
+    }
+}
+```
+
+```java
+// OmsOrderReturnReasonMapper.java
+package com.example.mapper;
+
+import com.example.entity.OmsOrderReturnReason;
+
+public interface OmsOrderReturnReasonMapper {
+    List<OmsOrderReturnReason> getReturnReasonList(@Param("offset") Integer offset, @Param("pageSize") Integer pageSize);
+}
+```
+
+```xml
+<!-- OmsOrderReturnReasonMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.OmsOrderReturnReasonMapper">
+
+    <select id="getReturnReasonList" resultType="com.example.entity.OmsOrderReturnReason">
+        SELECT * FROM oms_order_return_reason
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\order_returnReason_list_system\src\main\java\com\example\entity\OmsOrderReturnReason.java:15:13
+java: 找不到符号
+  符号:   类 Date
+  位置: 类 com.example.entity.OmsOrderReturnReason
+D:\迅雷下载\xzs-project_test\order_returnReason_list_system\src\main\java\com\example\mapper\OmsOrderReturnReasonMapper.java:6:5
+java: 找不到符号
+  符号:   类 List
+  位置: 接口 com.example.mapper.OmsOrderReturnReasonMapper
+```
+```功能错误
+
+```

@@ -1,0 +1,196 @@
+﻿业务功能逻辑：
+列出商店，根据传入的参数从数据库表ssm_store中查询商店信息。使用 page 和 rows 参数进行分页，使用 status 和 number 参数进行筛选；每个商店都关联到其包含的图书列表，对于每个商店，还要从表ssm_book中检索关联的图书列表；然后将结果组装成JSON响应对象，包括商店对象列表和总数，以及每个商店的关联图书列表，若查询失败返回一个失败的响应。
+
+需要检查的代码：
+```java
+// Book.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Book {
+    private int id;
+    private String isbn;
+    private String path;
+    private String title;
+    private String subtitle;
+    private String originalTitle;
+    private double marketPrice;
+    private String intro;
+    private String binding;
+    private int pages;
+    private String author;
+    private String publisher;
+    private String catalog;
+    private int supply;
+    private int status;
+    private int hot;
+    private String indate;
+}
+
+
+
+
+
+```
+```java
+// Store.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Store {
+    private Long id;
+    private String category;
+    private String number;
+    private String level;
+    private String page;
+    private Integer status;
+    private List<Book> books;
+}```
+
+```java
+// StoreService.java
+
+package com.example.service;
+
+
+public interface StoreService {
+    StoreListResponse getStoreList(Integer page, Integer rows, Integer status, String number);
+}
+```
+
+```java
+// StoreServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.entity.StoreListResponse;
+import com.example.service.StoreService;
+import com.example.entity.Store;
+import com.example.mapper.StoreMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class StoreServiceImpl implements StoreService {
+
+    private final StoreMapper storeMapper;
+
+    @Autowired
+    public StoreServiceImpl(StoreMapper storeMapper) {
+        this.storeMapper = storeMapper;
+    }
+
+    @Override
+    public StoreListResponse getStoreList(Integer page, Integer rows, Integer status, String number) {
+        List<Store> stores = storeMapper.getStoreList(page, rows, status, number);
+        String total = String.valueOf(stores.size());
+        return new StoreListResponse(stores, total);
+    }
+}
+```
+
+```java
+// StoreController.java
+
+package com.example.controller;
+
+import com.example.service.StoreService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class StoreController {
+
+    private final StoreService storeService;
+
+    @Autowired
+    public StoreController(StoreService storeService) {
+        this.storeService = storeService;
+    }
+
+    @GetMapping("/store/list")
+    public StoreListResponse getStoreList(@RequestParam Integer page, @RequestParam Integer rows, @RequestParam Integer status, @RequestParam String number) {
+        return storeService.getStoreList(page, rows, status, number);
+    }
+}
+```
+
+```java
+// StoreMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.Store;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface StoreMapper {
+    List<Store> getStoreList(@Param("page") Integer page, @Param("rows") Integer rows, @Param("status") Integer status, @Param("number") String number);
+}
+```
+
+```xml
+<!-- StoreMapper.xml -->
+
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.StoreMapper">
+    <select id="getStoreList" resultType="com.example.entity.Store">
+        SELECT s.id, s.category, s.number, s.level, s.page, s.status,
+        b.id AS book_id, b.isbn, b.path, b.title, b.subtitle, b.original_title, b.market_price, b.intro, b.binding, b.pages, b.author, b.publisher, b.catalog, b.supply, b.status AS book_status, b.hot, b.indate
+        FROM ssm_store s
+        LEFT JOIN ssm_book b ON s.id = b.store_id
+        WHERE s.status = #{status}
+        AND s.number = #{number}
+        LIMIT #{page}, #{rows}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+StoreController.java:22:12
+java: 找不到符号
+  符号:   类 StoreListResponse
+  位置: 类 com.example.controller.StoreController
+```
+```依赖错误
+StoreService.java:6:5
+java: 找不到符号
+  符号:   类 StoreListResponse
+  位置: 接口 com.example.service.StoreService
+```
+```语法错误
+位置：StoreMapper.xml
+查询语句中的列名与数据库表中的列名不一致
+```

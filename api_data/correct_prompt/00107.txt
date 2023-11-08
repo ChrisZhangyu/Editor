@@ -1,0 +1,223 @@
+﻿业务功能逻辑：
+任务查询接口：从请求路径中提取id，根据该id从表t_task_exam中获取指定id的任务信息，仅包括id、gradeLevel、title参数信息，同时还要从表t_exam_paper中获取试卷信息，包含字段id、name、questionCount、score、createTime、createUser、subjectId、paperType、frameTextContentId，如果查询成功，返回{"code": 1,"message": "成功","response": { "id": 1, "gradeLevel": 12,  "title": "",  "paperItems": [{"id": 1,  "name": "",  "questionCount": 5, "score": 275,  "createTime": "2021-08-12 15:02:50",  "createUser": 2, "subjectId": 46, "paperType": 6,"frameTextContentId": 2897}]}}。
+
+需要检查的代码：
+```java
+// TExamPaper.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TExamPaper {
+    private int id;
+    private String name;
+    private int questionCount;
+    private int score;
+    private String createTime;
+    private int createUser;
+    private int subjectId;
+    private int paperType;
+    private int frameTextContentId;
+}
+```
+```java
+// TTaskExam.java
+package com.example.entity;
+
+
+
+import com.example.entity.TExamPaper;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TTaskExam {
+    private int id;
+    private String title;
+    private int gradeLevel;
+    private int frameTextContentId;
+    private int createUser;
+    private String createTime;
+    private boolean deleted;
+    private String createUserName;
+    private List<TExamPaper> paperItems;
+}
+```
+
+```java
+// TaskService.java
+package com.example.service;
+
+import com.example.entity.TExamPaper;
+import com.example.entity.TTaskExam;
+
+import java.util.List;
+
+public interface TaskService {
+    TTaskExam getTaskExamById(int id);
+    List<TExamPaper> getExamPapersByTaskId(int taskId);
+}
+```
+
+```java
+// TaskServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.TaskService;
+import com.example.entity.TTaskExam;
+import com.example.entity.TExamPaper;
+import com.example.mapper.TaskMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class TaskServiceImpl implements TaskService {
+
+    @Autowired
+    private TaskMapper taskMapper;
+
+    @Override
+    public TTaskExam getTaskExamById(int id) {
+        return taskMapper.getTaskExamById(id);
+    }
+
+    @Override
+    public List<TExamPaper> getExamPapersByTaskId(int taskId) {
+        return taskMapper.getExamPapersByTaskId(taskId);
+    }
+}
+```
+
+```java
+// TaskController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.TExamPaper;
+import com.example.entity.TTaskExam;
+
+import com.example.service.TaskService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/admin/task")
+public class TaskController {
+    @Autowired
+    private TaskService taskService;
+
+    @PostMapping("/select/{id}")
+    public ApiResponse selectTask(@PathVariable int id) {
+        // 根据id查询任务信息
+        TTaskExam taskExam = taskService.getTaskExamById(id);
+        if (taskExam == null) {
+            return ApiResponse.error("任务不存在");
+        }
+
+        // 查询试卷信息
+        List<TExamPaper> examPapers = taskService.getExamPapersByTaskId(id);
+        taskExam.setPaperItems(examPapers);
+
+        return ApiResponse.success(taskExam);
+    }
+}
+```
+
+```java
+// TaskMapper.java
+package com.example.mapper;
+
+import com.example.entity.TExamPaper;
+import com.example.entity.TTaskExam;
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface TaskMapper {
+    TTaskExam getTaskExamById(int id);
+    List<TExamPaper> getExamPapersByTaskId(int taskId);
+}
+```
+
+```xml
+<!-- TaskMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.TaskMapper">
+
+    <resultMap id="taskExamResultMap" type="com.example.entity.TTaskExam">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="gradeLevel" column="grade_level"/>
+        <result property="frameTextContentId" column="frame_text_content_id"/>
+        <result property="createUser" column="create_user"/>
+        <result property="createTime" column="create_time"/>
+        <result property="deleted" column="deleted"/>
+        <result property="createUserName" column="create_user_name"/>
+    </resultMap>
+
+    <resultMap id="examPaperResultMap" type="com.example.entity.TExamPaper">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="questionCount" column="question_count"/>
+        <result property="score" column="score"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createUser" column="create_user"/>
+        <result property="subjectId" column="subject_id"/>
+        <result property="paperType" column="paper_type"/>
+        <result property="frameTextContentId" column="frame_text_content_id"/>
+    </resultMap>
+
+    <select id="getTaskExamById" resultMap="taskExamResultMap">
+        SELECT id, title, grade_level, frame_text_content_id, create_user, create_time, deleted, create_user_name
+        FROM t_task_exam
+        WHERE id = #{id}
+    </select>
+
+    <select id="getExamPapersByTaskId" resultMap="examPaperResultMap">
+        SELECT id, name, question_count, score, create_time, create_user, subject_id, paper_type, frame_text_content_id
+        FROM t_exam_paper
+        WHERE task_exam_id = #{taskId}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+askController.java:3:26
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 程序包 com.example.entity
+```
+```功能错误
+paperItems列表返回值为空，"response": {
+        "id": 2,
+        "title": "Sample Task 2",
+        "gradeLevel": 8,
+        "frameTextContentId": 2,
+        "createUser": 102,
+        "createTime": "2023-10-19 09:30:00",
+        "deleted": false,
+        "createUserName": "User2",
+        "paperItems": []
+    }
+```

@@ -1,0 +1,193 @@
+业务功能逻辑：
+根据categoryId在tb_category_second表查询记录，返回data设置为{tb_category_second记录}，如果记录为空，返回(-1002, "该分类不存在", null).
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// CategorySecond.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_second")
+public class CategorySecond {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+}
+```
+
+```java
+// CategorySecondService.java
+package com.example.service;
+
+import java.util.List;
+
+public interface CategorySecondService {
+    ApiResponse getCategorySecond(int categoryId);
+}
+```
+
+```java
+// CategorySecondServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class CategorySecondServiceImpl implements CategorySecondService {
+
+    private final CategorySecondMapper categorySecondMapper;
+
+    @Autowired
+    public CategorySecondServiceImpl(CategorySecondMapper categorySecondMapper) {
+        this.categorySecondMapper = categorySecondMapper;
+    }
+
+    @Override
+    public ApiResponse getCategorySecond(int categoryId) {
+        CategorySecond categorySecond = categorySecondMapper.getCategorySecond(categoryId);
+        if (categorySecond == null) {
+            return new ApiResponse(-1002, "该分类不存在", null);
+        }
+        return new ApiResponse(100, "成功", categorySecond);
+    }
+}
+```
+
+```java
+// CategorySecondController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/user/v1/category/second")
+public class CategorySecondController {
+
+    private final CategorySecondService categorySecondService;
+
+    @Autowired
+    public CategorySecondController(CategorySecondService categorySecondService) {
+        this.categorySecondService = categorySecondService;
+    }
+
+    @GetMapping("/{categoryId}")
+    public ApiResponse getCategorySecond(@PathVariable int categoryId) {
+        return categorySecondService.getCategorySecond(categoryId);
+    }
+}
+```
+
+```java
+// CategorySecondMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface CategorySecondMapper {
+    CategorySecond getCategorySecond(@Param("categoryId") int categoryId);
+}
+```
+
+```xml
+<!-- CategorySecondMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.CategorySecondMapper">
+    <select id="getCategorySecond" resultType="com.example.entity.CategorySecond">
+        SELECT * FROM tb_category_second WHERE categoryId = #{categoryId}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+CategorySecondController.java:13:19
+java: 找不到符号
+  符号:   类 CategorySecondService
+  位置: 类 com.example.controller.CategorySecondController
+CategorySecondController.java:16:37
+java: 找不到符号
+  符号:   类 CategorySecondService
+  位置: 类 com.example.controller.CategorySecondController
+CategorySecondController.java:21:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.CategorySecondController
+CategorySecondMapper.java:8:5
+java: 找不到符号
+  符号:   类 CategorySecond
+  位置: 接口 com.example.mapper.CategorySecondMapper
+CategorySecondService.java:6:5
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.CategorySecondService
+CategorySecondServiceImpl.java:7:51
+java: 找不到符号
+  符号: 类 CategorySecondService
+CategorySecondServiceImpl.java:9:19
+java: 找不到符号
+  符号:   类 CategorySecondMapper
+  位置: 类 com.example.service.impl.CategorySecondServiceImpl
+CategorySecondServiceImpl.java:12:38
+java: 找不到符号
+  符号:   类 CategorySecondMapper
+  位置: 类 com.example.service.impl.CategorySecondServiceImpl
+CategorySecondServiceImpl.java:17:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.CategorySecondServiceImpl
+CategorySecondServiceImpl.java:21:9
+java: 找不到符号
+  符号:   类 CategorySecond
+  位置: 类 com.example.service.impl.CategorySecondServiceImpl
+### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: Unknown column 'categoryId' in 'where clause'
+### The error may exist in file [CategorySecondMapper.xml]
+```
+
+```功能错误
+```

@@ -1,0 +1,158 @@
+﻿业务功能逻辑：
+批量删除用户:根据请求路径中的参数ids删除表ssm_user中对应id的用户信息，多个ids时，以逗号分隔，检查每个ids对应的用户对象是否存在,如果存在，则删除对应id的用户信息，返回ApiResponse；如果对应的id不存在，则返回失败的JSON响应，提示"用户不存在"。
+
+需要检查的代码：
+
+```java
+// DeleteUserRequest.java
+package com.example.entity;
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+public class DeleteUserRequest {
+    private String ids;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userName;
+    private String password;
+    private String roleName;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface UserService {
+    ApiResponse deleteUser(String ids);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.User;
+import com.example.mapper.UserMapper;
+import com.example.service.UserService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserServiceImpl implements UserService {
+    private final UserMapper userMapper;
+
+    @Autowired
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public ApiResponse deleteUser(String ids) {
+        String[] idArray = ids.split(",");
+        for (String id : idArray) {
+            User user = userMapper.getUserById(Integer.parseInt(id));
+            if (user != null) {
+                userMapper.deleteUserById(Integer.parseInt(id));
+            } else {
+                return new ApiResponse(0, "用户不存在", false);
+            }
+        }
+        return new ApiResponse(1, "成功", true);
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.service.UserService;
+import com.example.entity.DeleteUserRequest;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/user")
+public class UserController {
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/delete")
+    public ApiResponse deleteUser(@RequestBody DeleteUserRequest request) {
+        return userService.deleteUser(request.getIds());
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+
+public interface UserMapper {
+    User getUserById(int id);
+
+    void deleteUserById(int id);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="getUserById" resultType="com.example.entity.User">
+        SELECT * FROM ssm_user WHERE id = #{id}
+    </select>
+
+    <delete id="deleteUserById">
+        DELETE FROM ssm_user WHERE id = #{id}
+    </delete>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+UserServiceImpl.java:6:26
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 程序包 com.example.entity
+```
+```功能错误
+用户删除功能并未实现。
+"status": 400,
+    "error": "Bad Request",
+    "path": "/user/delete"
+```

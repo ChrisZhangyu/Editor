@@ -1,0 +1,222 @@
+业务功能逻辑：
+在tb_administrator表中查询管理员，查询条件是administrator_id等于adminId，如果不存在返回(-1002, "管理员不存在", null)；在tb_administrator表中更新记录，字段属性为输入参数，返回data设置为{tb_administrator记录}.
+
+需要检查的代码：
+```java
+// Administrator.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_administrator")
+public class Administrator {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "administrator_id")
+    private Integer administratorId;
+
+    @Column(name = "user_name", length = 30)
+    private String userName;
+
+    @Column(name = "pass_word", length = 30)
+    private String passWord;
+
+    @Column(name = "nick_name", length = 30)
+    private String nickName;
+
+    @Column(name = "super_level")
+    private Boolean superLevel;
+
+    @Column(name = "phone")
+    private Long phone;
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+```
+
+```java
+// AdministratorService.java
+package com.example.service;
+
+import com.example.entity.Administrator;
+
+public interface AdministratorService {
+    ApiResponse<Administrator> updateAdministrator(int adminId, String passWord, String nickName, long phone, boolean superLevel);
+}
+```
+
+```java
+// AdministratorServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Administrator;
+
+public class AdministratorServiceImpl implements AdministratorService {
+    @Override
+    public ApiResponse<Administrator> updateAdministrator(int adminId, String passWord, String nickName, long phone, boolean superLevel) {
+        // 在tb_administrator表中查询管理员，查询条件是administrator_id等于adminId
+        Administrator administrator = administratorMapper.getAdministratorById(adminId);
+        if (administrator == null) {
+            return new ApiResponse<>(-1002, "管理员不存在", null);
+        }
+
+        // 在tb_administrator表中更新记录，字段属性为输入参数
+        administrator.setPassWord(passWord);
+        administrator.setNickName(nickName);
+        administrator.setPhone(phone);
+        administrator.setSuperLevel(superLevel);
+        administratorMapper.updateAdministrator(administrator);
+
+        return new ApiResponse<>(100, "成功", administrator);
+    }
+}
+```
+
+```java
+// AdministratorController.java
+package com.example.controller;
+
+import com.example.entity.Administrator;
+
+@RestController
+@RequestMapping("/admin/v1/admins")
+public class AdministratorController {
+    @Autowired
+    private AdministratorService administratorService;
+
+    @PostMapping("/{adminId}")
+    public ApiResponse<Administrator> updateAdministrator(@PathVariable int adminId, @RequestParam String passWord, @RequestParam String nickName, @RequestParam long phone, @RequestParam boolean superLevel) {
+        return administratorService.updateAdministrator(adminId, passWord, nickName, phone, superLevel);
+    }
+}
+```
+
+```java
+// AdministratorMapper.java
+package com.example.mapper;
+
+import com.example.entity.Administrator;
+
+public interface AdministratorMapper {
+    Administrator getAdministratorById(int adminId);
+
+    void updateAdministrator(Administrator administrator);
+}
+```
+
+```xml
+<!-- AdministratorMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.AdministratorMapper">
+    <resultMap id="administratorResultMap" type="com.example.entity.Administrator">
+        <id property="administratorId" column="administrator_id" />
+        <result property="userName" column="user_name" />
+        <result property="passWord" column="pass_word" />
+        <result property="nickName" column="nick_name" />
+        <result property="superLevel" column="super_level" />
+        <result property="phone" column="phone" />
+    </resultMap>
+
+    <select id="getAdministratorById" resultMap="administratorResultMap">
+        SELECT * FROM tb_administrator WHERE administrator_id = #{adminId}
+    </select>
+
+    <update id="updateAdministrator">
+        UPDATE tb_administrator
+        SET pass_word = #{passWord},
+            nick_name = #{nickName},
+            phone = #{phone},
+            super_level = #{superLevel}
+        WHERE administrator_id = #{administratorId}
+    </update>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+AdministratorController.java:5:2
+java: 找不到符号
+  符号: 类 RestController
+AdministratorController.java:6:2
+java: 找不到符号
+  符号: 类 RequestMapping
+AdministratorController.java:9:13
+java: 找不到符号
+  符号:   类 AdministratorService
+  位置: 类 com.example.controller.AdministratorController
+AdministratorController.java:12:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.AdministratorController
+AdministratorController.java:8:6
+java: 找不到符号
+  符号:   类 Autowired
+  位置: 类 com.example.controller.AdministratorController
+AdministratorController.java:12:60
+java: 找不到符号
+  符号:   类 PathVariable
+  位置: 类 com.example.controller.AdministratorController
+AdministratorController.java:12:87
+java: 找不到符号
+  符号:   类 RequestParam
+  位置: 类 com.example.controller.AdministratorController
+AdministratorController.java:12:118
+java: 找不到符号
+  符号:   类 RequestParam
+  位置: 类 com.example.controller.AdministratorController
+AdministratorController.java:12:149
+java: 找不到符号
+  符号:   类 RequestParam
+  位置: 类 com.example.controller.AdministratorController
+AdministratorController.java:12:175
+java: 找不到符号
+  符号:   类 RequestParam
+  位置: 类 com.example.controller.AdministratorController
+AdministratorController.java:11:6
+java: 找不到符号
+  符号:   类 PostMapping
+  位置: 类 com.example.controller.AdministratorController
+AdministratorService.java:6:5
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.AdministratorService
+AdministratorServiceImpl.java:5:50
+java: 找不到符号
+  符号: 类 AdministratorService
+AdministratorServiceImpl.java:7:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.AdministratorServiceImpl
+AdministratorServiceImpl.java:11:39
+java: 找不到符号
+  符号:   变量 administratorMapper
+  位置: 类 com.example.service.impl.AdministratorServiceImpl
+Field administratorService in com.example.controller.AdministratorController required a bean of type 'com.example.service.AdministratorService' that could not be found.
+```
+
+```功能错误
+```

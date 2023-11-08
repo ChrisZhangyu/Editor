@@ -1,0 +1,223 @@
+﻿业务功能逻辑：
+试卷分页接口: 根据输入参数在表t_exam_paper中查询试卷分页信息并根据id字段降序排列；如果查询成功，返回{"code": 1, "message": "成功", "response": {"total": 9, "list": [{"id": 64, "name": "中级任务二", "questionCount": 5, "score": 180, "createTime": "2021-01-21 11:49:31", "createUser": 2, "subjectId": 1, "paperType": 6, "frameTextContentId": 13}]}}.
+需要检查的代码：
+```java
+// ExamPaper.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private Integer id;
+    private String name;
+    private Integer subjectId;
+    private Integer paperType;
+    private Integer gradeLevel;
+    private Integer score;
+    private Integer questionCount;
+    private Integer suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private Integer frameTextContentId;
+    private Integer createUser;
+    private Date createTime;
+    private Boolean deleted;
+    private Integer taskExamId;
+}
+```
+```java
+// ExamPaperPageRequest.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperPageRequest {
+    private Integer id;
+    private Integer level;
+    private Integer subjectId;
+    private Integer pageIndex;
+    private Integer pageSize;
+}
+```
+```java
+// ExamPaperPageResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperPageResponse {
+    private Integer total;
+    private List<ExamPaper> list;
+}
+```
+
+```java
+// ExamPaperService.java
+package com.example.service;
+
+import com.example.entity.ExamPaperPageResponse;
+import com.example.entity.ExamPaperPageRequest;
+
+public interface ExamPaperService {
+    ExamPaperPageResponse getExamPaperPage(ExamPaperPageRequest request);
+}
+```
+
+```java
+// ExamPaperServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.ExamPaperMapper;
+import com.example.entity.ExamPaperPageResponse;
+import com.example.service.ExamPaperService;
+import com.example.entity.ExamPaperPageRequest;
+import com.example.entity.ExamPaper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ExamPaperServiceImpl implements ExamPaperService {
+
+    private final ExamPaperMapper examPaperMapper;
+
+    @Autowired
+    public ExamPaperServiceImpl(ExamPaperMapper examPaperMapper) {
+        this.examPaperMapper = examPaperMapper;
+    }
+
+    @Override
+    public ExamPaperPageResponse getExamPaperPage(ExamPaperPageRequest request) {
+        Integer total = examPaperMapper.countExamPapers(request);
+        List<ExamPaper> examPapers = examPaperMapper.getExamPapers(request);
+        return new ExamPaperPageResponse(total, examPapers);
+    }
+}
+```
+
+```java
+// ExamPaperController.java
+package com.example.controller;
+
+import com.example.service.ExamPaperService;
+import com.example.entity.ExamPaperPageResponse;
+import com.example.entity.ExamPaperPageRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/exam/paper")
+public class ExamPaperController {
+
+    private final ExamPaperService examPaperService;
+
+    @Autowired
+    public ExamPaperController(ExamPaperService examPaperService) {
+        this.examPaperService = examPaperService;
+    }
+
+    @PostMapping("/page")
+    public ExamPaperPageResponse getExamPaperPage(@RequestBody ExamPaperPageRequest request) {
+        return examPaperService.getExamPaperPage(request);
+    }
+}
+```
+
+```java
+// ExamPaperMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaperPageRequest;
+import com.example.entity.ExamPaper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface ExamPaperMapper {
+    Integer countExamPapers(ExamPaperPageRequest request);
+
+    List<ExamPaper> getExamPapers(ExamPaperPageRequest request);
+}
+```
+
+```xml
+<!-- ExamPaperMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ExamPaperMapper">
+
+    <select id="countExamPapers" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM t_exam_paper
+        <where>
+            <if test="id != null">
+                AND id = #{id}
+            </if>
+            <if test="level != null">
+                AND grade_level = #{level}
+            </if>
+            <if test="subjectId != null">
+                AND subject_id = #{subjectId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getExamPapers" resultType="com.example.model.ExamPaper">
+        SELECT * FROM t_exam_paper
+        <where>
+            <if test="id != null">
+                AND id = #{id}
+            </if>
+            <if test="level != null">
+                AND grade_level = #{level}
+            </if>
+            <if test="subjectId != null">
+                AND subject_id = #{subjectId}
+            </if>
+        </where>
+        ORDER BY id DESC
+        LIMIT #{pageIndex}, #{pageSize}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+Caused by: org.apache.ibatis.type.TypeException: Could not resolve type alias 'com.example.model.ExamPaper'.  Cause: java.lang.ClassNotFoundException: Cannot find class: com.example.model.ExamPaper
+```
+```语法错误
+在ExamPaperMapper.xml中缺少ExamPaper实体类属性与表t_exam_paper之间的映射语句：
+```

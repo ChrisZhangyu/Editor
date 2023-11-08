@@ -1,0 +1,169 @@
+﻿```java
+// Subject.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Subject {
+    private int id;
+    private String name;
+    private int level;
+    private String levelName;
+    private int itemOrder;
+    private boolean deleted;
+}
+```
+```java
+// SubjectRequest.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SubjectRequest {
+    private int id;
+}
+```
+```java
+// SubjectResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SubjectResponse {
+    private int id;
+    private String name;
+    private int level;
+    private String levelName;
+}
+```
+
+```java
+// SubjectService.java
+package com.example.service;
+
+import com.example.entity.SubjectResponse;
+
+public interface SubjectService {
+    SubjectResponse getSubjectById(int id);
+}
+```
+
+```java
+// SubjectServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.SubjectMapper;
+import com.example.entity.SubjectResponse;
+import com.example.service.SubjectService;
+import com.example.entity.Subject;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class SubjectServiceImpl implements SubjectService {
+    private final SubjectMapper subjectMapper;
+
+    @Autowired
+    public SubjectServiceImpl(SubjectMapper subjectMapper) {
+        this.subjectMapper = subjectMapper;
+    }
+
+    @Override
+    public SubjectResponse getSubjectById(int id) {
+        Subject subject = subjectMapper.getSubjectById(id);
+        if (subject != null) {
+            return new SubjectResponse(subject.getId(), subject.getName(), subject.getLevel(), subject.getLevelName());
+        } else {
+            return null;
+        }
+    }
+}
+```
+
+```java
+// SubjectController.java
+package com.example.controller;
+
+import com.example.entity.SubjectResponse;
+import com.example.service.SubjectService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/admin/education/subject")
+public class SubjectController {
+    private final SubjectService subjectService;
+
+    @Autowired
+    public SubjectController(SubjectService subjectService) {
+        this.subjectService = subjectService;
+    }
+
+    @PostMapping("/select/{id}")
+    public ResponseEntity<Object> getSubjectById(@PathVariable int id) {
+        if (id < 0) {
+            return ResponseEntity.badRequest().body("id无效!");
+        }
+        SubjectResponse subjectResponse = subjectService.getSubjectById(id);
+        if (subjectResponse != null) {
+            return ResponseEntity.ok(subjectResponse);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("学科不存在");
+        }
+    }
+}
+```
+
+```java
+// SubjectMapper.java
+package com.example.mapper;
+
+import com.example.entity.Subject;
+
+public interface SubjectMapper {
+    Subject getSubjectById(int id);
+}
+```
+
+```xml
+<!-- SubjectMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.SubjectMapper">
+    <resultMap type="com.example.entity.Subject" id="SubjectResult">
+        <result property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="level" column="level"/>
+        <result property="levelName" column="level_name"/>
+        <result property="itemOrder" column="item_order"/>
+        <result property="deleted" column="deleted"/>
+    </resultMap>
+    <select id="getSubjectById" resultMap="SubjectResult">
+        SELECT * FROM t_subject WHERE id = #{id}
+    </select>
+</mapper>
+
+```

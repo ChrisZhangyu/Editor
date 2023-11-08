@@ -1,0 +1,228 @@
+业务功能逻辑：检查账号绑定接口: 在t_user_token表中查询wx_open_id等于输入参数的openid对象，如果为空则返回{"code":3,"message":"获取微信OpenId失败","response":null}；根据输入参数创建一个用户登录令牌对象，在t_user_token表中查询该用户登录令牌是否存在如果不存在则返回{"code":2,"message":"用户未绑定","response":null}；返回{"code":1,"message":"成功","response":登录令牌}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+```java
+// CheckBindRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+
+import lombok.Data;
+
+@Data
+public class CheckBindRequest {
+    private String code;
+}
+```
+```java
+// UserToken.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+
+import lombok.Data;
+
+@Data
+public class CheckBindRequest {
+    private String code;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserToken {
+    private int id;
+    private String token;
+    private int userId;
+    private String wxOpenId;
+    private Timestamp createTime;
+    private Timestamp endTime;
+    private String userName;
+}
+```
+
+```java
+// CheckBindService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.CheckBindRequest;
+
+public interface CheckBindService {
+    ApiResponse checkBind(CheckBindRequest request);
+}
+```
+
+```java
+// CheckBindServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.UserToken;
+import com.example.entity.CheckBindRequest;
+import com.example.mapper.UserTokenMapper;
+import com.example.entity.ApiResponse;
+import com.example.service.CheckBindService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class CheckBindServiceImpl implements CheckBindService {
+
+    private final UserTokenMapper userTokenMapper;
+
+    @Autowired
+    public CheckBindServiceImpl(UserTokenMapper userTokenMapper) {
+        this.userTokenMapper = userTokenMapper;
+    }
+
+    @Override
+    public ApiResponse checkBind(CheckBindRequest request) {
+        // 在t_user_token表中查询wx_open_id等于输入参数的openid对象
+        UserToken userToken = userTokenMapper.findByWxOpenId(request.getCode());
+        if (userToken == null) {
+            return new ApiResponse(3, "获取微信OpenId失败", null);
+        }
+
+        // 根据输入参数创建一个用户登录令牌对象，在t_user_token表中查询该用户登录令牌是否存在
+        UserToken loginToken = userTokenMapper.findByToken(request.getCode());
+        if (loginToken == null) {
+            return new ApiResponse(2, "用户未绑定", null);
+        }
+
+        // 返回登录令牌
+        return new ApiResponse(1, "成功", loginToken.getToken());
+    }
+}
+```
+
+```java
+// CheckBindController.java
+package com.example.controller;
+
+import com.example.service.CheckBindService;
+import com.example.entity.CheckBindRequest;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class CheckBindController {
+
+    private final CheckBindService checkBindService;
+
+    @Autowired
+    public CheckBindController(CheckBindService checkBindService) {
+        this.checkBindService = checkBindService;
+    }
+
+    @PostMapping("/api/wx/student/auth/checkBind")
+    public ApiResponse checkBind(@RequestBody CheckBindRequest request) {
+        return checkBindService.checkBind(request);
+    }
+}
+```
+
+```java
+// UserTokenMapper.java
+package com.example.mapper;
+
+import com.example.entity.UserToken;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface UserTokenMapper {
+    UserToken findByWxOpenId(@Param("wxOpenId") String wxOpenId);
+    UserToken findByToken(@Param("token") String token);
+}
+```
+
+```xml
+<!-- UserTokenMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserTokenMapper">
+
+    <select id="findByWxOpenId" resultType="com.example.entity.UserToken">
+        SELECT * FROM t_user_token WHERE wx_open_id = #{wxOpenId}
+    </select>
+
+    <select id="findByToken" resultType="com.example.entity.UserToken">
+        SELECT * FROM t_user_token WHERE token = #{token}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\wx_checkBind_system\src\main\java\com\example\entity\UserToken.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_checkBind_system\src\main\java\com\example\entity\UserToken.java:24
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_checkBind_system\src\main\java\com\example\entity\UserToken.java:25
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_checkBind_system\src\main\java\com\example\entity\UserToken.java:26
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_checkBind_system\src\main\java\com\example\entity\UserToken.java:28
+java: 需要class, interface或enum
+```
+```功能错误
+获取token错误
+```

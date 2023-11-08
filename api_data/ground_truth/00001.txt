@@ -1,0 +1,174 @@
+```java
+// Article.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Article {
+    private int id;
+    private String articleTitle;
+    private String articleCreateDate;
+    private String articleContent;
+    private int isTop;
+    private String addName;
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// ArticleService.java
+package com.example.service;
+
+import com.example.entity.Article;
+import java.util.List;
+
+public interface ArticleService {
+    List<Article> getArticleList(int page, int rows, Article article);
+}
+```
+
+```java
+// ArticleServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Article;
+import com.example.mapper.ArticleMapper;
+import com.example.service.ArticleService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ArticleServiceImpl implements ArticleService {
+
+    private final ArticleMapper articleMapper;
+
+    @Autowired
+    public ArticleServiceImpl(ArticleMapper articleMapper) {
+        this.articleMapper = articleMapper;
+    }
+
+    @Override
+    public List<Article> getArticleList(int page, int rows, Article article) {
+        int start = (page - 1) * rows;
+        int size = rows;
+        System.out.print(article.getArticleTitle());
+        List<Article> articleList = articleMapper.getArticleList(article.getArticleTitle(), start, size);
+        return articleList;
+    }
+}
+```
+
+```java
+// ArticleController.java
+package com.example.controller;
+
+import com.example.entity.Article;
+import com.example.entity.ApiResponse;
+import com.example.service.ArticleService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+public class ArticleController {
+
+    private final ArticleService articleService;
+
+    @Autowired
+    public ArticleController(ArticleService articleService) {
+        this.articleService = articleService;
+    }
+
+    @GetMapping("/article/list")
+    public ApiResponse getArticleList(@RequestParam(required = false) Integer page,
+                                      @RequestParam(required = false) Integer rows,
+                                      @RequestParam(required = false) Article article) {
+        if (page != null && rows != null) {
+            List<Article> articleList = articleService.getArticleList(page, rows, article);
+            return new ApiResponse(1, "成功", articleList);
+        } else {
+            return new ApiResponse(0, "参数错误", null);
+        }
+    }
+}
+```
+
+```java
+// ArticleMapper.java
+package com.example.mapper;
+
+import com.example.entity.Article;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface ArticleMapper {
+    List<Article> getArticleList(@Param("articleTitle") String articleTitle,
+                                 @Param("start") int start,
+                                 @Param("size") int size);
+}
+
+```
+
+```xml
+<!-- ArticleMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.ArticleMapper">
+
+    <resultMap type="com.example.entity.Article" id="ArticleResult">
+        <result property="id" column="id"/>
+        <result property="articleTitle" column="article_title"/>
+        <result property="articleCreateDate" column="article_create_date"/>
+        <result property="articleContent" column="article_content"/>
+        <result property="isTop" column="is_top"/>
+        <result property="addName" column="add_name"/>
+    </resultMap>
+
+<!--    <select id="getArticleList" resultType="com.example.entity.Article">-->
+    <select id="getArticleList" resultMap="ArticleResult">
+        SELECT * FROM ssm_article
+        <where>
+            <if test="articleTitle != null and articleTitle != ''">
+                AND article_title LIKE CONCAT('%', #{articleTitle}, '%')
+            </if>
+        </where>
+        <if test="start != null and size != null">
+            LIMIT #{start}, #{size}
+        </if>
+    </select>
+
+</mapper>
+```

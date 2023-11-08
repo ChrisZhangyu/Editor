@@ -1,0 +1,228 @@
+业务功能逻辑：消息标记已读接口: 在t_message_user中查询消息id等于输入参数的消息对象，如果对象不存在，则返回{"code":2,"message":"消息不存在","response":null}；如果对象存在，则设置已读并更新数据表，返回{"code":1,"message":"成功","response":null}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// MessageUser.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class MessageUser {
+    private int id;
+    private int messageId;
+    private int receiveUserId;
+    private String receiveUserName;
+    private String receiveRealName;
+    private boolean readed;
+    private Date createTime;
+    private Date readTime;
+}
+```
+```java
+// ReadMessageRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class MessageUser {
+    private int id;
+    private int messageId;
+    private int receiveUserId;
+    private String receiveUserName;
+    private String receiveRealName;
+    private boolean readed;
+    private Date createTime;
+    private Date readTime;
+}
+
+import lombok.Data;
+
+@Data
+public class ReadMessageRequest {
+    private int id;
+}
+```
+
+```java
+// MessageUserService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface MessageUserService {
+    ApiResponse<Void> markMessageAsRead(int id);
+}
+```
+
+```java
+// MessageUserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.MessageUserService;
+import com.example.entity.MessageUser;
+import com.example.entity.ApiResponse;
+import com.example.mapper.MessageUserMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class MessageUserServiceImpl implements MessageUserService {
+
+    private final MessageUserMapper messageUserMapper;
+
+    @Autowired
+    public MessageUserServiceImpl(MessageUserMapper messageUserMapper) {
+        this.messageUserMapper = messageUserMapper;
+    }
+
+    @Override
+    public ApiResponse<Void> markMessageAsRead(int id) {
+        MessageUser messageUser = messageUserMapper.getMessageUserById(id);
+        if (messageUser == null) {
+            return new ApiResponse<>(2, "消息不存在", null);
+        }
+        messageUser.setReaded(true);
+        messageUserMapper.updateMessageUser(messageUser);
+        return new ApiResponse<>(1, "成功", null);
+    }
+}
+```
+
+```java
+// MessageUserController.java
+package com.example.controller;
+
+import com.example.service.MessageUserService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/student/user/message")
+public class MessageUserController {
+
+    private final MessageUserService messageUserService;
+
+    @Autowired
+    public MessageUserController(MessageUserService messageUserService) {
+        this.messageUserService = messageUserService;
+    }
+
+    @PostMapping("/read/{id}")
+    public ApiResponse<Void> markMessageAsRead(@PathVariable int id) {
+        return messageUserService.markMessageAsRead(id);
+    }
+}
+```
+
+```java
+// MessageUserMapper.java
+package com.example.mapper;
+
+import com.example.entity.MessageUser;
+
+public interface MessageUserMapper {
+    MessageUser getMessageUserById(int id);
+    void updateMessageUser(MessageUser messageUser);
+}
+```
+
+```xml
+<!-- MessageUserMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.MessageUserMapper">
+
+    <select id="getMessageUserById" resultType="com.example.entity.MessageUser">
+        SELECT * FROM t_message_user WHERE id = #{id}
+    </select>
+
+    <update id="updateMessageUser">
+        UPDATE t_message_user
+        SET readed = #{readed}, read_time = #{readTime}
+        WHERE id = #{id}
+    </update>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\wx_message_read_system\src\main\java\com\example\entity\MessageUser.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_message_read_system\src\main\java\com\example\controller\MessageUserController.java:24:49
+java: 找不到符号
+  符号:   类 PathVariable
+  位置: 类 com.example.controller.MessageUserController
+```
+```功能错误
+
+```

@@ -1,0 +1,152 @@
+业务功能逻辑：
+获取tb_adv_swiper表中的所有广告，其中字段image设置为("http://119.29.161.228/cloudimg/goods/"+image)，返回data设置为{tb_adv_swiper列表}.
+
+需要检查的代码：
+```java
+// AdvSwiper.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AdvSwiper {
+    private int advSwiperId;
+    private int categorySecondId;
+    private String categoryName;
+    private String name;
+    private String image;
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// AdvSwiperService.java
+package com.example.service;
+
+import com.example.entity.AdvSwiper;
+
+import java.util.List;
+
+public interface AdvSwiperService {
+    List<AdvSwiper> getAllAdvSwipers();
+}
+```
+
+```java
+// AdvSwiperServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.AdvSwiper;
+import com.example.mapper.AdvSwiperMapper;
+import com.example.service.AdvSwiperService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class AdvSwiperServiceImpl implements AdvSwiperService {
+    private final AdvSwiperMapper advSwiperMapper;
+
+    @Autowired
+    public AdvSwiperServiceImpl(AdvSwiperMapper advSwiperMapper) {
+        this.advSwiperMapper = advSwiperMapper;
+    }
+
+    @Override
+    public List<AdvSwiper> getAllAdvSwipers() {
+        return advSwiperMapper.getAllAdvSwipers();
+    }
+}
+```
+
+```java
+// AdvSwiperController.java
+package com.example.controller;
+
+import com.example.entity.AdvSwiper;
+import com.example.entity.ApiResponse;
+import com.example.service.AdvSwiperService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/user/v1")
+public class AdvSwiperController {
+    private final AdvSwiperService advSwiperService;
+
+    @Autowired
+    public AdvSwiperController(AdvSwiperService advSwiperService) {
+        this.advSwiperService = advSwiperService;
+    }
+
+    @GetMapping("/advs")
+    public ApiResponse getAdvSwipers() {
+        List<AdvSwiper> advSwipers = advSwiperService.getAllAdvSwipers();
+        for (AdvSwiper advSwiper : advSwipers) {
+            advSwiper.setImage("http://119.29.161.228/cloudimg/goods/" + advSwiper.getImage());
+        }
+        return new ApiResponse(100, "成功", advSwipers);
+    }
+}
+```
+
+```java
+// AdvSwiperMapper.java
+package com.example.mapper;
+
+import com.example.entity.AdvSwiper;
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface AdvSwiperMapper {
+    List<AdvSwiper> getAllAdvSwipers();
+}
+```
+
+```xml
+<!-- AdvSwiperMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.AdvSwiperMapper">
+    <select id="getAllAdvSwipers" resultType="com.example.entity.AdvSwiper">
+        SELECT adv_swiper_id, category_second_id, category_name, name, CONCAT('http://119.29.161.228/cloudimg/goods/', image) AS image
+        FROM tb_adv_swiper
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+```
+
+```功能错误
+```

@@ -1,0 +1,176 @@
+﻿业务功能逻辑：
+更新部门信息：根据请求路径中的参数，首先检查 deptId 是否大于0,若deptId大于0，检查deptId在表tbl_dept中是否存在，如果存在，则根据该deptId更新部门信息并保存到数据库表中，如果更新成功，则返回ApiResponse;否则返回一个失败的JSON响应，提示"更新失败"。
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import com.example.entity.Dept;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private boolean success;
+    private String message;
+    private Dept data;
+}
+```
+```java
+// Dept.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Dept {
+    private int deptId;
+    private String deptName;
+    private String deptLeader;
+}
+```
+```java
+// UpdateDeptRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateDeptRequest {
+    private int deptId;
+    private String deptName;
+    private String deptLeader;
+}
+```
+
+```java
+// DeptService.java
+package com.example.service;
+
+import com.example.entity.UpdateDeptRequest;
+import com.example.entity.ApiResponse;
+
+public interface DeptService {
+    ApiResponse updateDept(int deptId, UpdateDeptRequest request);
+}
+```
+
+```java
+// DeptServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.UpdateDeptRequest;
+import com.example.service.DeptService;
+import com.example.entity.Dept;
+import com.example.entity.ApiResponse;
+import com.example.mapper.DeptMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class DeptServiceImpl implements DeptService {
+
+    private final DeptMapper deptMapper;
+
+    @Autowired
+    public DeptServiceImpl(DeptMapper deptMapper) {
+        this.deptMapper = deptMapper;
+    }
+
+    @Override
+    public ApiResponse updateDept(int deptId, UpdateDeptRequest request) {
+        if (deptId <= 0) {
+            return new ApiResponse(false, "deptId必须大于0", null);
+        }
+
+        //*检查DeptId是否存在的逻辑
+
+        dept.setDeptName(request.getDeptName());
+        dept.setDeptLeader(request.getDeptLeader());
+        deptMapper.updateDept(dept);
+
+        return new ApiResponse(true, "更新成功", dept);
+    }
+}
+```
+
+```java
+// DeptController.java
+package com.example.controller;
+
+import com.example.entity.UpdateDeptRequest;
+import com.example.service.DeptService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/hrms/dept")
+public class DeptController {
+
+    private final DeptService deptService;
+
+    @Autowired
+    public DeptController(DeptService deptService) {
+        this.deptService = deptService;
+    }
+
+    @PutMapping("/updateDept/{deptId}")
+    public ApiResponse updateDept(@PathVariable int deptId, @RequestBody UpdateDeptRequest request) {
+        return deptService.updateDept(deptId, request);
+    }
+}
+```
+
+```java
+// DeptMapper.java
+package com.example.mapper;
+
+import com.example.entity.Dept;
+
+public interface DeptMapper {
+    Dept getDeptById(int deptId);
+    void updateDept(Dept dept);
+}
+```
+
+```xml
+<!-- DeptMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.DeptMapper">
+    
+    <select id="getDeptById" parameterType="int" resultType="com.example.entity.Dept">
+        SELECT * FROM tbl_dept WHERE dept_id = #{deptId}
+    </select>
+
+    <update id="updateDept" parameterType="com.example.entity.Dept">
+        UPDATE tbl_dept SET dept_name = #{deptName}, dept_leader = #{deptLeader} WHERE dept_id = #{deptId}
+    </update>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```语法错误
+在DeptMapper.xml中缺少Dept实体类属性与表tbl_dept字段间的映射语句。
+```
+```功能错误
+检查deptId是否存在的逻辑并未实现。
+```

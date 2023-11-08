@@ -1,0 +1,419 @@
+﻿
+```java
+// ExamPaper.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private Integer id;
+    private String name;
+    private Integer subjectId;
+    private Integer paperType;
+    private Integer gradeLevel;
+    private Integer score;
+    private Integer questionCount;
+    private Integer suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private Integer frameTextContentId;
+    private Integer createUser;
+    private Date createTime;
+    private Boolean deleted;
+    private Integer taskExamId;
+}
+```
+```java
+// ExamPaperEditRequest.java
+package com.example.entity;
+
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperEditRequest {
+    private Integer id;
+    private Integer level;
+    private Integer subjectId;
+    private Integer paperType;
+    private String name;
+    private Integer suggestTime;
+    private String limitDateTime;
+    private List<TitleItem> titleItems;
+    private String score;
+}
+
+
+```
+```java
+// ExamPaperEditResponse.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperEditResponse {
+    private Integer id;
+    private Integer level;
+    private Integer subjectId;
+    private Integer paperType;
+    private String name;
+    private Integer suggestTime;
+    private List<TitleItem> titleItems;
+    private String score;
+}
+
+
+```
+```java
+// Item.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Item {
+    private String content;
+    private Integer score;
+}
+```
+```java
+// Question.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Question {
+    private Integer id;
+    private Integer questionType;
+    private Integer subjectId;
+    private Integer score;
+    private Integer gradeLevel;
+    private Integer difficult;
+    private String correct;
+    private Integer infoTextContentId;
+    private Integer createUser;
+    private Integer status;
+    private Date createTime;
+    private Boolean deleted;
+}
+```
+```java
+// QuestionItem.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class QuestionItem {
+    private Integer id;
+    private Integer questionType;
+    private Integer subjectId;
+    private String title;
+    private Integer gradeLevel;
+    private List<Item> items;
+    private String analyze;
+    private String correct;
+    private String score;
+    private Integer difficult;
+}
+```
+```java
+// TitleItem.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TitleItem {
+    private String name;
+    private List<QuestionItem> questionItems;
+}```
+
+```java
+// ExamPaperService.java
+package com.example.service;
+
+import com.example.entity.ExamPaperEditResponse;
+import com.example.entity.ExamPaperEditRequest;
+
+public interface ExamPaperService {
+    ExamPaperEditResponse editExamPaper(ExamPaperEditRequest request);
+}
+
+```
+
+```java
+// ExamPaperServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.*;
+import com.example.mapper.ExamPaperMapper;
+import com.example.mapper.QuestionMapper;
+import com.example.service.ExamPaperService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Arrays;
+
+@Service
+public class ExamPaperServiceImpl implements ExamPaperService {
+    private final ExamPaperMapper examPaperMapper;
+    private final QuestionMapper questionMapper;
+
+    @Autowired
+    public ExamPaperServiceImpl(ExamPaperMapper examPaperMapper, QuestionMapper questionMapper) {
+        this.examPaperMapper = examPaperMapper;
+        this.questionMapper = questionMapper;
+    }
+
+    @Override
+    public ExamPaperEditResponse editExamPaper(ExamPaperEditRequest request) {
+        // 检查请求参数是否有效
+        if (request.getId() != null && request.getId() <= 0) {
+            throw new IllegalArgumentException("无效的试卷ID");
+        }
+        if (request.getLevel() == null || request.getLevel() <= 0) {
+            throw new IllegalArgumentException("无效的试卷级别");
+        }
+        if (request.getSubjectId() == null || request.getSubjectId() <= 0) {
+            throw new IllegalArgumentException("无效的科目ID");
+        }
+        if (request.getPaperType() == null || request.getPaperType() <= 0) {
+            throw new IllegalArgumentException("无效的试卷类型");
+        }
+        if (request.getTitleItems() == null || request.getTitleItems().isEmpty()) {
+            throw new IllegalArgumentException("请添加试卷标题");
+        }
+        if (request.getTitleItems().stream().anyMatch(titleItem -> titleItem.getQuestionItems() == null || titleItem.getQuestionItems().isEmpty())) {
+            throw new IllegalArgumentException("请添加题目");
+        }
+
+        // 创建或更新试卷信息
+        ExamPaper examPaper = new ExamPaper();
+        examPaper.setId(request.getId());
+        examPaper.setName(request.getName());
+        examPaper.setSubjectId(request.getSubjectId());
+        examPaper.setPaperType(request.getPaperType());
+        examPaper.setGradeLevel(request.getLevel());
+        examPaper.setSuggestTime(request.getSuggestTime());
+        examPaper.setScore(Integer.parseInt(request.getScore()));
+
+        if (request.getId() == null) {
+            examPaperMapper.insertExamPaper(examPaper);
+        } else {
+            examPaperMapper.updateExamPaper(examPaper);
+        }
+
+        // 更新题目信息
+        for (TitleItem titleItem : request.getTitleItems()) {
+            for (QuestionItem questionItem : titleItem.getQuestionItems()) {
+                Question question = new Question();
+                question.setId(questionItem.getId());
+                question.setQuestionType(questionItem.getQuestionType());
+                question.setSubjectId(questionItem.getSubjectId());
+                question.setScore(Integer.valueOf(questionItem.getScore()));
+                question.setGradeLevel(questionItem.getGradeLevel());
+                question.setDifficult(questionItem.getDifficult());
+                question.setCorrect(questionItem.getCorrect());
+
+                if (questionItem.getId() == null) {
+                    questionMapper.insertQuestion(question);
+                } else {
+                    questionMapper.updateQuestion(question);
+                }
+            }
+        }
+
+        // 构建返回参数
+        ExamPaperEditResponse response = new ExamPaperEditResponse();
+        response.setId(examPaper.getId());
+        response.setLevel(examPaper.getGradeLevel());
+        response.setSubjectId(examPaper.getSubjectId());
+        response.setPaperType(examPaper.getPaperType());
+        response.setName(examPaper.getName());
+        response.setSuggestTime(examPaper.getSuggestTime());
+        response.setScore(request.getScore());
+
+        TitleItem[] titleItems = new TitleItem[request.getTitleItems().size()];
+        for (int i = 0; i < request.getTitleItems().size(); i++) {
+            TitleItem titleItem = new TitleItem();
+            titleItem.setName(request.getTitleItems().get(i).getName());
+
+            QuestionItem[] questionItems = new QuestionItem[request.getTitleItems().get(i).getQuestionItems().size()];
+            for (int j = 0; j < request.getTitleItems().get(i).getQuestionItems().size(); j++) {
+                QuestionItem questionItem = request.getTitleItems().get(i).getQuestionItems().get(j);
+                Item[] items = new Item[questionItem.getItems().size()];
+                for (int k = 0; k < questionItem.getItems().size(); k++) {
+                    Item item = new Item();
+                    item.setContent(questionItem.getItems().get(k).getContent());
+                    item.setScore(questionItem.getItems().get(k).getScore());
+                    items[k] = item;
+                }
+
+                questionItem.setItems(Arrays.asList(items));
+                questionItems[j] = questionItem;
+            }
+
+            titleItem.setQuestionItems(Arrays.asList(questionItems));
+            titleItems[i] = titleItem;
+        }
+
+        response.setTitleItems(Arrays.asList(titleItems));
+
+        return response;
+    }
+}```
+
+```java
+// ExamPaperController.java
+package com.example.controller;
+
+import com.example.entity.ExamPaperEditResponse;
+import com.example.entity.ExamPaperEditRequest;
+import com.example.service.ExamPaperService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/exam/paper")
+public class ExamPaperController {
+    private final ExamPaperService examPaperService;
+
+    @Autowired
+    public ExamPaperController(ExamPaperService examPaperService) {
+        this.examPaperService = examPaperService;
+    }
+
+    @PostMapping("/edit")
+    public ExamPaperEditResponse editExamPaper(@RequestBody ExamPaperEditRequest request) {
+        return examPaperService.editExamPaper(request);
+    }
+}
+```
+
+```java
+// ExamPaperMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+import com.example.entity.Question;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface ExamPaperMapper {
+    void insertExamPaper(ExamPaper examPaper);
+    void updateExamPaper(ExamPaper examPaper);
+
+}
+```
+```java
+// QuestionMapper.java
+package com.example.mapper;
+
+import com.example.entity.Question;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface QuestionMapper {
+    void insertQuestion(Question question);
+    void updateQuestion(Question question);
+}```
+
+```xml
+<!-- QuestionMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.QuestionMapper">
+<insert id="insertQuestion" parameterType="com.example.entity.Question">
+    INSERT INTO t_question (question_type, subject_id, score, grade_level, difficult, correct, info_text_content_id, create_user, status, create_time, deleted)
+    VALUES (#{questionType}, #{subjectId}, #{score}, #{gradeLevel}, #{difficult}, #{correct}, #{infoTextContentId}, #{createUser}, #{status}, #{createTime}, #{deleted})
+</insert>
+
+<update id="updateQuestion" parameterType="com.example.entity.Question">
+UPDATE t_question
+SET question_type = #{questionType}, subject_id = #{subjectId}, score = #{score}, grade_level = #{gradeLevel}, difficult = #{difficult}, correct = #{correct}, info_text_content_id = #{infoTextContentId}, create_user = #{createUser}, status = #{status}, create_time = #{createTime}, deleted = #{deleted}
+WHERE id = #{id}
+</update>
+</mapper>
+```
+```xml
+<!-- ExamPaperMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.ExamPaperMapper">
+    <insert id="insertExamPaper" parameterType="com.example.entity.ExamPaper">
+        INSERT INTO t_exam_paper (name, subject_id, paper_type, grade_level, score, question_count, suggest_time, limit_start_time, limit_end_time, frame_text_content_id, create_user, create_time, deleted, task_exam_id)
+        VALUES (#{name}, #{subjectId}, #{paperType}, #{gradeLevel}, #{score}, #{questionCount}, #{suggestTime}, #{limitStartTime}, #{limitEndTime}, #{frameTextContentId}, #{createUser}, #{createTime}, #{deleted}, #{taskExamId})
+    </insert>
+    
+    <update id="updateExamPaper" parameterType="com.example.entity.ExamPaper">
+        UPDATE t_exam_paper
+        SET name = #{name}, subject_id = #{subjectId}, paper_type = #{paperType}, grade_level = #{gradeLevel}, score = #{score}, question_count = #{questionCount}, suggest_time = #{suggestTime}, limit_start_time = #{limitStartTime}, limit_end_time = #{limitEndTime}, frame_text_content_id = #{frameTextContentId}, create_user = #{createUser}, create_time = #{createTime}, deleted = #{deleted}, task_exam_id = #{taskExamId}
+        WHERE id = #{id}
+    </update>
+    
+    <insert id="insertQuestion" parameterType="com.example.entity.Question">
+        INSERT INTO t_question (question_type, subject_id, score, grade_level, difficult, correct, info_text_content_id, create_user, status, create_time, deleted)
+        VALUES (#{questionType}, #{subjectId}, #{score}, #{gradeLevel}, #{difficult}, #{correct}, #{infoTextContentId}, #{createUser}, #{status}, #{createTime}, #{deleted})
+    </insert>
+    
+    <update id="updateQuestion" parameterType="com.example.entity.Question">
+        UPDATE t_question
+        SET question_type = #{questionType}, subject_id = #{subjectId}, score = #{score}, grade_level = #{gradeLevel}, difficult = #{difficult}, correct = #{correct}, info_text_content_id = #{infoTextContentId}, create_user = #{createUser}, status = #{status}, create_time = #{createTime}, deleted = #{deleted}
+        WHERE id = #{id}
+    </update>
+</mapper>
+```

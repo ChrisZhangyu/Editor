@@ -1,0 +1,458 @@
+业务功能逻辑：
+在bms_post表中查询话题，查询条件是id等于输入参数，如果不存在，返回信息data设置为“当前话题不存在，或已被作者删除”；如果存在，更新bms_post表：view加1，content转换成Unicode 形式；在bms_post_tag表中查询tag_id列表，查询条件是topic_id等于输入参数；遍历tag_id列表，在bms_tag表中查询与id相等的记录列表；在ums_user表中查询用户，查询条件是id等于bms_post.user_id；在bms_post表中查询user_id等于bms_post.user_id的记录数量topic_count，在bms_follow表中查询粉丝数，查询条件是parent_id等于bms_post.user_id；返回信息data设置为{"topic":{bms_post记录}, "tags":{bms_tag记录},"user":{"username":ums_user.username,"count":topic_count, "followers":粉丝数}}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// BmsPostTag.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_post_tag")
+public class BmsPostTag {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+
+    @Column(name = "tag_id", length = 20)
+    private String tagId;
+
+    @Column(name = "topic_id", length = 20)
+    private String topicId;
+}
+```
+
+```java
+// BmsTag.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_tag")
+public class BmsTag {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "topic_count")
+    private int topicCount;
+}
+```
+
+```java
+// Post.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_post")
+public class Post {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "title")
+    private String title;
+
+    @Column(name = "content", columnDefinition = "longtext")
+    private String content;
+
+    @Column(name = "user_id", length = 20)
+    private String userId;
+
+    @Column(name = "comments")
+    private int comments;
+
+    @Column(name = "collects")
+    private int collects;
+
+    @Column(name = "view")
+    private int view;
+
+    @Column(name = "top")
+    private boolean top;
+
+    @Column(name = "essence")
+    private boolean essence;
+
+    @Column(name = "section_id")
+    private String sectionId;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    private String id;
+    private String username;
+    private String alias;
+    private String password;
+    private String avatar;
+    private String email;
+    private String mobile;
+    private int score;
+    private String token;
+    private String bio;
+    private boolean active;
+    private boolean status;
+    private String role_id;
+    private String create_time;
+    private String modify_time;
+}
+```
+
+```java
+// BmsPostService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface BmsPostService {
+    ApiResponse getPost(String id);
+}
+```
+
+```java
+// BmsPostServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.BmsPostMapper;
+import com.example.mapper.BmsTagMapper;
+import com.example.service.BmsPostService;
+import com.example.mapper.BmsFollowMapper;
+import com.example.entity.ApiResponse;
+import com.example.mapper.UmsUserMapper;
+import com.example.entity.Post;
+import com.example.entity.UmsUser;
+import com.example.mapper.BmsPostTagMapper;
+import com.example.entity.BmsTag;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class BmsPostServiceImpl implements BmsPostService {
+    private BmsPostMapper bmsPostMapper;
+    private BmsPostTagMapper bmsPostTagMapper;
+    private BmsTagMapper bmsTagMapper;
+    private UmsUserMapper umsUserMapper;
+    private BmsFollowMapper bmsFollowMapper;
+
+    @Autowired
+    public BmsPostServiceImpl(BmsPostMapper bmsPostMapper, BmsPostTagMapper bmsPostTagMapper, BmsTagMapper bmsTagMapper, UmsUserMapper umsUserMapper, BmsFollowMapper bmsFollowMapper) {
+        this.bmsPostMapper = bmsPostMapper;
+        this.bmsPostTagMapper = bmsPostTagMapper;
+        this.bmsTagMapper = bmsTagMapper;
+        this.umsUserMapper = umsUserMapper;
+        this.bmsFollowMapper = bmsFollowMapper;
+    }
+
+    @Override
+    public ApiResponse getPost(String id) {
+        Post post = bmsPostMapper.getPostById(id);
+        if (post == null) {
+            return new ApiResponse(404, "当前话题不存在，或已被作者删除", null);
+        }
+
+        post.setView(post.getView() + 1);
+        post.setContent(post.getContent());
+        bmsPostMapper.updatePost(post);
+
+        List<String> tagIds = bmsPostTagMapper.getTagIdsByTopicId(id);
+        List<BmsTag> tags = bmsTagMapper.getTagsByIds(tagIds);
+
+        UmsUser user = umsUserMapper.getUserById(post.getUser_id());
+        int topicCount = bmsPostMapper.getTopicCountByUserId(post.getUser_id());
+        int followerCount = bmsFollowMapper.getFollowerCount(post.getUser_id());
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("topic", post);
+        data.put("tags", tags);
+        data.put("user", new HashMap<String, Object>() {{
+            put("username", user.getUsername());
+            put("count", topicCount);
+            put("followers", followerCount);
+        }});
+
+        return new ApiResponse(200, "操作成功", data);
+    }
+}
+```
+
+```java
+// BmsPostController.java
+package com.example.controller;
+
+import com.example.service.BmsPostService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class BmsPostController {
+    private BmsPostService bmsPostService;
+
+    @Autowired
+    public BmsPostController(BmsPostService bmsPostService) {
+        this.bmsPostService = bmsPostService;
+    }
+
+    @GetMapping("/post/{id}")
+    public ApiResponse getPost(@PathVariable String id) {
+        return bmsPostService.getPost(id);
+    }
+}
+```
+
+```java
+// BmsFollowMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface BmsFollowMapper {
+    int getFollowerCount(String parentId);
+}
+```
+
+```java
+// BmsPostMapper.java
+package com.example.mapper;
+
+import com.example.entity.Post;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface BmsPostMapper {
+    Post getPostById(String id);
+    void updatePost(Post post);
+}
+```
+
+```java
+// BmsPostTagMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface BmsPostTagMapper {
+    List<String> getTagIdsByTopicId(String topicId);
+}
+```
+
+```java
+// BmsTagMapper.java
+package com.example.mapper;
+
+import com.example.entity.BmsTag;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface BmsTagMapper {
+    List<BmsTag> getTagsByIds(List<String> ids);
+}
+```
+
+```java
+// UmsUserMapper.java
+package com.example.mapper;
+
+import com.example.entity.UmsUser;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface UmsUserMapper {
+    UmsUser getUserById(String id);
+}
+```
+
+```xml
+<!-- BmsFollowMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.example.mapper.BmsFollowMapper">
+    <select id="getFollowerCount" parameterType="String" resultType="int">
+        SELECT COUNT(*) FROM bms_follow WHERE parent_id = #{parentId}
+    </select>
+</mapper>
+```
+
+```xml
+<!-- BmsPostMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.example.mapper.BmsPostMapper">
+    <select id="getPostById" parameterType="String" resultType="com.example.entity.Post">
+        SELECT * FROM bms_post WHERE id = #{id}
+    </select>
+
+    <update id="updatePost" parameterType="com.example.entity.Post">
+        UPDATE bms_post SET view = view + 1, content = CONVERT(content, 'utf8mb4') WHERE id = #{id}
+    </update>
+</mapper>
+```
+
+```xml
+<!-- BmsPostTagMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.example.mapper.BmsPostTagMapper">
+    <select id="getTagIdsByTopicId" parameterType="String" resultType="String">
+        SELECT tag_id FROM bms_post_tag WHERE topic_id = #{topicId}
+    </select>
+</mapper>
+```
+
+```xml
+<!-- BmsTagMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.example.mapper.BmsTagMapper">
+    <select id="getTagsByIds" parameterType="java.util.List" resultType="com.example.entity.BmsTag">
+        SELECT * FROM bms_tag WHERE id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+</mapper>
+```
+
+```xml
+<!-- UmsUserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.example.mapper.UmsUserMapper">
+    <select id="getUserById" parameterType="String" resultType="com.example.entity.UmsUser">
+        SELECT * FROM ums_user WHERE id = #{id}
+    </select>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+BmsPostTagMapper.java:7:5
+java: 找不到符号
+  符号:   类 List
+  位置: 接口 com.example.mapper.BmsPostTagMapper
+BmsTagMapper.java:8:31
+java: 找不到符号
+  符号:   类 List
+  位置: 接口 com.example.mapper.BmsTagMapper
+BmsTagMapper.java:8:5
+java: 找不到符号
+  符号:   类 List
+  位置: 接口 com.example.mapper.BmsTagMapper
+BmsPostServiceImpl.java:45:9
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.service.impl.BmsPostServiceImpl
+BmsPostServiceImpl.java:46:9
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.service.impl.BmsPostServiceImpl
+BmsPostServiceImpl.java:48:54
+java: 找不到符号
+  符号:   方法 getUser_id()
+  位置: 类型为com.example.entity.Post的变量 post
+BmsPostServiceImpl.java:49:66
+java: 找不到符号
+  符号:   方法 getUser_id()
+  位置: 类型为com.example.entity.Post的变量 post
+BmsPostServiceImpl.java:50:66
+java: 找不到符号
+  符号:   方法 getUser_id()
+  位置: 类型为com.example.entity.Post的变量 post
+BmsPostServiceImpl.java:52:9
+java: 找不到符号
+  符号:   类 Map
+  位置: 类 com.example.service.impl.BmsPostServiceImpl
+BmsPostServiceImpl.java:52:40
+java: 找不到符号
+  符号:   类 HashMap
+  位置: 类 com.example.service.impl.BmsPostServiceImpl
+BmsPostServiceImpl.java:55:30
+java: 找不到符号
+  符号:   类 HashMap
+  位置: 类 com.example.service.impl.BmsPostServiceImpl
+BmsPostServiceImpl.java:53:39
+java: 找不到符号
+  符号:   方法 getTopicCountByUserId(java.lang.String)
+  位置: 类型为com.example.mapper.BmsPostMapper的变量 bmsPostMapper
+### Error updating database.  Cause: java.sql.SQLSyntaxErrorException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''utf8mb4') WHERE id = '1332650453142827009'' at line 1
+### The error may exist in file [BmsPostMapper.xml]
+```
+
+```功能错误
+```

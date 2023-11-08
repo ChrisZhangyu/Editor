@@ -1,0 +1,157 @@
+﻿业务功能逻辑：
+学科查询接口: 根据请求路径中传入的参数id在表t_subject中查询指定id的学科信息；如果查询成功，返回{"code": 1, "message": "成功", "response": {"id": 64, "name": "数学", "level": 1, "levelName": "一年级"}}.如果传入的id为负数，则返回"id无效!"的响应。
+需要检查的代码：
+```java
+// Subject.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Subject {
+    private int id;
+    private String name;
+    private int level;
+    private String levelName;
+    private int itemOrder;
+    private boolean deleted;
+}
+```
+```java
+// SubjectRequest.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SubjectRequest {
+    private int id;
+}
+```
+
+```java
+// SubjectService.java
+package com.example.service;
+
+import com.example.entity.SubjectResponse;
+
+public interface SubjectService {
+    SubjectResponse getSubjectById(int id);
+}
+```
+
+```java
+// SubjectServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.SubjectMapper;
+import com.example.entity.SubjectResponse;
+import com.example.service.SubjectService;
+import com.example.entity.Subject;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class SubjectServiceImpl implements SubjectService {
+    private final SubjectMapper subjectMapper;
+
+    @Autowired
+    public SubjectServiceImpl(SubjectMapper subjectMapper) {
+        this.subjectMapper = subjectMapper;
+    }
+
+    @Override
+    public SubjectResponse getSubjectById(int id) {
+        Subject subject = subjectMapper.getSubjectById(id);
+        if (subject != null) {
+            return new SubjectResponse(subject.getId(), subject.getName(), subject.getLevel(), subject.getLevelName());
+        } else {
+            return null;
+        }
+    }
+}
+```
+
+```java
+// SubjectController.java
+package com.example.controller;
+
+import com.example.entity.SubjectResponse;
+import com.example.service.SubjectService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/admin/education/subject")
+public class SubjectController {
+    private final SubjectService subjectService;
+
+    @Autowired
+    public SubjectController(SubjectService subjectService) {
+        this.subjectService = subjectService;
+    }
+
+    @PostMapping("/select/{id}")
+    public ResponseEntity<Object> getSubjectById(@PathVariable int id) {
+        if (id <= 0) {
+            return ResponseEntity.badRequest().body("id无效!");
+        }
+        SubjectResponse subjectResponse = subjectService.getSubjectById(id);
+        if (subjectResponse != null) {
+            return ResponseEntity.ok(subjectResponse);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("学科不存在");
+        }
+    }
+}
+```
+
+```java
+// SubjectMapper.java
+package com.example.mapper;
+
+import com.example.entity.Subject;
+
+public interface SubjectMapper {
+    Subject getSubjectById(int id);
+}
+```
+
+```xml
+<!-- SubjectMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.SubjectMapper">
+    <select id="getSubjectById" resultType="com.example.entity.Subject">
+        SELECT * FROM t_subject WHERE id = #{id}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+SubjectServiceImpl.java:4:26
+java: 找不到符号
+  符号:   类 SubjectResponse
+  位置: 程序包 com.example.entity
+```
+```语法错误
+在SubjectMapper.xml中缺少Subject实体类属性与表t_subject字段间的映射语句：
+```

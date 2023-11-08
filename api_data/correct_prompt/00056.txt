@@ -1,0 +1,176 @@
+﻿业务功能逻辑：
+用户登录：根据请求参数中传入的用户名和密码与数据库表ssm_user中的数据进行比对，检查传入的用户名是否存在，如果该用户名存在，对用户输入的密码进行MD5哈希算法加密处理，检查其与表中的password是否相同，如果相同，则返回的响应中success设为true,返回:{''success":true,id": 1,"userName": "",};否则返回{"success":false,"error": "请认真核对账号、密码！"}。
+
+需要检查的代码：
+```java
+// LoginRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class LoginRequest {
+    private String username;
+    private String password;
+}
+```
+```java
+// LoginResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class LoginResponse {
+    private boolean success;
+    private String message;
+    private Integer id;
+    private String userName;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private Integer id;
+    private String userName;
+    private String password;
+    private String roleName;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.LoginResponse;
+import com.example.entity.LoginRequest;
+
+public interface UserService {
+    LoginResponse login(LoginRequest request);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.LoginRequest;
+import com.example.entity.LoginResponse;
+import com.example.entity.User;
+import com.example.mapper.UserMapper;
+import com.example.service.UserService;
+import org.springframework.stereotype.Service;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+@Service
+public class UserServiceImpl implements UserService {
+    private final UserMapper userMapper;
+
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public LoginResponse login(LoginRequest request) {
+        User user = userMapper.findByUserName(request.getUsername());
+        if (user == null) {
+            return new LoginResponse(false, "请认真核对账号、密码！", null, null);
+        }
+        String encryptedPassword = encryptPassword(request.getPassword());
+        if (!user.getPassword().equals(encryptedPassword)) {
+            return new LoginResponse(false, "请认真核对账号、密码！", null, null);
+        }
+        return new LoginResponse(true, "登录成功！", user.getId(), user.getUserName());
+    }
+
+     private String encryptPassword(String password) {
+        // 使用MD5哈希算法加密处理密码
+        // ...
+        return encryptedPassword;
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.service.UserService;
+import com.example.entity.LoginResponse;
+import com.example.entity.LoginRequest;
+
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/user")
+public class UserController {
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/login")
+    public LoginResponse login(@RequestBody LoginRequest request) {
+        return userService.login(request);
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+
+public interface UserMapper{
+    User findByUserName(String userName);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.repository.UserRepository">
+    
+    <select id="findByUserName" resultType="com.example.model.User">
+        SELECT * FROM ssm_user WHERE userName = #{userName}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+XML文件的命名空间与接口的包名和类名不匹配，
+ERROR 5708 --- [nio-8080-exec-4] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.example.mapper.UserMapper.findByUserName] with root cause
+```
+```语法错误
+在UserRepository.xml中缺少User实体类属性与表ssm_user字段间的映射语句。
+```
+```功能错误
+在UserServiceImpl.java中缺少MD5哈希算法加密处理密码逻辑。
+```

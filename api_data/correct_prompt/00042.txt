@@ -1,0 +1,248 @@
+业务功能逻辑：
+在ums_user表中查询用户，查询条件是：username等于name；如果用户存在，对pass进行md5加密后检查和password是否相同，如果相同则返回信息message设置为"登录成功"，如果不相等则返回信息message设置为"登录失败"；其中md5的加密方法是：使用MD5算法进行加密得到字符数组，将每个字节转换成正数并转换成对应的16进制字符串，将所有的16进制字符串拼接成最终的加密结果.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    /**
+     * 用户ID
+     */
+    private String id;
+
+    /**
+     * 用户名
+     */
+    private String username;
+
+    /**
+     * 别名
+     */
+    private String alias;
+
+    /**
+     * 密码
+     */
+    private String password;
+
+    /**
+     * 头像
+     */
+    private String avatar;
+
+    /**
+     * 邮箱
+     */
+    private String email;
+
+    /**
+     * 手机号码
+     */
+    private String mobile;
+
+    /**
+     * 积分
+     */
+    private int score;
+
+    /**
+     * 令牌
+     */
+    private String token;
+
+    /**
+     * 个人简介
+     */
+    private String bio;
+
+    /**
+     * 是否激活
+     */
+    private boolean active;
+
+    /**
+     * 状态
+     */
+    private boolean status;
+
+    /**
+     * 角色ID
+     */
+    private String roleId;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 修改时间
+     */
+    private Date modifyTime;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public interface UserService {
+    ApiResponse login(String name, String pass);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserServiceImpl implements UserService {
+    @Override
+    public ApiResponse login(String name, String pass) {
+        // 在ums_user表中查询用户
+        User user = userMapper.getUserByUsername(name);
+        if (user == null) {
+            return new ApiResponse(400, "登录失败", null);
+        }
+        // 对pass进行md5加密
+        String encryptedPass = md5Encrypt(pass);
+        // 检查加密后的pass和数据库中的password是否相同
+        if (encryptedPass.equals(user.getPassword())) {
+            return new ApiResponse(200, "登录成功", null);
+        } else {
+            return new ApiResponse(400, "登录失败", null);
+        }
+    }
+
+    private String md5Encrypt(String pass) {
+        // 使用MD5算法进行加密
+        // ...
+        return encryptedPass;
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class UserController {
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/ums/user/login")
+    public ApiResponse login(@RequestBody RegisterDTO registerDTO) {
+        return userService.login(registerDTO.getName(), registerDTO.getPass());
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+@Mapper
+public interface UserMapper {
+    @Select("SELECT * FROM ums_user WHERE username = #{username}")
+    User getUserByUsername(@Param("username") String username);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="getUserByUsername" resultType="com.example.entity.User">
+        SELECT * FROM ums_user WHERE username = #{username}
+    </select>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+UserController.java:[10,19]
+java: 找不到符号
+  符号:   类 UserService
+  位置: 类 com.example.controller.UserController
+UserController.java:[13,27]
+java: 找不到符号
+  符号:   类 UserService
+  位置: 类 com.example.controller.UserController
+UserController.java:[18,43]
+java: 找不到符号
+  符号:   类 RegisterDTO
+  位置: 类 com.example.controller.UserController
+UserController.java:[18,12]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.UserController
+UserMapper.java:[10,5]
+java: 找不到符号
+  符号:   类 User
+  位置: 接口 com.example.mapper.UserMapper
+UserServiceImpl.java:[6,41]
+java: 找不到符号
+  符号: 类 UserService
+UserServiceImpl.java:[8,12]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.UserServiceImpl
+UserService.java:[7,5]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.UserService
+Mapped Statements collection already contains value for com.example.mapper.UserMapper.getUserByUsername. please check file [UserMapper.xml] and UserMapper.java (best guess).
+Caused by: org.apache.ibatis.type.TypeException: Could not resolve type alias 'com.example.entity.User'.  Cause: java.lang.ClassNotFoundException: Cannot find class: com.example.entity.User.
+```
+
+```功能错误
+pass的md5加密方法没有实现.
+```

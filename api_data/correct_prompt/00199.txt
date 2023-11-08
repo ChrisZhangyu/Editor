@@ -1,0 +1,207 @@
+业务功能逻辑：
+根据pageIndex和pageSize分页查询t_exam_paper_answer表中记录，返回ApiResponse设置为{[t_exam_paper_answer记录]}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+
+```java
+// ExamPaperAnswer.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper_answer")
+public class ExamPaperAnswer {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+
+    @Column(name = "exam_paper_id")
+    private Long examPaperId;
+
+    @Column(name = "paper_name")
+    private String paperName;
+
+    @Column(name = "paper_type")
+    private Integer paperType;
+
+    @Column(name = "subject_id")
+    private Integer subjectId;
+
+    @Column(name = "system_score")
+    private Integer systemScore;
+
+    @Column(name = "user_score")
+    private Integer userScore;
+
+    @Column(name = "paper_score")
+    private Integer paperScore;
+
+    @Column(name = "question_correct")
+    private Integer questionCorrect;
+
+    @Column(name = "question_count")
+    private Integer questionCount;
+
+    @Column(name = "do_time")
+    private Integer doTime;
+
+    @Column(name = "status")
+    private Integer status;
+
+    @Column(name = "create_user")
+    private Integer createUser;
+
+    @Column(name = "create_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createTime;
+
+    @Column(name = "task_exam_id")
+    private Integer taskExamId;
+}
+```
+
+```java
+// ExamPaperAnswerService.java
+package com.example.service;
+
+import com.example.entity.ExamPaperAnswer;
+
+import java.util.List;
+
+public interface ExamPaperAnswerService {
+    List<ExamPaperAnswer> getPageList(int pageIndex, int pageSize);
+}
+```
+
+```java
+// ExamPaperAnswerServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ExamPaperAnswer;
+import com.example.service.ExamPaperAnswerService;
+import com.example.mapper.ExamPaperAnswerMapper;
+
+import com.example.entity.ExamPaperAnswer;
+import com.example.mapper.ExamPaperAnswerMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ExamPaperAnswerServiceImpl implements ExamPaperAnswerService {
+
+    private final ExamPaperAnswerMapper examPaperAnswerMapper;
+
+    @Autowired
+    public ExamPaperAnswerServiceImpl(ExamPaperAnswerMapper examPaperAnswerMapper) {
+        this.examPaperAnswerMapper = examPaperAnswerMapper;
+    }
+
+    @Override
+    public List<ExamPaperAnswer> getPageList(int pageIndex, int pageSize) {
+        int offset = (pageIndex - 1) * pageSize;
+        return examPaperAnswerMapper.getPageList(offset, pageSize);
+    }
+}
+```
+
+```java
+// ExamPaperAnswerController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.ExamPaperAnswer;
+import com.example.service.ExamPaperAnswerService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+public class ExamPaperAnswerController {
+
+    private final ExamPaperAnswerService examPaperAnswerService;
+
+    @Autowired
+    public ExamPaperAnswerController(ExamPaperAnswerService examPaperAnswerService) {
+        this.examPaperAnswerService = examPaperAnswerService;
+    }
+
+    @PostMapping("/api/student/exampaper/answer/pageList")
+    public ApiResponse<List<ExamPaperAnswer>> getPageList(
+            @RequestParam("pageIndex") int pageIndex,
+            @RequestParam("pageSize") int pageSize
+    ) {
+        List<ExamPaperAnswer> pageList = examPaperAnswerService.getPageList(pageIndex, pageSize);
+        return new ApiResponse<>(1, "成功", pageList);
+    }
+}
+```
+
+```java
+// ExamPaperAnswerMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaperAnswer;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+public interface ExamPaperAnswerMapper {
+    List<ExamPaperAnswer> getPageList(@Param("offset") int offset, @Param("pageSize") int pageSize);
+}
+```
+
+```xml
+<!-- ExamPaperAnswerMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.ExamPaperAnswerMapper">
+
+    <select id="getPageList" resultType="com.example.entity.ExamPaperAnswer">
+        SELECT * FROM t_exam_paper_answer
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+```
+
+```功能错误
+```

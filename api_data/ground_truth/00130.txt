@@ -1,0 +1,247 @@
+```java
+// AdvSwiper.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_adv_swiper")
+public class AdvSwiper {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "adv_swiper_id")
+    private Integer advSwiperId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "name", length = 20)
+    private String name;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+    // 省略 getter 和 setter 方法
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// CategorySecond.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_second")
+public class CategorySecond {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+}
+```
+
+```java
+// AdvSwiperService.java
+package com.example.service;
+
+import com.example.entity.AdvSwiper;
+import com.example.entity.ApiResponse;
+
+import java.util.Optional;
+
+public interface AdvSwiperService {
+    ApiResponse updateAdvSwiper(int advSwiperId, String name, int categorySecondId, String image);
+}
+```
+
+```java
+// AdvSwiperServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.AdvSwiper;
+import com.example.entity.ApiResponse;
+import com.example.entity.CategorySecond;
+import com.example.mapper.AdvSwiperMapper;
+import com.example.mapper.CategorySecondMapper;
+import com.example.service.AdvSwiperService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+
+@Service
+public class AdvSwiperServiceImpl implements AdvSwiperService {
+
+    private final AdvSwiperMapper advSwiperMapper;
+    private final CategorySecondMapper categorySecondMapper;
+
+    @Autowired
+    public AdvSwiperServiceImpl(AdvSwiperMapper advSwiperMapper, CategorySecondMapper categorySecondMapper) {
+        this.advSwiperMapper = advSwiperMapper;
+        this.categorySecondMapper = categorySecondMapper;
+    }
+
+    @Override
+    public ApiResponse updateAdvSwiper(int advSwiperId, String name, int categorySecondId, String image) {
+        Optional<AdvSwiper> advSwiperOptional = advSwiperMapper.selectAdvSwiperById(advSwiperId);
+        if (!advSwiperOptional.isPresent()) {
+            return new ApiResponse(-1001, "该广告不存在", null);
+        }
+
+        Optional<CategorySecond> categorySecondOptional = categorySecondMapper.findById(categorySecondId);
+        if (!categorySecondOptional.isPresent()) {
+            return new ApiResponse(-1002, "该分类不存在", null);
+        }
+
+        AdvSwiper advSwiper = advSwiperOptional.get();
+        CategorySecond categorySecond = categorySecondOptional.get();
+
+        advSwiper.setName(name);
+        advSwiper.setCategorySecondId(categorySecondId);
+        advSwiper.setImage(image);
+        advSwiper.setCategoryName(categorySecond.getCategoryName());
+
+        advSwiperMapper.updateAdvSwiper(advSwiper);
+
+        return new ApiResponse(100, "成功", advSwiper);
+    }
+}
+```
+
+```java
+// AdvSwiperController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.AdvSwiperService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/admin/v1/advs")
+public class AdvSwiperController {
+
+    private final AdvSwiperService advSwiperService;
+
+    @Autowired
+    public AdvSwiperController(AdvSwiperService advSwiperService) {
+        this.advSwiperService = advSwiperService;
+    }
+
+    @PostMapping("/{advId}")
+    public ApiResponse updateAdvSwiper(@PathVariable int advId,
+                                       @RequestParam String name,
+                                       @RequestParam int categorySecondId,
+                                       @RequestParam String image) {
+        return advSwiperService.updateAdvSwiper(advId, name, categorySecondId, image);
+    }
+}
+```
+
+```java
+// AdvSwiperMapper.java
+package com.example.mapper;
+
+import com.example.entity.AdvSwiper;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.Optional;
+
+@Mapper
+public interface AdvSwiperMapper {
+    Optional<AdvSwiper> selectAdvSwiperById(@Param("advSwiperId") int advSwiperId);
+    void updateAdvSwiper(AdvSwiper advSwiper);
+}
+```
+```java
+// CategorySecondMapper.java
+package com.example.mapper;
+
+import com.example.entity.AdvSwiper;
+import com.example.entity.CategorySecond;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.Optional;
+
+public interface CategorySecondMapper {
+    Optional<CategorySecond> findById(@Param("categorySecondId") int category_second_id);
+}
+```
+
+```xml
+<!-- AdvSwiperMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.AdvSwiperMapper">
+    <select id="selectAdvSwiperById" parameterType="int" resultType="com.example.entity.AdvSwiper">
+        SELECT * FROM tb_adv_swiper WHERE adv_swiper_id = #{advSwiperId}
+    </select>
+
+    <update id="updateAdvSwiper" parameterType="com.example.entity.AdvSwiper">
+        UPDATE tb_adv_swiper
+        SET name = #{name},
+            category_second_id = #{categorySecondId},
+            image = #{image},
+            category_name = #{categoryName}
+        WHERE adv_swiper_id = #{advSwiperId}
+    </update>
+</mapper>
+
+```
+
+```xml
+<!-- CategorySecondMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.CategorySecondMapper">
+    <select id="findById" parameterType="int" resultType="com.example.entity.CategorySecond">
+        SELECT * FROM tb_category_second WHERE category_second_id = #{categorySecondId}
+    </select>
+</mapper>
+```

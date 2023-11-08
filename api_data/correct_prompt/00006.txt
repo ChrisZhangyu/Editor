@@ -1,0 +1,236 @@
+业务功能逻辑：
+2. 如果参数id为空，则time设置为当前日期的字符串表示形式，进行插入操作；如果不为空，则进行更新操作；如果参数path为空或ssm_picture表中记录数(统计符合特定条件url、type、grade的记录总数)大于90或参数path的长度大于100或参数url的长度大于100则返回0，否则在ssm_picture表中做插入或更新操作；其中更新操作：参数id不为空，查找匹配id的记录，更新属性.
+
+需要检查的代码：
+```java
+// Picture.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Picture {
+    private int id;
+    private String path;
+    private int type;
+    private String time;
+    private String url;
+    private int grade;
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// PictureRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PictureRequest {
+    private String id;
+    private String path;
+    private String type;
+    private String time;
+    private String url;
+    private String grade;
+}
+```
+
+```java
+// PictureService.java
+package com.example.service;
+
+import com.example.entity.Picture;
+
+public interface PictureService {
+    ApiResponse savePicture(PictureRequest request);
+}
+```
+
+```java
+// PictureServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Picture;
+import com.example.mapper.PictureMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class PictureServiceImpl implements PictureService {
+
+    private final PictureMapper pictureMapper;
+
+    @Autowired
+    public PictureServiceImpl(PictureMapper pictureMapper) {
+        this.pictureMapper = pictureMapper;
+    }
+
+    @Override
+    public ApiResponse savePicture(PictureRequest request) {
+        // 如果参数id为空，则time设置为当前日期的字符串表示形式，进行插入操作
+        if (request.getId() == null || request.getId().isEmpty()) {
+            request.setTime(getCurrentDateString());
+            pictureMapper.insertPicture(request);
+        } else {
+            // 如果不为空，则进行更新操作
+            Picture picture = pictureMapper.findPictureById(request.getId());
+            if (picture != null) {
+                // 更新属性
+                picture.setPath(request.getPath());
+                picture.setType(request.getType());
+                picture.setTime(request.getTime());
+                picture.setUrl(request.getUrl());
+                picture.setGrade(request.getGrade());
+                pictureMapper.updatePicture(picture);
+            }
+        }
+        return new ApiResponse(1, "成功", null);
+    }
+
+    private String getCurrentDateString() {
+        // 获取当前日期的字符串表示形式
+        // 实现略
+        return null;
+    }
+}
+```
+
+```java
+// PictureController.java
+package com.example.controller;
+
+import com.example.service.PictureService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/picture")
+public class PictureController {
+
+    private final PictureService pictureService;
+
+    @Autowired
+    public PictureController(PictureService pictureService) {
+        this.pictureService = pictureService;
+    }
+
+    @PostMapping("/save")
+    public ResponseEntity<ApiResponse> savePicture(@RequestBody PictureRequest request) {
+        ApiResponse response = pictureService.savePicture(request);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+}
+```
+
+```java
+// PictureMapper.java
+package com.example.mapper;
+
+import com.example.entity.Picture;
+
+public interface PictureMapper {
+    void insertPicture(PictureRequest request);
+    Picture findPictureById(String id);
+    void updatePicture(Picture picture);
+}
+
+```
+
+```xml
+<!-- PictureMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.PictureMapper">
+
+    <insert id="insertPicture" parameterType="com.example.entity.PictureRequest">
+        <!-- 实现略 -->
+    </insert>
+
+    <select id="findPictureById" parameterType="String" resultType="com.example.entity.Picture">
+        <!-- 实现略 -->
+    </select>
+
+    <update id="updatePicture" parameterType="com.example.entity.Picture">
+        <!-- 实现略 -->
+    </update>
+
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+PictureController.java: [24,65]
+java: 找不到符号
+  符号:   类 PictureRequest
+  位置: 类 com.example.controller.PictureController
+PictureController.java: [24,27]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.PictureController
+PictureService.java: [6,29]
+java: 找不到符号
+  符号:   类 PictureRequest
+  位置: 接口 com.example.service.PictureService
+PictureService.java: [6,5]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.PictureService
+PictureMapper.java: [6,24]
+java: 找不到符号
+  符号:   类 PictureRequest
+  位置: 接口 com.example.mapper.PictureMapper
+PictureServiceImpl.java: [9,44]
+java: 找不到符号
+  符号: 类 PictureService
+PictureServiceImpl.java: [19,36]
+java: 找不到符号
+  符号:   类 PictureRequest
+  位置: 类 com.example.service.impl.PictureServiceImpl
+PictureServiceImpl.java: [19,12]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.PictureServiceImpl
+PictureServiceImpl.java: [33,48]
+java: 不兼容的类型: java.lang.String无法转换为int
+```
+
+```功能错误
+time设置为当前日期的字符串表示形式的方法getCurrentDateString()未实现
+  位置: 类 com.example.service.impl.PictureServiceImpl
+Error updating database.  Cause: java.sql.SQLException: SQL String cannot be empty
+功能逻辑中的”参数path为空或ssm_picture表中记录数(统计符合特定条件url、type、grade的记录总数)大于90或参数path的长度大于100或参数url的长度大于100“条件未实现
+```

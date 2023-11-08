@@ -1,0 +1,310 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+```java
+// UpdateUserRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateUserRequest {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String realName;
+    private int age;
+    private int role;
+    private int sex;
+    private String birthDay;
+    private String phone;
+    private String lastActiveTime;
+    private String createTime;
+    private String modifyTime;
+    private int status;
+    private int userLevel;
+    private String classes;
+    private String imagePath;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+```java
+// UserEventLog.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserEventLog {
+    private int id;
+    private int userId;
+    private String userName;
+    private String realName;
+    private String content;
+    private Date createTime;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.User;
+import com.example.entity.UpdateUserRequest;
+
+import java.util.Date;
+
+public interface UserService {
+    User getUserById(int id);
+    void updateUser(UpdateUserRequest request);
+}
+
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.UserService;
+import com.example.entity.User;
+import com.example.entity.UpdateUserRequest;
+import com.example.mapper.UserMapper;
+import com.example.mapper.UserEventLogMapper;
+import com.example.entity.UserEventLog;
+
+import lombok.SneakyThrows;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserMapper userMapper;
+    private final UserEventLogMapper userEventLogMapper;
+
+    @Autowired
+    public UserServiceImpl(UserMapper userMapper, UserEventLogMapper userEventLogMapper) {
+        this.userMapper = userMapper;
+        this.userEventLogMapper = userEventLogMapper;
+    }
+
+    @Override
+    public User getUserById(int id) {
+        return userMapper.getUserById(id);
+    }
+
+    @SneakyThrows
+    @Override
+    public void updateUser(UpdateUserRequest request) {
+        // 检查输入参数中生日信息是否为空，如果为空则置为null
+        if (request.getBirthDay() == null || request.getBirthDay().isEmpty()) {
+            request.setBirthDay(null);
+        }
+
+        // 在t_user表中查询用户id等于输入参数中id的用户并赋值给user对象，用于更新t_user表
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        User user = userMapper.getUserById(request.getId());
+        if (user != null) {
+            user.setUserUuid(request.getUserUuid());
+            user.setUserName(request.getUserName());
+            user.setRealName(request.getRealName());
+            user.setAge(request.getAge());
+            user.setRole(request.getRole());
+            user.setSex(request.getSex());
+            user.setBirthDay(simpleDateFormat.parse(request.getBirthDay()));
+            user.setPhone(request.getPhone());
+            user.setLastActiveTime(new Date());
+            user.setCreateTime(simpleDateFormat.parse(request.getCreateTime()));
+            user.setModifyTime(new Date());
+            user.setStatus(request.getStatus());
+            user.setUserLevel(request.getUserLevel());
+            user.setImagePath(request.getImagePath());
+
+            userMapper.updateUser(user);
+        }
+
+        // 创建一个用户日志包括用户的ID、用户名、真实姓名，作发生的时间、用户的操作信息（用户名+" 更新了个人资料"）
+        UserEventLog userEventLog = new UserEventLog();
+        userEventLog.setUserId(user.getId());
+        userEventLog.setUserName(user.getUserName());
+        userEventLog.setRealName(user.getRealName());
+        userEventLog.setContent(user.getUserName() + " 更新了个人资料");
+        userEventLog.setCreateTime(new Date());
+
+        // 将这个用户插入到t_user_event_log表中
+        userEventLogMapper.insertUserEventLog(userEventLog);
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.UpdateUserRequest;
+import com.example.service.UserService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/student/user")
+public class UserController {
+
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/update")
+    public ApiResponse updateUser(@RequestBody UpdateUserRequest request) {
+        userService.updateUser(request);
+        return new ApiResponse(1, "成功", null);
+    }
+}
+```
+
+```java
+// UserEventLogMapper.java
+package com.example.mapper;
+
+import com.example.entity.UserEventLog;
+
+public interface UserEventLogMapper {
+    void insertUserEventLog(UserEventLog userEventLog);
+}
+```
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+
+public interface UserMapper {
+    User getUserById(int id);
+    void updateUser(User user);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.UserMapper">
+    <resultMap id="userResultMap" type="com.example.entity.User">
+        <id property="id" column="id" />
+        <result property="userUuid" column="user_uuid" />
+        <result property="userName" column="user_name" />
+        <result property="password" column="password" />
+        <result property="realName" column="real_name" />
+        <result property="age" column="age" />
+        <result property="sex" column="sex" />
+        <result property="birthDay" column="birth_day" />
+        <result property="userLevel" column="user_level" />
+        <result property="phone" column="phone" />
+        <result property="role" column="role" />
+        <result property="status" column="status" />
+        <result property="imagePath" column="image_path" />
+        <result property="createTime" column="create_time" />
+        <result property="modifyTime" column="modify_time" />
+        <result property="lastActiveTime" column="last_active_time" />
+        <result property="deleted" column="deleted" />
+        <result property="wxOpenId" column="wx_open_id" />
+    </resultMap>
+
+    <select id="getUserById" resultMap="userResultMap">
+        SELECT * FROM t_user WHERE id = #{id}
+    </select>
+
+    <update id="updateUser">
+        UPDATE t_user
+        SET user_uuid = #{userUuid},
+            user_name = #{userName},
+            password = #{password},
+            real_name = #{realName},
+            age = #{age},
+            sex = #{sex},
+            birth_day = #{birthDay},
+            user_level = #{userLevel},
+            phone = #{phone},
+            role = #{role},
+            status = #{status},
+            image_path = #{imagePath},
+            create_time = #{createTime},
+            modify_time = #{modifyTime},
+            last_active_time = #{lastActiveTime},
+            deleted = #{deleted},
+            wx_open_id = #{wxOpenId}
+        WHERE id = #{id}
+    </update>
+</mapper>
+
+```
+

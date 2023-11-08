@@ -1,0 +1,272 @@
+业务功能逻辑：
+在bms_comment表中查询特定话题，查询条件是：选择bms_comment表中的所有列和ums_user表中的username列，以ums_user.id和bms_comment.user_id相等作为内连接条件，筛选出topic_id等于给定参数的记录，并按create_time对记录进行降序排列；返回信息data设置为{[{"id":"","content":"", "topicId":"", "userId":"", "username":"","createTime":""}]}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+```
+
+```java
+// Comment.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_comment")
+public class Comment {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "content", length = 1000)
+    private String content;
+
+    @Column(name = "user_id", length = 20)
+    private String userId;
+
+    @Column(name = "topic_id", length = 20)
+    private String topicId;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    /**
+     * 用户ID
+     */
+    private String id;
+
+    /**
+     * 用户名
+     */
+    private String username;
+
+    /**
+     * 别名
+     */
+    private String alias;
+
+    /**
+     * 密码
+     */
+    private String password;
+
+    /**
+     * 头像
+     */
+    private String avatar;
+
+    /**
+     * 邮箱
+     */
+    private String email;
+
+    /**
+     * 手机号码
+     */
+    private String mobile;
+
+    /**
+     * 积分
+     */
+    private int score;
+
+    /**
+     * 令牌
+     */
+    private String token;
+
+    /**
+     * 个人简介
+     */
+    private String bio;
+
+    /**
+     * 是否激活
+     */
+    private boolean active;
+
+    /**
+     * 状态
+     */
+    private boolean status;
+
+    /**
+     * 角色ID
+     */
+    private String roleId;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 修改时间
+     */
+    private Date modifyTime;
+}
+```
+
+```java
+// CommentService.java
+package com.example.service;
+
+import com.example.entity.Comment;
+
+import java.util.List;
+
+public interface CommentService {
+    List<Comment> getCommentsByTopicId(String topicId);
+}
+```
+
+```java
+// CommentServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Comment;
+import com.example.mapper.CommentMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class CommentServiceImpl implements CommentService {
+
+    private final CommentMapper commentMapper;
+
+    @Autowired
+    public CommentServiceImpl(CommentMapper commentMapper) {
+        this.commentMapper = commentMapper;
+    }
+
+    @Override
+    public List<Comment> getCommentsByTopicId(String topicId) {
+        return commentMapper.getCommentsByTopicId(topicId);
+    }
+}
+```
+
+```java
+// CommentController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.CommentService;
+import com.example.entity.Comment;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+public class CommentController {
+
+    private final CommentService commentService;
+
+    @Autowired
+    public CommentController(CommentService commentService) {
+        this.commentService = commentService;
+    }
+
+    @GetMapping("/comment/get_comments")
+    public ApiResponse<List<Comment>> getComments(@RequestParam("topicid") String topicId) {
+        List<Comment> comments = commentService.getCommentsByTopicId(topicId);
+        return new ApiResponse<>(200, "操作成功", comments);
+    }
+}
+```
+
+```java
+// CommentMapper.java
+package com.example.mapper;
+
+import com.example.entity.Comment;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface CommentMapper {
+    List<Comment> getCommentsByTopicId(@Param("topicId") String topicId);
+}
+```
+
+```xml
+<!-- CommentMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.CommentMapper">
+
+    <select id="getCommentsByTopicId" resultType="com.example.entity.Comment">
+        SELECT c.id, c.content, c.topic_id, c.user_id, u.username, c.create_time
+        FROM bms_comment c
+        INNER JOIN ums_user u ON c.user_id = u.id
+        WHERE c.topic_id = #{topicId}
+        ORDER BY c.create_time DESC
+    </select>
+
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+CommentServiceImpl.java: [11,44]
+java: 找不到符号
+  符号: 类 CommentService
+```
+
+```功能错误
+返回信息data={["id": "1354987625102549861","content": "第一条评论","userId": null,"topicId": null,"createTime": null,"modifyTime": null]}的内容大部分为null.
+```

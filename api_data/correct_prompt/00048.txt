@@ -1,0 +1,342 @@
+业务功能逻辑：
+在ums_user表中查询用户，查询条件是username等于输入Header参数；在bms_post表中查询帖子，查询条件是：bms_post.title等于输入参数title，如果已存在，则返回信息data设置为"话题已存在，请修改"，如果不存在，则将ums_user.user_id、title、content插入到bms_post表中，create_time设置为当前时间；更新bms_user表中用户对象的积分加1；判断输入tags是否为空，不为空则保存标签：遍历tags在bms_tag表中查找与name相等的记录，如果记录为空，则根据输入参数创建对象插入到bms_tag表中，如果记录不为空，更新topic_count对象加1；然后将bms_tags表中的记录与话题关联，根据topic_id删除bms_post_tag表中的记录，遍历bms_tag表中的记录，获取topic_id和tag_id创建对象插入到bms_post_tag表中；返回信息data设置为{bms_post的记录}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// BmsPostTag.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.*;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_post_tag")
+public class BmsPostTag {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+
+    @Column(name = "tag_id", length = 20)
+    private String tagId;
+
+    @Column(name = "topic_id", length = 20)
+    private String topicId;
+}
+```
+
+```java
+// BmsTag.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.*;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_tag")
+public class BmsTag {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "topic_count")
+    private int topicCount;
+}
+```
+
+```java
+// Post.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_post")
+public class Post {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "title")
+    private String title;
+
+    @Column(name = "content", columnDefinition = "longtext")
+    private String content;
+
+    @Column(name = "user_id", length = 20)
+    private String userId;
+
+    @Column(name = "comments")
+    private int comments;
+
+    @Column(name = "collects")
+    private int collects;
+
+    @Column(name = "view")
+    private int view;
+
+    @Column(name = "top")
+    private boolean top;
+
+    @Column(name = "essence")
+    private boolean essence;
+
+    @Column(name = "section_id")
+    private String sectionId;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+}
+```
+
+```java
+// PostRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PostRequest {
+    private String title;
+    private String content;
+    private String[] tags;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    private String id;
+    private String username;
+    private String alias;
+    private String password;
+    private String avatar;
+    private String email;
+    private String mobile;
+    private int score;
+    private String token;
+    private String bio;
+    private boolean active;
+    private boolean status;
+    private String roleId;
+    private Date createTime;
+    private Date modifyTime;
+}
+```
+
+```java
+// PostService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Post;
+
+public interface PostService {
+    ApiResponse createPost(String userName, String title, String content, String[] tags);
+    // 其他帖子相关的服务方法
+}
+```
+
+```java
+// PostServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.*;
+import com.example.mapper.PostMapper;
+import com.example.mapper.TagMapper;
+import com.example.mapper.UserMapper;
+import com.example.service.PostService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Date;
+
+@Service
+public class PostServiceImpl implements PostService {
+
+    @Autowired
+    private UmsUserMapper userMapper;
+
+    @Autowired
+    private PostMapper postMapper;
+
+    @Autowired
+    private BmsTagMapper tagMapper;
+
+    @Autowired
+    private BmsPostTagMapper postTagMapper;
+
+    @Override
+    @Transactional
+    public ApiResponse createPost(String userName, String title, String content, String[] tags) {
+        // 在ums_user表中查询用户
+        UmsUser user = userMapper.getUserByUsername(userName);
+        if (user == null) {
+            return new ApiResponse(400, "用户不存在", null);
+        }
+
+        // 在bms_post表中查询帖子
+        Post existingPost = postMapper.getPostByTitle(title);
+        if (existingPost != null) {
+            return new ApiResponse(400, "话题已存在，请修改", null);
+        }
+
+        // 将ums_user.user_id、title、content插入到bms_post表中
+        Post newPost = new Post();
+        newPost.setTitle(title);
+        newPost.setContent(content);
+        newPost.setUserId(user.getId());
+        newPost.setCreateTime(new Date());
+        postMapper.createPost(newPost);
+
+        // 更新ums_user表中用户对象的积分加1
+        user.setScore(user.getScore() + 1);
+        userMapper.updateUser(user);
+
+        // 判断输入tags是否为空
+        if (tags != null && tags.length > 0) {
+            for (String tagName : tags) {
+                // 在bms_tag表中查找与name相等的记录
+                BmsTag tag = tagMapper.getTagByName(tagName);
+                if (tag == null) {
+                    // 如果记录为空，则根据输入参数创建对象插入到bms_tag表中
+                    tag = new BmsTag();
+                    tag.setName(tagName);
+                    tagMapper.createTag(tag);
+                } else {
+                    // 如果记录不为空，更新topic_count对象加1
+                    tag.setTopicCount(tag.getTopicCount() + 1);
+                    tagMapper.updateTag(tag);
+                }
+
+                // 将bms_post_tag表中的记录与话题关联
+                BmsPostTag postTag = new BmsPostTag();
+                postTag.setTagId(tag.getId());
+                postTag.setTopicId(newPost.getId());
+                postTagMapper.createPostTag(postTag);
+            }
+        }
+
+        return new ApiResponse(200, "操作成功", newPost);
+    }
+
+    // 其他帖子相关的服务方法的实现
+}
+```
+
+```java
+// PostController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.PostRequest;
+import com.example.service.PostService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class PostController {
+
+    @Autowired
+    private PostService postService;
+
+    @PostMapping("/post/create")
+    public ApiResponse createPost(@RequestHeader("userName") String userName, @RequestBody PostRequest request) {
+        return postService.createPost(userName, request.getTitle(), request.getContent(), request.getTags());
+    }
+
+    // 其他帖子相关的请求处理方法
+}
+```
+
+代码执行的错误信息：
+```运行错误
+PostServiceImpl.java:4:26
+java: 程序包com.example.mapper不存在
+PostServiceImpl.java:5:26
+java: 程序包com.example.mapper不存在
+PostServiceImpl.java:6:26
+java: 程序包com.example.mapper不存在
+PostServiceImpl.java:18:13
+java: 找不到符号
+  符号:   类 UmsUserMapper
+  位置: 类 com.example.service.impl.PostServiceImpl
+PostServiceImpl.java:21:13
+java: 找不到符号
+  符号:   类 PostMapper
+  位置: 类 com.example.service.impl.PostServiceImpl
+PostServiceImpl.java:24:13
+java: 找不到符号
+  符号:   类 BmsTagMapper
+  位置: 类 com.example.service.impl.PostServiceImpl
+PostServiceImpl.java:27:13
+java: 找不到符号
+  符号:   类 BmsPostTagMapper
+  位置: 类 com.example.service.impl.PostServiceImpl
+```
+
+```功能错误
+ums_user、bms_post、bms_tag、bms_post_tag四个表的相关操作没有mapper模块和相应的xml文件中实现，缺少主要模块代码.
+```

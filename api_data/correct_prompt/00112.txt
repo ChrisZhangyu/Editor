@@ -1,0 +1,453 @@
+业务功能逻辑：在t_user表中查询用户名等于输入参数的用户对象，如果存在则返回{"code":2,"message":"用户已存在","response":null}；根据输入参数创建一个用户对象，user_uuid自动生成，对Password进行加密后存储到数据库中，role设置为1，status设置为1，last_active_time设置为当前日期，create_time设置为当前日期，deleted设置为false，将这个用户对象插入到t_user表中；根据输入的用户id、user_name、real_name和当前日期类创建一个用户日志对象，设置content为"欢迎 " + user_name + " 注册来到学之思开源考试系统"，将这个对象更新到t_user_event_log表中，返回{"code":1,"message":"成功","response":null}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// RegisterRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class RegisterRequest {
+    private String userName;
+    private String password;
+    private int userLevel;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class RegisterRequest {
+    private String userName;
+    private String password;
+    private int userLevel;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+```java
+// UserEventLog.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class RegisterRequest {
+    private String userName;
+    private String password;
+    private int userLevel;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserEventLog {
+    private int id;
+    private int userId;
+    private String userName;
+    private String realName;
+    private String content;
+    private Date createTime;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.UserEventLog;
+import com.example.entity.User;
+
+import com.example.demo.model.User;
+import com.example.demo.model.UserEventLog;
+
+public interface UserService {
+    ApiResponse<Void> registerUser(String userName, String password, int userLevel);
+}
+
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.User;
+import com.example.entity.ApiResponse;
+import com.example.entity.UserEventLog;
+import com.example.service.UserService;
+import com.example.mapper.UserMapper;
+import com.example.mapper.UserEventLogMapper;
+
+import com.example.demo.mapper.UserEventLogMapper;
+import com.example.demo.mapper.UserMapper;
+import com.example.demo.model.User;
+import com.example.demo.model.UserEventLog;
+import com.example.demo.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserMapper userMapper;
+    private final UserEventLogMapper userEventLogMapper;
+
+    @Autowired
+    public UserServiceImpl(UserMapper userMapper, UserEventLogMapper userEventLogMapper) {
+        this.userMapper = userMapper;
+        this.userEventLogMapper = userEventLogMapper;
+    }
+
+    @Override
+    public ApiResponse<Void> registerUser(String userName, String password, int userLevel) {
+        User existingUser = userMapper.findByUserName(userName);
+        if (existingUser != null) {
+            return new ApiResponse<>(2, "用户已存在", null);
+        }
+
+        User newUser = new User();
+        newUser.setUserUuid(UUID.randomUUID().toString());
+        newUser.setUserName(userName);
+        newUser.setPassword(passwordEncoder.encode(password));
+        newUser.setUserLevel(userLevel);
+        newUser.setRole(1);
+        newUser.setStatus(1);
+        newUser.setLastActiveTime(new Date());
+        newUser.setCreateTime(new Date());
+        newUser.setDeleted(false);
+        userMapper.insert(newUser);
+
+        UserEventLog userEventLog = new UserEventLog();
+        userEventLog.setUserId(newUser.getId());
+        userEventLog.setUserName(newUser.getUserName());
+        userEventLog.setRealName(newUser.getRealName());
+        userEventLog.setContent("欢迎 " + newUser.getUserName() + " 注册来到学之思开源考试系统");
+        userEventLog.setCreateTime(new Date());
+        userEventLogMapper.update(userEventLog);
+
+        return new ApiResponse<>(1, "成功", null);
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.RegisterRequest;
+import com.example.service.UserService;
+
+import com.example.demo.model.ApiResponse;
+import com.example.demo.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/wx/student/user")
+public class UserController {
+
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/register")
+    public ApiResponse<Void> registerUser(@RequestBody RegisterRequest request) {
+        return userService.registerUser(request.getUserName(), request.getPassword(), request.getUserLevel());
+    }
+}
+```
+
+```java
+// UserEventLogMapper.java
+package com.example.mapper;
+
+import com.example.entity.UserEventLog;
+
+import com.example.demo.model.UserEventLog;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface UserEventLogMapper {
+    void update(UserEventLog userEventLog);
+}
+```
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.UserEventLog;
+
+import com.example.demo.model.UserEventLog;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface UserEventLogMapper {
+    void update(UserEventLog userEventLog);
+}
+import com.example.entity.User;
+
+import com.example.demo.model.User;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface UserMapper {
+    User findByUserName(@Param("userName") String userName);
+    void insert(User user);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.demo.model.User">
+        <id column="id" property="id" />
+        <result column="user_uuid" property="userUuid" />
+        <result column="user_name" property="userName" />
+        <result column="password" property="password" />
+        <result column="real_name" property="realName" />
+        <result column="age" property="age" />
+        <result column="sex" property="sex" />
+        <result column="birth_day" property="birthDay" />
+        <result column="user_level" property="userLevel" />
+        <result column="phone" property="phone" />
+        <result column="role" property="role" />
+        <result column="status" property="status" />
+        <result column="image_path" property="imagePath" />
+        <result column="create_time" property="createTime" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="last_active_time" property="lastActiveTime" />
+        <result column="deleted" property="deleted" />
+        <result column="wx_open_id" property="wxOpenId" />
+    </resultMap>
+
+    <select id="findByUserName" resultMap="BaseResultMap">
+        SELECT * FROM t_user WHERE user_name = #{userName}
+    </select>
+
+    <insert id="insert">
+        INSERT INTO t_user (user_uuid, user_name, password, real_name, age, sex, birth_day, user_level, phone, role, status, image_path, create_time, modify_time, last_active_time, deleted, wx_open_id)
+        VALUES (#{userUuid}, #{userName}, #{password}, #{realName}, #{age}, #{sex}, #{birthDay}, #{userLevel}, #{phone}, #{role}, #{status}, #{imagePath}, #{createTime}, #{modifyTime}, #{lastActiveTime}, #{deleted}, #{wxOpenId})
+    </insert>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\RegisterRequest.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\RegisterRequest.java:18
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\RegisterRequest.java:19
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\User.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\User.java:18
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\User.java:19
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\User.java:30
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\User.java:31
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\User.java:32
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\User.java:34
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\UserEventLog.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\UserEventLog.java:18
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\UserEventLog.java:19
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\UserEventLog.java:30
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\UserEventLog.java:31
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\UserEventLog.java:32
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\UserEventLog.java:34
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\UserEventLog.java:60
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\UserEventLog.java:61
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\UserEventLog.java:62
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\entity\UserEventLog.java:64
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\mapper\UserMapper.java:12
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\mapper\UserMapper.java:14
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\mapper\UserMapper.java:15
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\mapper\UserMapper.java:16
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\controller\UserController.java:7:30
+java: 程序包com.example.demo.model不存在
+D:\迅雷下载\xzs-project_test\order_register_system\src\main\java\com\example\controller\UserController.java:7:30
+java: 程序包com.example.demo.model不存在
+Caused by: java.lang.ClassNotFoundException: Cannot find class: com.example.demo.model.User
+Caused by: org.apache.ibatis.type.TypeException: Could not resolve type alias 'com.example.demo.model.User'.  Cause: java.lang.ClassNotFoundException: Cannot find class: com.example.demo.model.User
+```
+```功能错误
+更新log表的时候全部更新了
+```

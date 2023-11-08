@@ -1,0 +1,565 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// ExamPaper.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper")
+public class ExamPaper {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "subject_id")
+    private Integer subjectId;
+
+    @Column(name = "paper_type")
+    private String paperType;
+
+    @Column(name = "grade_level")
+    private Integer gradeLevel;
+
+    @Column(name = "score")
+    private Double score;
+
+    @Column(name = "question_count")
+    private Integer questionCount;
+
+    @Column(name = "suggest_time")
+    private Integer suggestTime;
+
+    @Column(name = "limit_start_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date limitStartTime;
+
+    @Column(name = "limit_end_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date limitEndTime;
+
+    @Column(name = "frame_text_content_id")
+    private Integer frameTextContentId;
+
+    @Column(name = "create_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createTime;
+
+    @Column(name = "deleted")
+    private Boolean deleted;
+
+    @Column(name = "task_exam_id")
+    private Integer taskExamId;
+
+}
+```
+
+```java
+// ExamPaperAnswer.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper_answer")
+public class ExamPaperAnswer {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+
+    @Column(name = "exam_paper_id")
+    private Long examPaperId;
+
+    @Column(name = "paper_name")
+    private String paperName;
+
+    @Column(name = "paper_type")
+    private Integer paperType;
+
+    @Column(name = "subject_id")
+    private Integer subjectId;
+
+    @Column(name = "system_score")
+    private Integer systemScore;
+
+    @Column(name = "user_score")
+    private Integer userScore;
+
+    @Column(name = "paper_score")
+    private Integer paperScore;
+
+    @Column(name = "question_correct")
+    private Integer questionCorrect;
+
+    @Column(name = "question_count")
+    private Integer questionCount;
+
+    @Column(name = "do_time")
+    private Integer doTime;
+
+    @Column(name = "status")
+    private Integer status;
+
+    @Column(name = "create_user")
+    private Integer createUser;
+
+    @Column(name = "create_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createTime;
+
+    @Column(name = "task_exam_id")
+    private Integer taskExamId;
+}
+```
+
+```java
+// Question.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_question")
+public class Question {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
+
+    @Column(name = "question_type")
+    private String questionType;
+
+    @Column(name = "subject_id")
+    private Integer subjectId;
+
+    @Column(name = "score")
+    private Integer score;
+
+    @Column(name = "grade_level")
+    private Integer gradeLevel;
+
+    @Column(name = "difficult")
+    private Integer difficult;
+
+    @Column(name = "correct")
+    private String correct;
+
+    @Column(name = "info_text_content_id")
+    private Integer infoTextContentId;
+
+    @Column(name = "create_user")
+    private Integer createUser;
+
+    @Column(name = "status")
+    private Integer status;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "deleted")
+    private Boolean deleted;
+}
+```
+
+```java
+// TextContent.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_text_content")
+public class TextContent {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
+
+    @Column(name = "content", columnDefinition = "TEXT")
+    private String content;
+
+    @Column(name = "create_time")
+    private Date createTime;
+}
+```
+
+```java
+// User.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_user")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "user_uuid")
+    private String userUuid;
+
+    @Column(name = "user_name")
+    private String userName;
+
+    @Column(name = "password")
+    private String password;
+
+    @Column(name = "real_name")
+    private String realName;
+
+    @Column(name = "age")
+    private int age;
+
+    @Column(name = "sex")
+    private int sex;
+
+    @Column(name = "birth_day")
+    private Date birthDay;
+
+    @Column(name = "user_level")
+    private int userLevel;
+
+    @Column(name = "phone")
+    private String phone;
+
+    @Column(name = "role")
+    private int role;
+
+    @Column(name = "status")
+    private int status;
+
+    @Column(name = "image_path")
+    private String imagePath;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+
+    @Column(name = "last_active_time")
+    private Date lastActiveTime;
+
+    @Column(name = "deleted")
+    private boolean deleted;
+
+    @Column(name = "wx_open_id")
+    private String wxOpenId;
+}
+```
+
+```java
+// ExamPaperService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+import java.util.List;
+
+public interface ExamPaperService {
+    ApiResponse answerSubmit(String userName, int id);
+}
+```
+
+```java
+// ExamPaperServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.*;
+import com.example.service.ExamPaperService;
+import com.example.mapper.TextContentMapper;
+import com.example.mapper.QuestionMapper;
+import com.example.mapper.ExamPaperAnswerMapper;
+import com.example.mapper.ExamPaperMapper;
+import com.example.mapper.UserMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.List;
+
+@Service
+public class ExamPaperServiceImpl implements ExamPaperService {
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private ExamPaperMapper examPaperMapper;
+
+    @Autowired
+    private ExamPaperAnswerMapper examPaperAnswerMapper;
+
+    @Autowired
+    private TextContentMapper textContentMapper;
+
+    @Autowired
+    private QuestionMapper questionMapper;
+
+    @Override
+    public ApiResponse answerSubmit(String userName, int id) {
+        // 在t_user表中查询记录，查询条件是user_name等于userName
+        User user = userMapper.findByUserName(userName);
+        if (user == null) {
+            return new ApiResponse(0, "用户不存在", null);
+        }
+
+        // 在t_exam_paper表中查询记录，查询条件是id等于examPaper.getId()
+        ExamPaper paper = examPaperMapper.findById(id);
+        if (paper == null) {
+            return new ApiResponse(0, "试卷不存在", null);
+        }
+
+        // 如果paper_type等于6，在t_exam_paper_answer表中查询记录，查询条件是exam_paper_id等于paper.getId()且create_user等于user.getId()
+        if (Integer.parseInt(paper.getPaperType()) == 6) {
+            int count = examPaperAnswerMapper.countByExamPaperIdAndCreateUser(paper.getId(), user.getId());
+            if (count > 0) {
+                return new ApiResponse(2, "试卷不能重复做", null);
+            }
+        }
+
+        // 在t_text_content表中查询记录，查询条件是id等于paper.getFrameTextContentId()
+        TextContent textContent = textContentMapper.findById(paper.getFrameTextContentId());
+        if (textContent == null) {
+            return new ApiResponse(0, "文本内容不存在", null);
+        }
+
+        // 在t_question表中查询记录列表，查询条件是info_text_content_id等于textContent.getId()
+        List<Question> questions = questionMapper.findByInfoTextContentId(textContent.getId());
+
+        // 在t_exam_paper_answer表中更新字段
+        ExamPaperAnswer examPaperAnswer = new ExamPaperAnswer();
+        examPaperAnswer.setPaperName(paper.getName());
+        examPaperAnswer.setExamPaperId(Long.valueOf(paper.getId()));
+        examPaperAnswer.setCreateUser(user.getId());
+        examPaperAnswer.setCreateTime(new Date());
+        examPaperAnswer.setSubjectId(paper.getSubjectId());
+        examPaperAnswer.setQuestionCount(paper.getQuestionCount());
+        examPaperAnswer.setPaperScore(paper.getScore().intValue());
+        examPaperAnswer.setPaperType(Integer.valueOf(paper.getPaperType()));
+        examPaperAnswer.setTaskExamId(paper.getTaskExamId());
+        examPaperAnswerMapper.InsertExamPaperAnswer(examPaperAnswer);
+
+        return new ApiResponse(1, "成功", null);
+    }
+}
+```
+
+```java
+// ExamPaperController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.ExamPaper;
+import com.example.service.ExamPaperService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+public class ExamPaperController {
+
+    @Autowired
+    private ExamPaperService examPaperService;
+
+    @PostMapping("/api/student/exampaper/answer/answerSubmit")
+    public ApiResponse answerSubmit(@RequestParam String userName, @RequestParam int id) {
+        return examPaperService.answerSubmit(userName, id);
+    }
+}
+```
+
+```java
+// ExamPaperAnswerMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaperAnswer;
+import org.apache.ibatis.annotations.Param;
+
+public interface ExamPaperAnswerMapper {
+    int countByExamPaperIdAndCreateUser(@Param("examPaperId") int examPaperId, @Param("createUser") int createUser);
+    void InsertExamPaperAnswer(ExamPaperAnswer examPaperAnswer);
+}
+```
+
+```java
+// ExamPaperMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+
+public interface ExamPaperMapper {
+    ExamPaper findById(int id);
+}
+```
+
+```java
+// QuestionMapper.java
+package com.example.mapper;
+
+import com.example.entity.Question;
+
+import java.util.List;
+
+public interface QuestionMapper {
+    List<Question> findByInfoTextContentId(int infoTextContentId);
+}
+```
+
+```java
+// TextContentMapper.java
+package com.example.mapper;
+
+
+import com.example.entity.TextContent;
+
+public interface TextContentMapper {
+    TextContent findById(int id);
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+
+public interface UserMapper {
+    User findByUserName(String userName);
+}
+```
+
+```xml
+<!-- ExamPaperAnswerMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ExamPaperAnswerMapper">
+
+    <select id="countByExamPaperIdAndCreateUser" resultType="int">
+        SELECT COUNT(*) FROM t_exam_paper_answer WHERE exam_paper_id = #{examPaperId} AND create_user = #{createUser}
+    </select>
+
+    <insert id="InsertExamPaperAnswer" parameterType="com.example.entity.ExamPaperAnswer">
+        INSERT INTO t_exam_paper_answer (exam_paper_id, paper_name, paper_type, subject_id, system_score, user_score, paper_score,
+        question_correct, question_count, do_time, status, create_user, create_time, task_exam_id)
+        VALUES (#{examPaperId}, #{paperName}, #{paperType}, #{subjectId}, #{systemScore}, #{userScore}, #{paperScore}, #{questionCorrect},
+        #{questionCount}, #{doTime}, #{status}, #{createUser}, #{createTime}, #{taskExamId})
+    </insert>
+
+</mapper>
+```
+
+```xml
+<!-- ExamPaperMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ExamPaperMapper">
+
+    <select id="findById" resultType="com.example.entity.ExamPaper">
+        SELECT * FROM t_exam_paper WHERE id = #{id}
+    </select>
+
+</mapper>
+```
+
+```xml
+<!-- QuestionMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.QuestionMapper">
+
+    <select id="findByInfoTextContentId" resultType="com.example.entity.Question">
+        SELECT * FROM t_question WHERE info_text_content_id = #{infoTextContentId}
+    </select>
+
+</mapper>
+```
+
+```xml
+<!-- TextContentMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.TextContentMapper">
+
+    <select id="findById" resultType="com.example.entity.TextContent">
+        SELECT * FROM t_text_content WHERE id = #{id}
+    </select>
+
+</mapper>
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+
+    <select id="findByUserName" resultType="com.example.entity.User">
+        SELECT * FROM t_user WHERE user_name = #{userName}
+    </select>
+
+</mapper>
+```

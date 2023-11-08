@@ -1,0 +1,314 @@
+﻿业务功能逻辑：
+试卷编辑： 检查传入的请求参数是否有效，如果无效，则返回适当的错误响应；如果请求参数中的 id 字段在表 t_exam_paper中为null或未提供，则创建一个新试卷到表t_exam_paper中；如果提供了 id 字段，则更新具有指定id的现有试卷；试卷的标题项titleItems至少包含一项，如果为空，返回"请添加试卷标题"的消息；试卷的题目项questionItems至少包含一项，如果为空,返回"请添加题目"的消息；对于插入或更新的试卷信息还要根据id相应的更新表t_question中对应的题目信息，并返回给questionItem[]。如果编辑成功，返回ApiResponse对象.
+
+需要检查的代码：
+```java
+// ExamPaper.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private Integer id;
+    private String name;
+    private Integer subjectId;
+    private Integer paperType;
+    private Integer gradeLevel;
+    private Integer score;
+    private Integer questionCount;
+    private Integer suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private Integer frameTextContentId;
+    private Integer createUser;
+    private Date createTime;
+    private Boolean deleted;
+    private Integer taskExamId;
+}
+```
+```java
+// ExamPaperEditRequest.java
+package com.example.entity;
+
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperEditRequest {
+    private Integer id;
+    private Integer level;
+    private Integer subjectId;
+    private Integer paperType;
+    private String name;
+    private Integer suggestTime;
+    private String limitDateTime;
+    private List<TitleItem> titleItems;
+    private String score;
+}
+
+
+```
+```java
+// ExamPaperEditResponse.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperEditResponse {
+    private Integer id;
+    private Integer level;
+    private Integer subjectId;
+    private Integer paperType;
+    private String name;
+    private Integer suggestTime;
+    private TitleItem[] titleItems;
+    private String score;
+}
+
+
+```
+```java
+// Item.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+class Item {
+    private String content;
+    private Integer score;
+}
+```
+```java
+// Question.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Question {
+    private Integer id;
+    private Integer questionType;
+    private Integer subjectId;
+    private Integer score;
+    private Integer gradeLevel;
+    private Integer difficult;
+    private String correct;
+    private Integer infoTextContentId;
+    private Integer createUser;
+    private Integer status;
+    private Date createTime;
+    private Boolean deleted;
+}
+```
+```java
+// QuestionItem.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+class QuestionItem {
+    private Integer id;
+    private Integer questionType;
+    private Integer subjectId;
+    private String title;
+    private Integer gradeLevel;
+    private List<Item> items;
+    private String analyze;
+    private String correct;
+    private String score;
+    private Integer difficult;
+}
+```
+```java
+// TitleItem.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+class TitleItem {
+    private String name;
+    private List<QuestionItem> questionItems;
+}```
+
+```java
+// ExamPaperService.java
+package com.example.service;
+
+import com.example.entity.ExamPaperEditResponse;
+import com.example.entity.ExamPaperEditRequest;
+
+public interface ExamPaperService {
+    ApiResponse<ExamPaperEditResponse> editExamPaper(ExamPaperEditRequest request);
+}
+```
+
+```java
+// ExamPaperServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ExamPaperEditResponse;
+import com.example.entity.ExamPaperEditRequest;
+import com.example.service.ExamPaperService;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class ExamPaperServiceImpl implements ExamPaperService {
+    @Override
+    public ApiResponse<ExamPaperEditResponse> editExamPaper(ExamPaperEditRequest request) {
+        // 编辑试卷逻辑
+        // 检查请求参数是否有效
+        // 创建或更新试卷信息
+        // 更新题目信息
+        // 返回ApiResponse对象
+    }
+}
+```
+
+```java
+// ExamPaperController.java
+package com.example.controller;
+
+import com.example.entity.ExamPaperEditResponse;
+import com.example.entity.ExamPaperEditRequest;
+import com.example.service.ExamPaperService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/exam/paper")
+public class ExamPaperController {
+    private final ExamPaperService examPaperService;
+
+    @Autowired
+    public ExamPaperController(ExamPaperService examPaperService) {
+        this.examPaperService = examPaperService;
+    }
+
+    @PostMapping("/edit")
+    public ApiResponse<ExamPaperEditResponse> editExamPaper(@RequestBody ExamPaperEditRequest request) {
+        return examPaperService.editExamPaper(request);
+    }
+}
+```
+
+```java
+// ExamPaperMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+import com.example.entity.Question;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface ExamPaperMapper {
+    void insertExamPaper(ExamPaper examPaper);
+    void updateExamPaper(ExamPaper examPaper);
+    void insertQuestion(Question question);
+    void updateQuestion(Question question);
+}
+```
+
+```xml
+<!-- ExamPaperMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.ExamPaperMapper">
+    <insert id="insertExamPaper" parameterType="com.example.entity.ExamPaper">
+        INSERT INTO t_exam_paper (name, subject_id, paper_type, grade_level, score, question_count, suggest_time, limit_start_time, limit_end_time, frame_text_content_id, create_user, create_time, deleted, task_exam_id)
+        VALUES (#{name}, #{subjectId}, #{paperType}, #{gradeLevel}, #{score}, #{questionCount}, #{suggestTime}, #{limitStartTime}, #{limitEndTime}, #{frameTextContentId}, #{createUser}, #{createTime}, #{deleted}, #{taskExamId})
+    </insert>
+    
+    <update id="updateExamPaper" parameterType="com.example.entity.ExamPaper">
+        UPDATE t_exam_paper
+        SET name = #{name}, subject_id = #{subjectId}, paper_type = #{paperType}, grade_level = #{gradeLevel}, score = #{score}, question_count = #{questionCount}, suggest_time = #{suggestTime}, limit_start_time = #{limitStartTime}, limit_end_time = #{limitEndTime}, frame_text_content_id = #{frameTextContentId}, create_user = #{createUser}, create_time = #{createTime}, deleted = #{deleted}, task_exam_id = #{taskExamId}
+        WHERE id = #{id}
+    </update>
+    
+    <insert id="insertQuestion" parameterType="com.example.entity.Question">
+        INSERT INTO t_question (question_type, subject_id, score, grade_level, difficult, correct, info_text_content_id, create_user, status, create_time, deleted)
+        VALUES (#{questionType}, #{subjectId}, #{score}, #{gradeLevel}, #{difficult}, #{correct}, #{infoTextContentId}, #{createUser}, #{status}, #{createTime}, #{deleted})
+    </insert>
+    
+    <update id="updateQuestion" parameterType="com.example.entity.Question">
+        UPDATE t_question
+        SET question_type = #{questionType}, subject_id = #{subjectId}, score = #{score}, grade_level = #{gradeLevel}, difficult = #{difficult}, correct = #{correct}, info_text_content_id = #{infoTextContentId}, create_user = #{createUser}, status = #{status}, create_time = #{createTime}, deleted = #{deleted}
+        WHERE id = #{id}
+    </update>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+ExamPaperController.java:24:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.ExamPaperController.
+```
+```依赖错误
+ExamPaperServiceImpl.java:12:19
+java: 找不到符号
+  符号:   类 QuestionMapper
+  位置: 类 com.example.service.impl.ExamPaperServiceImpl.
+```
+```功能错误
+org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.example.mapper.QuestionMapper.updateQuestion.
+```
+```功能错误
+在ExamPaperServiceImpl.java中，业务功能逻辑并未实现。
+```

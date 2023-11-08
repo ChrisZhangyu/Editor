@@ -1,0 +1,225 @@
+业务功能逻辑：根据输入参数在t_user_event_log表中查询事件日志数据，按照时间倒序排列，并限制只返回最新的10条记录；返回{"code":1,"message":"成功","response":[{"id":6136,"userId":1,"userName":"student","realName":"学生","content":"student 登录了学之思开源考试系统","createTime":"2021-09-24 21:52:05"}]}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// UserEventLog.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserEventLog {
+    private int id;
+    private int userId;
+    private String userName;
+    private String realName;
+    private String content;
+    private Date createTime;
+}
+```
+```java
+// UserLogRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserEventLog {
+    private int id;
+    private int userId;
+    private String userName;
+    private String realName;
+    private String content;
+    private Date createTime;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserLogRequest {
+    private int id;
+}
+```
+
+```java
+// UserEventLogService.java
+package com.example.service;
+
+import com.example.entity.UserEventLog;
+
+import java.util.List;
+
+public interface UserEventLogService {
+    List<UserEventLog> getUserEventLogs(int limit);
+}
+```
+
+```java
+// UserEventLogServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.UserEventLogMapper;
+import com.example.entity.UserEventLog;
+import com.example.service.UserEventLogService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class UserEventLogServiceImpl implements UserEventLogService {
+
+    private final UserEventLogMapper userEventLogMapper;
+
+    @Autowired
+    public UserEventLogServiceImpl(UserEventLogMapper userEventLogMapper) {
+        this.userEventLogMapper = userEventLogMapper;
+    }
+
+    @Override
+    public List<UserEventLog> getUserEventLogs(int limit) {
+        return userEventLogMapper.getUserEventLogs(limit);
+    }
+}
+```
+
+```java
+// UserEventLogController.java
+package com.example.controller;
+
+import com.example.service.UserEventLogService;
+import com.example.entity.UserLogRequest;
+import com.example.entity.ApiResponse;
+import com.example.entity.UserEventLog;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/wx/student/user")
+public class UserEventLogController {
+
+    private final UserEventLogService userEventLogService;
+
+    @Autowired
+    public UserEventLogController(UserEventLogService userEventLogService) {
+        this.userEventLogService = userEventLogService;
+    }
+
+    @PostMapping("/log")
+    public ApiResponse<List<UserEventLog>> getUserEventLogs(@RequestBody UserLogRequest request) {
+        int limit = 10;
+        return new ApiResponse<>(1, "成功", userEventLogService.getUserEventLogs(limit));
+    }
+}
+```
+
+```java
+// UserEventLogMapper.java
+package com.example.mapper;
+
+import com.example.entity.UserEventLog;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface UserEventLogMapper {
+    List<UserEventLog> getUserEventLogs(@Param("limit") int limit);
+}
+```
+
+```xml
+<!-- UserEventLogMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserEventLogMapper">
+
+    <select id="getUserEventLogs" resultType="com.example.entity.UserEventLog">
+        SELECT * FROM t_user_event_log
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\wx_user_log_system\src\main\java\com\example\entity\UserEventLog.java:17
+java: 需要class, interface或enum
+```
+```功能错误
+
+```

@@ -1,0 +1,161 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// MessageUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class MessageUser {
+    private int id;
+    private int messageId;
+    private int receiveUserId;
+    private String receiveUserName;
+    private String receiveRealName;
+    private boolean readed;
+    private Date createTime;
+    private Date readTime;
+}
+```
+```java
+// ReadMessageRequest.java
+package com.example.entity;
+
+import lombok.Data;
+
+@Data
+public class ReadMessageRequest {
+    private int id;
+}
+```
+
+```java
+// MessageUserService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface MessageUserService {
+    ApiResponse<Void> markMessageAsRead(int id);
+}
+```
+
+```java
+// MessageUserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.MessageUserService;
+import com.example.entity.MessageUser;
+import com.example.entity.ApiResponse;
+import com.example.mapper.MessageUserMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class MessageUserServiceImpl implements MessageUserService {
+
+    private final MessageUserMapper messageUserMapper;
+
+    @Autowired
+    public MessageUserServiceImpl(MessageUserMapper messageUserMapper) {
+        this.messageUserMapper = messageUserMapper;
+    }
+
+    @Override
+    public ApiResponse<Void> markMessageAsRead(int id) {
+        MessageUser messageUser = messageUserMapper.getMessageUserById(id);
+        if (messageUser == null) {
+            return new ApiResponse<>(2, "消息不存在", null);
+        }
+        messageUser.setReaded(true);
+        messageUserMapper.updateMessageUser(messageUser);
+        return new ApiResponse<>(1, "成功", null);
+    }
+}
+```
+
+```java
+// MessageUserController.java
+package com.example.controller;
+
+import com.example.service.MessageUserService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/student/user/message")
+public class MessageUserController {
+
+    private final MessageUserService messageUserService;
+
+    @Autowired
+    public MessageUserController(MessageUserService messageUserService) {
+        this.messageUserService = messageUserService;
+    }
+
+    @PostMapping("/read/{id}")
+    public ApiResponse<Void> markMessageAsRead(@PathVariable int id) {
+        return messageUserService.markMessageAsRead(id);
+    }
+}
+```
+
+```java
+// MessageUserMapper.java
+package com.example.mapper;
+
+import com.example.entity.MessageUser;
+
+public interface MessageUserMapper {
+    MessageUser getMessageUserById(int id);
+    void updateMessageUser(MessageUser messageUser);
+}
+```
+
+```xml
+<!-- MessageUserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.MessageUserMapper">
+
+    <select id="getMessageUserById" resultType="com.example.entity.MessageUser">
+        SELECT * FROM t_message_user WHERE id = #{id}
+    </select>
+
+    <update id="updateMessageUser">
+        UPDATE t_message_user
+        SET readed = #{readed}, read_time = #{readTime}
+        WHERE id = #{id}
+    </update>
+
+</mapper>
+
+```
+

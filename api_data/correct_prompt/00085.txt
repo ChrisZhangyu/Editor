@@ -1,0 +1,342 @@
+业务功能逻辑：
+创建对象PostVO{id="",userId="",avatar="",alias="",username="",title="",comments="",top="",essence=bool,collects=int,tags=list<bms_tag>,view=int,createTime,modifyTime}；分页查询帖子列表，选择条件是：在bms_post和ums_user表中选择PostVO需要返回的字段，以bms_post.user_id与ums_user.id匹配为条件将两表连接，查询条件是bms_post.title以keyword开头、或以keyword结尾、或包含keyword，按view字段降序排序，然后按create_time字段降序排序；查询后的结果映射到PostVO中；遍历PostVO，在bms_post_tag表中查询话题标签列表，查询条件是bms_post_tag.topic_id等于输入列表的PostVO.id；如果话题标签列表不为空，获取tag_id列表，并在bms_tag表中获取对应的记录，PostVO.tags设置为{bms_tags}；返回参数data设置为{[PostVO]}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+```
+
+```java
+// BmsTag.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_tag")
+public class BmsTag {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "topic_count")
+    private int topicCount;
+}
+```
+
+```java
+// PostVO.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PostVO {
+    private String id;
+    private String userId;
+    private String avatar;
+    private String alias;
+    private String username;
+    private String title;
+    private int comments;
+    private boolean top;
+    private boolean essence;
+    private int collects;
+    private List<BmsTag> tags;
+    private int view;
+    private String createTime;
+    private String modifyTime;
+}
+```
+
+```java
+// PostService.java
+package com.example.service;
+
+import java.util.List;
+
+public interface PostService {
+    List<PostVO> searchPosts(String keyword, int pageNum, int pageSize);
+}
+```
+
+```java
+// PostServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class PostServiceImpl implements PostService {
+
+    private final PostMapper postMapper;
+    private final UserMapper userMapper;
+    private final PostTagMapper postTagMapper;
+    private final TagMapper tagMapper;
+
+    @Autowired
+    public PostServiceImpl(PostMapper postMapper, UserMapper userMapper, PostTagMapper postTagMapper, TagMapper tagMapper) {
+        this.postMapper = postMapper;
+        this.userMapper = userMapper;
+        this.postTagMapper = postTagMapper;
+        this.tagMapper = tagMapper;
+    }
+
+    @Override
+    public List<PostVO> searchPosts(String keyword, int pageNum, int pageSize) {
+        List<PostVO> postList = postMapper.searchPosts(keyword, pageNum, pageSize);
+        for (PostVO post : postList) {
+            List<String> tagIds = postTagMapper.getTagIdsByTopicId(post.getId());
+            if (!tagIds.isEmpty()) {
+                List<BmsTag> tags = tagMapper.getTagsByIds(tagIds);
+                post.setTags(tags);
+            }
+        }
+        return postList;
+    }
+}
+```
+
+```java
+// PostController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+public class PostController {
+
+    private final PostService postService;
+
+    @Autowired
+    public PostController(PostService postService) {
+        this.postService = postService;
+    }
+
+    @GetMapping("/search")
+    public ApiResponse<List<PostVO>> searchPosts(@RequestParam(required = false) String keyword,
+                                                 @RequestParam(defaultValue = "0") int pageNum,
+                                                 @RequestParam(defaultValue = "0") int pageSize) {
+        List<PostVO> postList = postService.searchPosts(keyword, pageNum, pageSize);
+        return new ApiResponse<>(200, "操作成功", postList);
+    }
+}
+```
+
+```java
+// PostMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface PostMapper {
+    List<PostVO> searchPosts(@Param("keyword") String keyword, @Param("pageNum") int pageNum, @Param("pageSize") int pageSize);
+}
+```
+
+```java
+// PostTagMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+@Mapper
+public interface PostTagMapper {
+    List<String> getTagIdsByTopicId(String topicId);
+}
+```
+
+```java
+// TagMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface TagMapper {
+    List<BmsTag> getTagsByIds(List<String> tagIds);
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+public class UserMapper {
+    // ...
+}
+```
+
+```xml
+<!-- PostMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!-- PostMapper.xml -->
+<mapper namespace="com.example.mapper.PostMapper">
+    <select id="searchPosts" parameterType="map" resultType="com.example.entity.PostVO">
+        SELECT bms_post.id, bms_post.title, bms_post.comments, bms_post.top, bms_post.essence, bms_post.collects, bms_post.view, bms_post.create_time, bms_post.modify_time,
+        ums_user.id AS userId, ums_user.avatar, ums_user.alias, ums_user.username
+        FROM bms_post
+        LEFT JOIN ums_user ON bms_post.user_id = ums_user.id
+        WHERE bms_post.title LIKE CONCAT('%', #{keyword}, '%') OR bms_post.title LIKE CONCAT(#{keyword}, '%') OR bms_post.title LIKE CONCAT('%', #{keyword})
+        ORDER BY bms_post.view DESC, bms_post.create_time DESC
+        LIMIT #{pageNum}, #{pageSize}
+    </select>
+</mapper>
+```
+
+```xml
+<!-- PostTagMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<!-- PostTagMapper.xml -->
+<mapper namespace="com.example.mapper.PostTagMapper">
+    <select id="getTagIdsByTopicId" parameterType="String" resultType="String">
+        SELECT tag_id FROM bms_post_tag WHERE topic_id = #{topicId}
+    </select>
+</mapper>
+```
+
+```xml
+<!-- TagMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!-- TagMapper.xml -->
+<mapper namespace="com.example.mapper.TagMapper">
+    <select id="getTagsByIds" parameterType="List" resultType="com.example.entity.BmsTag">
+        SELECT * FROM bms_tag WHERE id IN
+        <foreach collection="list" item="tagId" open="(" separator="," close=")">
+            #{tagId}
+        </foreach>
+    </select>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+PostController.java:13:19
+java: 找不到符号
+  符号:   类 PostService
+  位置: 类 com.example.controller.PostController
+PostController.java:16:27
+java: 找不到符号
+  符号:   类 PostService
+  位置: 类 com.example.controller.PostController
+PostController.java:21:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.PostController
+PostController.java:21:29
+java: 找不到符号
+  符号:   类 PostVO
+  位置: 类 com.example.controller.PostController
+PostMapper.java:10:10
+java: 找不到符号
+  符号:   类 PostVO
+  位置: 接口 com.example.mapper.PostMapper
+TagMapper.java:7:31
+java: 找不到符号
+  符号:   类 List
+  位置: 接口 com.example.mapper.TagMapper
+TagMapper.java:7:5
+java: 找不到符号
+  符号:   类 List
+  位置: 接口 com.example.mapper.TagMapper
+TagMapper.java:7:10
+java: 找不到符号
+  符号:   类 BmsTag
+  位置: 接口 com.example.mapper.TagMapper
+PostServiceImpl.java:9:41
+java: 找不到符号
+  符号: 类 PostService
+PostServiceImpl.java:11:19
+java: 找不到符号
+  符号:   类 PostMapper
+  位置: 类 com.example.service.impl.PostServiceImpl
+PostServiceImpl.java:12:19
+java: 找不到符号
+  符号:   类 UserMapper
+  位置: 类 com.example.service.impl.PostServiceImpl
+PostServiceImpl.java:13:19
+java: 找不到符号
+  符号:   类 PostTagMapper
+  位置: 类 com.example.service.impl.PostServiceImpl
+PostServiceImpl.java:14:19
+java: 找不到符号
+  符号:   类 TagMapper
+  位置: 类 com.example.service.impl.PostServiceImpl
+PostServiceImpl.java:17:28
+java: 找不到符号
+  符号:   类 PostMapper
+  位置: 类 com.example.service.impl.PostServiceImpl
+PostServiceImpl.java:17:51
+java: 找不到符号
+  符号:   类 UserMapper
+  位置: 类 com.example.service.impl.PostServiceImpl
+PostServiceImpl.java:17:74
+java: 找不到符号
+  符号:   类 PostTagMapper
+  位置: 类 com.example.service.impl.PostServiceImpl
+PostServiceImpl.java:17:103
+java: 找不到符号
+  符号:   类 TagMapper
+  位置: 类 com.example.service.impl.PostServiceImpl
+PostServiceImpl.java:25:17
+java: 找不到符号
+  符号:   类 PostVO
+  位置: 类 com.example.service.impl.PostServiceImpl
+PostService.java:6:10
+java: 找不到符号
+  符号:   类 PostVO
+  位置: 接口 com.example.service.PostService
+Parameter 1 of constructor in com.example.service.impl.PostServiceImpl required a bean of type 'com.example.mapper.UserMapper' that could not be found.
+```
+
+```功能错误
+分页查询中的LIMIT计算错误，没有从结果集的第(pageNum-1)*pageSize行开始返回.
+```

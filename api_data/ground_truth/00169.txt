@@ -1,0 +1,169 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// UserEventLog.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserEventLog {
+    private int id;
+    private int userId;
+    private String userName;
+    private String realName;
+    private String content;
+    private Date createTime;
+}
+```
+```java
+// UserLogRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserLogRequest {
+    private int limit;
+}
+```
+
+```java
+// UserEventLogService.java
+package com.example.service;
+
+import com.example.entity.UserEventLog;
+
+import java.util.List;
+
+public interface UserEventLogService {
+    List<UserEventLog> getUserEventLogs(int limit);
+}
+```
+
+```java
+// UserEventLogServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.UserEventLogMapper;
+import com.example.entity.UserEventLog;
+import com.example.service.UserEventLogService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class UserEventLogServiceImpl implements UserEventLogService {
+
+    private final UserEventLogMapper userEventLogMapper;
+
+    @Autowired
+    public UserEventLogServiceImpl(UserEventLogMapper userEventLogMapper) {
+        this.userEventLogMapper = userEventLogMapper;
+    }
+
+    @Override
+    public List<UserEventLog> getUserEventLogs(int limit) {
+        return userEventLogMapper.getUserEventLogs(limit);
+    }
+}
+```
+
+```java
+// UserEventLogController.java
+package com.example.controller;
+
+import com.example.service.UserEventLogService;
+import com.example.entity.UserLogRequest;
+import com.example.entity.ApiResponse;
+import com.example.entity.UserEventLog;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/wx/student/user")
+public class UserEventLogController {
+
+    private final UserEventLogService userEventLogService;
+
+    @Autowired
+    public UserEventLogController(UserEventLogService userEventLogService) {
+        this.userEventLogService = userEventLogService;
+    }
+
+    @PostMapping("/log")
+    public ApiResponse<List<UserEventLog>> getUserEventLogs(@RequestBody UserLogRequest request) {
+        int limit = request.getLimit();
+        return new ApiResponse<>(1, "成功", userEventLogService.getUserEventLogs(limit));
+    }
+}
+```
+
+```java
+// UserEventLogMapper.java
+package com.example.mapper;
+
+import com.example.entity.UserEventLog;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface UserEventLogMapper {
+    List<UserEventLog> getUserEventLogs(@Param("limit") int limit);
+}
+```
+
+```xml
+<!-- UserEventLogMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserEventLogMapper">
+
+    <select id="getUserEventLogs" resultType="com.example.entity.UserEventLog">
+        SELECT * FROM t_user_event_log
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>
+
+```
+

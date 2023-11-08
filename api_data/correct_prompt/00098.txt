@@ -1,0 +1,264 @@
+﻿业务功能逻辑：
+试卷查询：从路径参数中提取id，根据该id从表t_exam_paper中检索试卷信息，对于检索的试卷信息还要从表t_question中获取对应的题目信息，如果检索成功，则返回{ "code": 1,"message": "成功","response": {"id": 64,   "level": 1,  "subjectId": 1,   "paperType": 1,  "name": "", "suggestTime": 20,  "suggest_time": null,   "titleItems": [{"name": "",  "questionItems": [ { "id": 64,   "questionType": 5,   "subjectId": 1,  "gradeLevel": 1, "analyze": "", "correct": "",   "score": "10",  "difficult": 3} ]}], "score": ""  }}。否则返回失败的响应，提示"试卷id不存在"。
+需要检查的代码：
+```java
+// ExamPaper.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+    private int gradeLevel;
+    private int score;
+    private int questionCount;
+    private int suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private int taskExamId;
+    private List<TitleItem> titleItems;
+}
+
+
+
+```
+```java
+// ExamPaperRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperRequest {
+    private int id;
+}
+
+
+```
+
+```java
+// QuestionItem.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class QuestionItem {
+    private int id;
+    private int questionType;
+    private int subjectId;
+    private String title;
+    private int gradeLevel;
+    private String analyze;
+    private String correct;
+    private int score;
+    private int difficult;
+}
+```
+```java
+// TitleItem.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TitleItem {
+    private String name;
+    private List<QuestionItem> questionItems;
+}
+```
+
+```java
+// ExamPaperService.java
+package com.example.service;
+
+
+import com.example.entity.ExamPaperResponse;
+
+public interface ExamPaperService {
+    ExamPaperResponse getExamPaper(int id);
+}
+```
+
+```java
+// ExamPaperServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ExamPaperResponse;
+import com.example.entity.QuestionItem;
+import com.example.entity.TitleItem;
+import com.example.mapper.ExamPaperMapper;
+import com.example.entity.ExamPaper;
+import com.example.service.ExamPaperService;
+import com.example.mapper.QuestionMapper;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class ExamPaperServiceImpl implements ExamPaperService {
+    private final ExamPaperMapper examPaperMapper;
+    private final QuestionMapper questionMapper;
+
+    public ExamPaperServiceImpl(ExamPaperMapper examPaperMapper, QuestionMapper questionMapper) {
+        this.examPaperMapper = examPaperMapper;
+        this.questionMapper = questionMapper;
+    }
+
+    @Override
+    public ExamPaperResponse getExamPaper(int id) {
+        ExamPaper examPaper = examPaperMapper.getExamPaperById(id);
+        if (examPaper == null) {
+            return new ExamPaperResponse(0, "试卷id不存在", null);
+        }
+        List<TitleItem> titleItems = new ArrayList<>();
+        List<QuestionItem> questionItems = questionMapper.getQuestionsByExamPaperId(id);
+        TitleItem titleItem = new TitleItem("", questionItems);
+        titleItems.add(titleItem);
+        examPaper.setTitleItems(titleItems);
+        return new ExamPaperResponse(1, "成功", examPaper);
+    }
+}
+```
+
+```java
+// ExamPaperController.java
+package com.example.controller;
+
+import com.example.entity.ExamPaperResponse;
+import com.example.service.ExamPaperService;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/exam/paper")
+public class ExamPaperController {
+    private final ExamPaperService examPaperService;
+
+    public ExamPaperController(ExamPaperService examPaperService) {
+        this.examPaperService = examPaperService;
+    }
+
+    @PostMapping("/select/{id}")
+    public ExamPaperResponse getExamPaper(@PathVariable int id) {
+        return examPaperService.getExamPaper(id);
+    }
+}
+```
+
+```java
+// ExamPaperMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface ExamPaperMapper {
+    ExamPaper getExamPaperById(int id);
+}
+```
+```java
+// QuestionMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+import com.example.entity.QuestionItem;
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface QuestionMapper {
+    List<QuestionItem> getQuestionsByExamPaperId(int examPaperId);
+}
+```
+
+```xml
+<!-- QuestionMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.example.mapper.QuestionMapper">
+    <select id="getQuestionsByExamPaperId" resultType="com.example.entity.QuestionItem">
+        SELECT * FROM t_question WHERE id IN (SELECT question_id FROM t_exam_paper_question WHERE exam_paper_id = #{examPaperId})
+    </select>
+</mapper>
+
+```
+```xml
+<!-- ExamPaperMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.example.mapper.ExamPaperMapper">
+    <resultMap type="com.example.entity.ExamPaper" id="ExamPaperResult">
+        <result property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="subjectId" column="subject_id"/>
+        <result property="paperType" column="paper_type"/>
+        <result property="gradeLevel" column="grade_level"/>
+        <result property="score" column="score"/>
+        <result property="questionCount" column="question_count"/>
+        <result property="suggestTime" column="suggest_time"/>
+        <result property="limitStartTime" column="limit_start_time"/>
+        <result property="limitEndTime" column="limit_end_time"/>
+        <result property="frameTextContentId" column="frame_text_content_id"/>
+        <result property="createUser" column="create_user"/>
+        <result property="createTime" column="create_time"/>
+        <result property="deleted" column="deleted"/>
+        <result property="taskExamId" column="task_exam_id"/>
+    </resultMap>
+    <select id="getExamPaperById" resultType="com.example.entity.ExamPaper" resultMap="ExamPaperResult">
+        SELECT * FROM t_exam_paper WHERE id = #{id}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```语法错误
+在QuestionMapper.xml文件中缺少Question实体类属性与表t_question之间的映射语句，
+```
+```依赖错误
+ExamPaperController.java:3:26
+java: 找不到符号
+  符号:   类 ExamPaperResponse
+  位置: 程序包 com.example.entity
+```

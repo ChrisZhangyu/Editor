@@ -1,0 +1,189 @@
+﻿业务功能逻辑：
+检索所有客户:根据请求路径中的参数offset和limit从表wms_customer中获取客户分页信息，如果获取成功，返回ApiResponse。
+
+需要检查的代码：
+```java
+// Customer.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Customer {
+    private int customerId;
+    private String customerName;
+    private String customerPerson;
+    private String customerTel;
+    private String customerEmail;
+    private String customerAddress;
+}
+```
+```java
+// GetCustomerListRequest.java
+package com.example.entity;
+
+
+
+import com.example.entity.Customer;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class GetCustomerListRequest {
+    private int offset;
+    private int limit;
+}
+
+
+```
+```java
+// GetCustomerListResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class GetCustomerListResponse {
+    private int code;
+    private String result;
+    private int total;
+    private List<Customer> rows;
+}
+```
+
+```java
+// CustomerService.java
+package com.example.service;
+
+
+import com.example.entity.Customer;
+import com.example.entity.GetCustomerListResponse;
+import com.example.mapper.CustomerMapper;
+import com.example.entity.GetCustomerListRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+public interface CustomerService {
+    GetCustomerListResponse getCustomerList(GetCustomerListRequest request);
+}
+
+
+```
+
+```java
+// CustomerServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Customer;
+import com.example.entity.GetCustomerListRequest;
+import com.example.entity.GetCustomerListResponse;
+import com.example.mapper.CustomerMapper;
+import com.example.service.CustomerService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class CustomerServiceImpl implements CustomerService {
+    @Autowired
+    private CustomerMapper customerMapper;
+
+    @Override
+    public GetCustomerListResponse getCustomerList(GetCustomerListRequest request) {
+        int offset = request.getOffset();
+        int limit = request.getLimit();
+        List<Customer> customers = customerMapper.getCustomerList(offset, limit);
+        int total = customers.size();
+        return new GetCustomerListResponse(1, "success", total, customers);
+    }
+}
+
+```
+
+```java
+// CustomerController.java
+package com.example.controller;
+
+import com.example.entity.GetCustomerListRequest;
+import com.example.entity.GetCustomerListResponse;
+import com.example.service.CustomerService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/customerManage")
+public class CustomerController {
+    @Autowired
+    private CustomerService customerService;
+
+    @GetMapping("/getCustomerList")
+    public GetCustomerListResponse getCustomerList(@RequestParam int offset, @RequestParam int limit) {
+        GetCustomerListRequest request = new GetCustomerListRequest(offset, limit);
+        return customerService.getCustomerList(request);
+    }
+}
+```
+
+```java
+// CustomerMapper.java
+package com.example.mapper;
+
+import com.example.entity.Customer;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface CustomerMapper {
+    List<Customer> getCustomerList(@Param("offset") int offset, @Param("limit") int limit);
+}
+```
+
+```xml
+<!-- CustomerMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.CustomerMapper">
+    
+    <select id="getCustomerList" resultType="com.example.model.Customer">
+        SELECT * FROM wms_customer LIMIT #{offset}, #{limit}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```语法错误
+在CustomerMapper.xml中缺少Customer实体类属性与表wms_customer字段间的映射语句。
+```
+```依赖错误
+Caused by: org.apache.ibatis.type.TypeException: Could not resolve type alias 'com.example.model.Customer'.  Cause: java.lang.ClassNotFoundException: Cannot find class: com.example.model.Customer
+```
+```功能错误
+返回值为空，response={"code": 1,"result": "success","total": 4,"rows": [null,null,null,null]}
+```

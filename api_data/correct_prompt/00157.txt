@@ -1,0 +1,165 @@
+﻿业务功能逻辑：
+商店开放：根据请求路径中传入的ids从数据库表ssm_store中根据id查找对象的商店信息，,多个ids时，以逗号分隔，检查每个商店对象是否存在，如果存在且status不是1，则将其状态status设置为1，并将结果更新到表ssm_store中，如果操作成功，返回ApiResponse。
+需要检查的代码：
+
+```java
+// OpenStoreRequest.java
+package com.example.entity;
+
+
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+public class OpenStoreRequest {
+    private String ids;
+}
+```
+```java
+// Store.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Store {
+    private int id;
+    private String category;
+    private String number;
+    private String level;
+    private String page;
+    private int status;
+}
+```
+
+```java
+// StoreService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface StoreService {
+    ApiResponse openStore(String ids);
+}
+```
+
+```java
+// StoreServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.StoreService;
+import com.example.entity.ApiResponse;
+import com.example.mapper.StoreMapper;
+import com.example.entity.Store;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class StoreServiceImpl implements StoreService {
+
+    private final StoreMapper storeMapper;
+
+    @Autowired
+    public StoreServiceImpl(StoreMapper storeMapper) {
+        this.storeMapper = storeMapper;
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse openStore(String ids) {
+        String[] idArray = ids.split(",");
+        for (String id : idArray) {
+            Store store = storeMapper.findById(Integer.parseInt(id));
+            if (store != null && store.getStatus() != 1) {
+                storeMapper.updateStatus(store.getId(), 1);
+            }
+        }
+        return new ApiResponse(1, true);
+    }
+}
+```
+
+```java
+// StoreController.java
+package com.example.controller;
+
+import com.example.service.StoreService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/store")
+public class StoreController {
+
+    private final StoreService storeService;
+
+    @Autowired
+    public StoreController(StoreService storeService) {
+        this.storeService = storeService;
+    }
+
+    @GetMapping("/openStore")
+    public ApiResponse openStore(@RequestParam("ids") String ids) {
+        return storeService.openStore(ids);
+    }
+}
+```
+
+```java
+// StoreMapper.java
+package com.example.mapper;
+
+import com.example.entity.Store;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface StoreMapper {
+    Store findById(@Param("id") int id);
+    void updateStatus(@Param("id") int id, @Param("status") int status);
+}
+```
+
+```xml
+<!-- StoreMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.StoreMapper">
+
+    <select id="findById" >
+        SELECT * FROM ssm_store WHERE id = #{id}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE ssm_store SET status = #{status} WHERE id = #{id}
+    </update>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+StoreService.java:3:26
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 程序包 com.example.entity
+```
+```语法错误
+在StoreMapper.xml中缺少Store实体类属性与表ssm_store字段间的映射语句。
+```

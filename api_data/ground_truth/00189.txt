@@ -1,0 +1,205 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int count;
+}
+```
+```java
+// OmsOrderReturnReason.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderReturnReason {
+    private Long id;
+    private String name;
+    private Integer sort;
+    private Integer status;
+    private Date createTime;
+}
+```
+```java
+// ReturnReasonUpdateRequest.java
+package com.example.entity;
+
+import lombok.Data;
+
+import java.util.Date;
+
+@Data
+public class ReturnReasonUpdateRequest {
+    private String name;
+    private Integer sort;
+    private Integer status;
+    private Date createTime;
+}
+```
+
+```java
+// ReturnReasonService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.ReturnReasonUpdateRequest;
+
+public interface ReturnReasonService {
+    ApiResponse updateReturnReason(Long id, ReturnReasonUpdateRequest request);
+}
+```
+
+```java
+// ReturnReasonServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.ReturnReasonService;
+import com.example.entity.ReturnReasonUpdateRequest;
+import com.example.entity.OmsOrderReturnReason;
+import com.example.entity.ApiResponse;
+import com.example.mapper.OmsOrderReturnReasonMapper;
+
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ReturnReasonServiceImpl implements ReturnReasonService {
+
+    @Autowired
+    private OmsOrderReturnReasonMapper returnReasonMapper;
+
+    @Override
+    public ApiResponse updateReturnReason(Long id, ReturnReasonUpdateRequest request) {
+        OmsOrderReturnReason returnReason = returnReasonMapper.selectByPrimaryKey(id);
+        if (returnReason == null) {
+            return new ApiResponse(0);
+        }
+        BeanUtils.copyProperties(request, returnReason);
+        int count = returnReasonMapper.updateByPrimaryKey(returnReason);
+        return new ApiResponse(count);
+    }
+}
+```
+
+```java
+// ReturnReasonController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.ReturnReasonService;
+import com.example.entity.ReturnReasonUpdateRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/returnReason")
+public class ReturnReasonController {
+
+    @Autowired
+    private ReturnReasonService returnReasonService;
+
+    @PostMapping("/update/{id}")
+    public ApiResponse updateReturnReason(@PathVariable Long id, @RequestBody ReturnReasonUpdateRequest request) {
+        return returnReasonService.updateReturnReason(id, request);
+    }
+}
+```
+
+```java
+// OmsOrderReturnReasonMapper.java
+package com.example.mapper;
+
+import com.example.entity.OmsOrderReturnReason;
+
+public interface OmsOrderReturnReasonMapper {
+    int deleteByPrimaryKey(Long id);
+
+    int insert(OmsOrderReturnReason record);
+
+    int insertSelective(OmsOrderReturnReason record);
+
+    OmsOrderReturnReason selectByPrimaryKey(Long id);
+
+    int updateByPrimaryKeySelective(OmsOrderReturnReason record);
+
+    int updateByPrimaryKey(OmsOrderReturnReason record);
+}
+```
+
+```xml
+<!-- OmsOrderReturnReasonMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.OmsOrderReturnReasonMapper">
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        DELETE FROM oms_order_return_reason WHERE id = #{id}
+    </delete>
+
+    <insert id="insert" parameterType="com.example.entity.OmsOrderReturnReason">
+        INSERT INTO oms_order_return_reason (id, name, sort, status, create_time)
+        VALUES (#{id}, #{name}, #{sort}, #{status}, #{createTime})
+    </insert>
+
+    <insert id="insertSelective" parameterType="com.example.entity.OmsOrderReturnReason">
+        INSERT INTO oms_order_return_reason
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="name != null">name,</if>
+            <if test="sort != null">sort,</if>
+            <if test="status != null">status,</if>
+            <if test="createTime != null">create_time,</if>
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="name != null">#{name},</if>
+            <if test="sort != null">#{sort},</if>
+            <if test="status != null">#{status},</if>
+            <if test="createTime != null">#{createTime},</if>
+        </trim>
+    </insert>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultType="com.example.entity.OmsOrderReturnReason">
+        SELECT id, name, sort, status, create_time
+        FROM oms_order_return_reason
+        WHERE id = #{id}
+    </select>
+
+    <update id="updateByPrimaryKeySelective" parameterType="com.example.entity.OmsOrderReturnReason">
+        UPDATE oms_order_return_reason
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateByPrimaryKey" parameterType="com.example.entity.OmsOrderReturnReason">
+        UPDATE oms_order_return_reason
+        SET name = #{name}, sort = #{sort}, status = #{status}, create_time = #{createTime}
+        WHERE id = #{id}
+    </update>
+
+</mapper>
+
+```
+

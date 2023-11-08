@@ -1,0 +1,161 @@
+﻿业务功能逻辑：
+从请求路径中提取id，这个id用于标识要删除的题目。根据该id从数据库中获取要删除的用户信息。标记获取到的用户对象的deleted属性为true，表示用户已被删除。更新已标记为已删除的问题对象，{"code": 1,"message": "成功","response": null}；如果找不到指定的 id，返回"id不存在"的JSON响应。
+需要检查的代码：
+```java
+// DeleteQuestionRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class DeleteQuestionRequest {
+    private int id;
+}
+```
+
+```java
+// Question.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Question {
+    private int id;
+    private int questionType;
+    private int subjectId;
+    private int score;
+    private int gradeLevel;
+    private int difficult;
+    private String correct;
+    private int infoTextContentId;
+    private int createUser;
+    private int status;
+    private Date createTime;
+    private boolean deleted;
+}
+```
+
+```java
+// QuestionService.java
+package com.example.service;
+
+import com.example.entity.DeleteQuestionResponse;
+
+public interface QuestionService {
+    DeleteQuestionResponse deleteQuestion(int id);
+}
+```
+
+```java
+// QuestionServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.QuestionMapper;
+import com.example.entity.Question;
+import com.example.entity.DeleteQuestionResponse;
+import com.example.service.QuestionService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class QuestionServiceImpl implements QuestionService {
+
+    private final QuestionMapper questionMapper;
+
+    @Autowired
+    public QuestionServiceImpl(QuestionMapper questionMapper) {
+        this.questionMapper = questionMapper;
+    }
+
+    @Override
+    public DeleteQuestionResponse deleteQuestion(int id) {
+        Question question = questionMapper.getQuestionById(id);
+        if (question == null) {
+            return new DeleteQuestionResponse(0, "id不存在", null);
+        }
+        question.setDeleted(true);
+        questionMapper.updateQuestion(question);
+        return new DeleteQuestionResponse(1, "成功", null);
+    }
+}
+```
+
+```java
+// QuestionController.java
+package com.example.controller;
+
+import com.example.entity.DeleteQuestionResponse;
+import com.example.service.QuestionService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/admin/question")
+public class QuestionController {
+
+    private final QuestionService questionService;
+
+    @Autowired
+    public QuestionController(QuestionService questionService) {
+        this.questionService = questionService;
+    }
+
+    @PostMapping("/delete/{id}")
+    public DeleteQuestionResponse deleteQuestion(@PathVariable int id) {
+        return questionService.deleteQuestion(id);
+    }
+}
+```
+
+```java
+// QuestionMapper.java
+package com.example.mapper;
+
+import com.example.entity.Question;
+
+public interface QuestionMapper {
+    Question getQuestionById(int id);
+    void updateQuestion(Question question);
+}
+```
+
+```xml
+<!-- QuestionMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.QuestionMapper">
+    <select id="getQuestionById" resultType="com.example.entity.Question">
+        SELECT * FROM t_question WHERE id = #{id}
+    </select>
+    
+    <update id="updateQuestion">
+        UPDATE t_question
+        SET deleted = #{deleted}
+        WHERE id = #{id}
+    </update>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+QuestionService.java:3:26
+java: 找不到符号
+  符号:   类 DeleteQuestionResponse
+  位置: 程序包 com.example.entity
+```

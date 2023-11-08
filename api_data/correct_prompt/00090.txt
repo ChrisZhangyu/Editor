@@ -1,0 +1,277 @@
+业务功能逻辑：
+判断输入参数的属性是否为空，如果为空，返回(-1004, "字段不能为空", null)；在tb_user表中查询用户，查询条件是user_id等于address.userId，如果用户不存在，返回(-1002, "用户不存在", null)；如果address.IsDefault为空则设置为false；如果address.IsDefault等于true，根据address.userId查询tb_address表中地址列表，并将is_default设置为false；将输入参数address插入到tb_address表中，返回data设置为{tb_address表的记录}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+```
+
+```java
+// TbAddress.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_address")
+public class TbAddress {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "address_id")
+    private Integer addressId;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    private String consignee;
+
+    private Long phone;
+
+    private String city;
+
+    private String address;
+
+    @Column(name = "street_number")
+    private String streetNumber;
+
+    @Column(name = "is_default")
+    private Boolean isDefault;
+}
+```
+
+```java
+// TbUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_user")
+public class TbUser {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "user_name", length = 30)
+    private String userName;
+
+    @Column(name = "pass_word", length = 30)
+    private String passWord;
+
+    private Long phone;
+
+    @Column(length = 6)
+    private String sex;
+
+    private String avatar;
+
+    @Column(name = "nick_name", length = 10)
+    private String nickName;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.TbAddress;
+import com.example.entity.ApiResponse;
+import com.example.entity.TbUser;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserService {
+    public ApiResponse<Void> addAddress(int userId, TbAddress address) {
+        // 判断输入参数的属性是否为空
+        if (address == null || address.getConsignee() == null || address.getPhone() == 0 || address.getCity() == null || address.getAddress() == null || address.getStreetNumber() == null) {
+            return new ApiResponse<>(-1004, "字段不能为空", null);
+        }
+
+        // 在tb_user表中查询用户
+        TbUser user = getUserById(userId);
+        if (user == null) {
+            return new ApiResponse<>(-1002, "用户不存在", null);
+        }
+
+        // 设置默认地址
+        if (address.isDefault()) {
+            List<TbAddress> addressList = getAddressListByUserId(userId);
+            for (TbAddress addr : addressList) {
+                addr.setDefault(false);
+                updateAddress(addr);
+            }
+        }
+
+        // 插入地址到tb_address表中
+        insertAddress(address);
+
+        return new ApiResponse<>(100, "成功", null);
+    }
+
+    private TbUser getUserById(int userId) {
+        // 查询tb_user表中的用户信息
+        // ...
+    }
+
+    private List<TbAddress> getAddressListByUserId(int userId) {
+        // 查询tb_address表中的地址列表
+        // ...
+    }
+
+    private void updateAddress(TbAddress address) {
+        // 更新tb_address表中的地址信息
+        // ...
+    }
+
+    private void insertAddress(TbAddress address) {
+        // 插入地址到tb_address表中
+        // ...
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.service.UserService;
+import com.example.entity.TbAddress;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/user/v1/user")
+public class UserController {
+    @Autowired
+    private UserService userService;
+
+    @PostMapping("/{userId}/address")
+    public ApiResponse<Void> addAddress(@PathVariable int userId, @RequestBody TbAddress address) {
+        return userService.addAddress(userId, address);
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.TbAddress;
+import com.example.entity.TbUser;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface UserMapper {
+    TbUser getUserById(int userId);
+
+    List<TbAddress> getAddressListByUserId(int userId);
+
+    void updateAddress(TbAddress address);
+
+    void insertAddress(TbAddress address);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="getUserById" parameterType="int" resultType="com.example.entity.TbUser">
+        SELECT * FROM tb_user WHERE user_id = #{userId}
+    </select>
+
+    <select id="getAddressListByUserId" parameterType="int" resultType="com.example.entity.TbAddress">
+        SELECT * FROM tb_address WHERE user_id = #{userId}
+    </select>
+
+    <update id="updateAddress" parameterType="com.example.entity.TbAddress">
+        UPDATE tb_address SET consignee = #{consignee}, phone = #{phone}, city = #{city}, address = #{address}, street_number = #{streetNumber}, is_default = #{isDefault} WHERE address_id = #{addressId}
+    </update>
+
+    <insert id="insertAddress" parameterType="com.example.entity.TbAddress">
+        INSERT INTO tb_address (user_id, consignee, phone, city, address, street_number, is_default) VALUES (#{userId}, #{consignee}, #{phone}, #{city}, #{address}, #{streetNumber}, #{isDefault})
+    </insert>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+UserService.java:43:13
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.service.UserService
+UserMapper.java:12:5
+java: 找不到符号
+  符号:   类 List
+  位置: 接口 com.example.mapper.UserMapper
+UserController.java:20:42
+java: 找不到符号
+  符号:   类 PathVariable
+  位置: 类 com.example.controller.UserController
+UserService.java:26:20
+java: 找不到符号
+  符号:   方法 isDefault()
+  位置: 类型为com.example.entity.TbAddress的变量 address
+UserService.java:29:21
+java: 找不到符号
+  符号:   方法 setDefault(boolean)
+  位置: 类型为com.example.entity.TbAddress的变量 addr
+UserService.java:20:23
+java: 找不到符号
+  符号:   方法 getUserById(int)
+  位置: 类 com.example.service.UserService
+UserService.java:27:43
+java: 找不到符号
+  符号:   方法 getAddressListByUserId(int)
+  位置: 类 com.example.service.UserService
+UserService.java:30:17
+java: 找不到符号
+  符号:   方法 updateAddress(com.example.entity.TbAddress)
+  位置: 类 com.example.service.UserService
+UserService.java:35:9
+java: 找不到符号
+  符号:   方法 insertAddress(com.example.entity.TbAddress)
+  位置: 类 com.example.service.UserService
+```
+
+```功能错误
+返回data为null，不是要求的{tb_address表的记录}.
+tb_address表中插入记录user_id为null.
+```

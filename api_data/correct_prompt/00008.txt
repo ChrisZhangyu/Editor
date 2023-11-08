@@ -1,0 +1,195 @@
+业务功能逻辑：
+按参数id在ssm_picture表查询，并返回所有字段信息并转换为json格式赋值给response返回.
+
+需要检查的代码：
+```java
+// Picture.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Picture {
+    private int id;
+    private String path;
+    private int type;
+    private String time;
+    private String url;
+    private int grade;
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// Picture.java
+import lombok.Data;
+
+@Data
+public class Picture {
+    private int id;
+    // 其他字段...
+}
+```
+
+```java
+// PictureService.java
+package com.example.service;
+
+import java.util.List;
+
+public interface PictureService {
+    Picture findById(int id);
+    // 其他方法...
+}
+```
+
+```java
+// PictureServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class PictureServiceImpl implements PictureService {
+
+    private final PictureMapper pictureMapper;
+
+    @Autowired
+    public PictureServiceImpl(PictureMapper pictureMapper) {
+        this.pictureMapper = pictureMapper;
+    }
+
+    @Override
+    public Picture findById(int id) {
+        return pictureMapper.findById(id);
+    }
+
+    // 其他方法...
+}
+```
+
+```java
+// PictureController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class PictureController {
+
+    private final PictureService pictureService;
+
+    @Autowired
+    public PictureController(PictureService pictureService) {
+        this.pictureService = pictureService;
+    }
+
+    @GetMapping("/picture/findById")
+    public ApiResponse findById(@RequestParam int id) {
+        Picture picture = pictureService.findById(id);
+        return new ApiResponse(1, "成功", picture);
+    }
+
+    // 其他方法...
+}
+```
+
+```java
+// PictureMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import java.util.List;
+
+@Mapper
+public interface PictureMapper {
+    Picture findById(@Param("id") int id);
+    // 其他方法...
+}
+```
+
+```xml
+<!-- PictureMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.PictureMapper">
+
+    <select id="findById" resultType="com.example.entity.Picture">
+        SELECT * FROM ssm_picture WHERE id = #{id}
+    </select>
+
+    <!-- 其他SQL语句... -->
+
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+Picture.java 类重定义
+PictureController.java: [11,19]
+java: 找不到符号
+  符号:   类 PictureService
+  位置: 类 com.example.controller.PictureController
+PictureController.java: [14,30]
+java: 找不到符号
+  符号:   类 PictureService
+  位置: 类 com.example.controller.PictureController
+PictureController.java: [19,12]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.PictureController
+PictureMapper.java: [9,5]
+java: 找不到符号
+  符号:   类 Picture
+  位置: 接口 com.example.mapper.PictureMapper
+PictureServiceImpl.java: [7,44]
+java: 找不到符号
+  符号: 类 PictureService
+PictureServiceImpl.java: [9,19]
+java: 找不到符号
+  符号:   类 PictureMapper
+  位置: 类 com.example.service.impl.PictureServiceImpl
+PictureServiceImpl.java: [12,31]
+java: 找不到符号
+  符号:   类 PictureMapper
+  位置: 类 com.example.service.impl.PictureServiceImpl
+PictureServiceImpl.java: [17,12]
+java: 找不到符号
+  符号:   类 Picture
+  位置: 类 com.example.service.impl.PictureServiceImpl
+PictureService.java: [6,5]
+java: 找不到符号
+  符号:   类 Picture
+  位置: 接口 com.example.service.PictureService
+```
+
+```功能错误
+```

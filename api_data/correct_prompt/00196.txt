@@ -1,0 +1,193 @@
+业务功能逻辑：
+1. 试卷分页: POST /api/student/exam/paper/pageList; application/json; Request{paperType,subjectId,pageIndex,pageSize}; ApiResponse{"code":1,"message":"成功","response":null}.
+2. 根据Request.pageIndex和Request.pageSize分页查询t_exam_paper表中记录，查询条件是paper_type等于Request.paperType，subject_id等于Request.subjectId，deleted等于0；返回response设置为{[t_exam_paper表记录]}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// ExamPaper.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper")
+public class ExamPaper {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "subject_id")
+    private Integer subjectId;
+
+    @Column(name = "paper_type")
+    private String paperType;
+
+    @Column(name = "grade_level")
+    private Integer gradeLevel;
+
+    @Column(name = "score")
+    private Double score;
+
+    @Column(name = "question_count")
+    private Integer questionCount;
+
+    @Column(name = "suggest_time")
+    private Integer suggestTime;
+
+    @Column(name = "limit_start_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date limitStartTime;
+
+    @Column(name = "limit_end_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date limitEndTime;
+
+    @Column(name = "frame_text_content_id")
+    private Integer frameTextContentId;
+
+    @Column(name = "create_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createTime;
+
+    @Column(name = "deleted")
+    private Boolean deleted;
+
+    @Column(name = "task_exam_id")
+    private Integer taskExamId;
+
+}
+```
+
+```java
+// ExamPaperService.java
+package com.example.service;
+
+import com.example.mapper.ExamPaperMapper;
+import com.example.entity.ExamPaper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ExamPaperService {
+    @Autowired
+    private ExamPaperMapper examPaperMapper;
+
+    public List<ExamPaper> getPageList(int paperType, int subjectId, int pageIndex, int pageSize) {
+        int offset = (pageIndex - 1) * pageSize;
+        return examPaperMapper.getPageList(paperType, subjectId, offset, pageSize);
+    }
+}
+```
+
+
+```java
+// ExamPaperController.java
+package com.example.controller;
+
+import com.example.service.ExamPaperService;
+import com.example.entity.ExamPaper;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+public class ExamPaperController {
+    @Autowired
+    private ExamPaperService examPaperService;
+
+    @PostMapping("/api/student/exam/paper/pageList")
+    public ApiResponse getPageList(@RequestBody ExamPaperRequest request) {
+        int paperType = request.getPaperType();
+        int subjectId = request.getSubjectId();
+        int pageIndex = request.getPageIndex();
+        int pageSize = request.getPageSize();
+
+        List<ExamPaper> examPapers = examPaperService.getPageList(paperType, subjectId, pageIndex, pageSize);
+
+        return new ApiResponse(1, "成功", examPapers);
+    }
+}
+```
+
+```java
+// ExamPaperMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface ExamPaperMapper {
+    List<ExamPaper> getPageList(@Param("paperType") int paperType, @Param("subjectId") int subjectId, @Param("pageIndex") int pageIndex, @Param("pageSize") int pageSize);
+}
+```
+
+```xml
+<!-- ExamPaperMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.ExamPaperMapper">
+    <select id="getPageList" resultType="com.example.entity.ExamPaper">
+        SELECT * FROM t_exam_paper
+        WHERE paper_type = #{paperType}
+        AND subject_id = #{subjectId}
+        AND deleted = 0
+        LIMIT #{pageIndex}, #{pageSize}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+ExamPaperController.java:20:49
+java: 找不到符号
+  符号:   类 ExamPaperRequest
+  位置: 类 com.example.controller.ExamPaperController
+```
+
+```功能错误
+没有实现请求参数Request{paperType,subjectId,pageIndex,pageSize}的实体类.
+```

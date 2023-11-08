@@ -1,0 +1,276 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// CategorySecond.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_second")
+public class CategorySecond {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+}
+```
+
+```java
+// Good.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_good")
+public class Good {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "good_name", length = 20)
+    private String goodName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+    @Column(name = "price", precision = 10, scale = 2)
+    private Double price;
+
+    @Column(name = "original_price", precision = 10, scale = 2)
+    private Double originalPrice;
+
+    @Column(name = "inventory")
+    private Integer inventory;
+
+    @Column(name = "sold_count")
+    private Integer soldCount;
+
+    @Column(name = "spec", length = 20)
+    private String spec;
+
+    @Column(name = "origin", length = 10)
+    private String origin;
+}
+```
+
+```java
+// GoodService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Good;
+
+public interface GoodService {
+    ApiResponse updateGood(Long goodId, Good good);
+}
+```
+
+```java
+// GoodServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.CategorySecond;
+import com.example.entity.Good;
+import com.example.mapper.CategorySecondMapper;
+import com.example.mapper.GoodMapper;
+import com.example.service.GoodService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class GoodServiceImpl implements GoodService {
+
+    private final GoodMapper goodMapper;
+
+    private final CategorySecondMapper categorySecondMapper;
+
+    @Autowired
+    public GoodServiceImpl(GoodMapper goodMapper, CategorySecondMapper categorySecondMapper) {
+        this.goodMapper = goodMapper;
+        this.categorySecondMapper = categorySecondMapper;
+    }
+
+    @Override
+    public ApiResponse updateGood(Long goodId, Good good) {
+        Good existingGood = goodMapper.getGoodById(goodId);
+        if (existingGood == null) {
+            return new ApiResponse(-1002, "商品不存在", null);
+        }
+
+        if (good.getGoodName() != null) {
+            existingGood.setGoodName(good.getGoodName());
+        }
+        if (good.getCategorySecondId() != null) {
+            // 根据good.categorySecondId在tb_category_second表中查询记录
+            CategorySecond categorySecond = categorySecondMapper.getCategorySecondById(good.getCategorySecondId());
+            // 如果记录不为空，设置tb_good.category_second_id为good.categorySecondId
+            if (null != categorySecond) {
+                existingGood.setCategorySecondId(good.getCategorySecondId());
+            }
+        }
+        if (good.getPrice() != null) {
+            existingGood.setPrice(good.getPrice());
+        }
+        if (good.getOriginalPrice() != null) {
+            existingGood.setOriginalPrice(good.getOriginalPrice());
+        }
+        if (good.getInventory() != null) {
+            existingGood.setInventory(good.getInventory());
+        }
+        if (good.getOrigin() != null) {
+            existingGood.setOrigin(good.getOrigin());
+        }
+        if (good.getSoldCount() != null) {
+            existingGood.setSoldCount(good.getSoldCount());
+        }
+        if (good.getSpec() != null) {
+            existingGood.setSpec(good.getSpec());
+        }
+
+        // 更新tb_good表中的记录
+        goodMapper.updateGood(existingGood, goodId);
+        // 返回date设置为更新后的记录
+
+        return new ApiResponse(100, "成功", existingGood);
+    }
+}
+```
+
+```java
+// GoodController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Good;
+import com.example.service.GoodService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/admin/v1/goods")
+public class GoodController {
+
+    private final GoodService goodService;
+
+    @Autowired
+    public GoodController(GoodService goodService) {
+        this.goodService = goodService;
+    }
+
+    @PatchMapping("/{goodId}")
+    public ApiResponse updateGood(@PathVariable Long goodId, @RequestBody Good good) {
+        return goodService.updateGood(goodId, good);
+    }
+}
+```
+
+```java
+// CategorySecondMapper.java
+package com.example.mapper;
+
+import com.example.entity.CategorySecond;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface CategorySecondMapper {
+    CategorySecond getCategorySecondById(int categorySecondId);
+}
+```
+
+```java
+// GoodMapper.java
+package com.example.mapper;
+
+import com.example.entity.Good;
+import org.apache.ibatis.annotations.Param;
+
+public interface GoodMapper {
+    Good getGoodById(Long goodId);
+    // 其他数据库操作方法
+    void updateGood(@Param("good") Good good, @Param("goodId") Long goodId);
+}
+```
+
+```xml
+<!-- CategorySecondMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.CategorySecondMapper">
+    <select id="getCategorySecondById" parameterType="int" resultType="com.example.entity.CategorySecond">
+        SELECT * FROM tb_category_second WHERE category_second_id = #{categorySecondId}
+    </select>
+</mapper>
+```
+
+```xml
+<!-- GoodMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.GoodMapper">
+    <select id="getGoodById" parameterType="java.lang.Long" resultType="com.example.entity.Good">
+        SELECT * FROM tb_good WHERE good_id = #{goodId}
+    </select>
+    <!-- 其他数据库操作方法的实现 -->
+    <update id="updateGood">
+        UPDATE tb_good
+        SET category_second_id = #{good.categorySecondId},
+        good_name = #{good.goodName},
+        image = #{good.image},
+        price = #{good.price},
+        original_price = #{good.originalPrice},
+        inventory = #{good.inventory},
+        sold_count = #{good.soldCount},
+        spec = #{good.spec},
+        origin = #{good.origin}
+        WHERE good_id = #{goodId}
+    </update>
+
+</mapper>
+
+```

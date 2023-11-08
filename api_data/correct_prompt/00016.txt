@@ -1,0 +1,169 @@
+﻿业务功能逻辑：查询部门信息总页码数业务逻辑：获取部门总记录数，计算总页数，每页显示的记录行数默认为 5 条。返回包含总页数信息的 JSON 响应。
+
+需要检查的代码：
+```java
+// Dept.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Dept {
+    private int deptId;
+    private String deptName
+    private String deptLeader;
+
+
+}
+```
+```java
+// GetTotalPagesRequest.java
+
+package com.example.entity;
+
+public class GetTotalPagesRequest {
+    // 空类，无需添加任何代码
+}
+```
+```java
+// GetTotalPagesResponse.java
+
+package com.example.entity;
+
+public class GetTotalPagesResponse {
+    private boolean success;
+    private int totalPages;
+
+    public GetTotalPagesResponse() {
+    }
+
+    public GetTotalPagesResponse(boolean success, int totalPages) {
+        this.success = success;
+        this.totalPages = totalPages;
+    }
+
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
+
+    public int getTotalPages() {
+        return totalPages;
+    }
+
+    public void setTotalPages(int totalPages) {
+        this.totalPages = totalPages;
+    }
+
+// getter and setter methods
+}
+```
+
+```java
+// DeptService.java
+
+package com.example.service;
+
+public interface DeptService {
+    int getTotalPages();
+}
+```
+
+```java
+// DeptServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.mapper.DeptMapper;
+
+
+import com.example.service.DeptService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class DeptServiceImpl implements DeptService {
+    private final DeptMapper deptMapper;
+
+    @Autowired
+    public DeptServiceImpl(DeptMapper deptMapper) {
+        this.deptMapper = deptMapper;
+    }
+
+    @Override
+    public int getTotalPages() {
+        int totalCount = deptMapper.getTotalCount();
+        int pageSize = 5;
+        int totalPages = (int) Math.ceil((double) totalCount / pageSize);
+        return totalPages;
+    }
+}
+```
+
+```java
+// DeptController.java
+
+package com.example.controller;
+
+import com.example.entity.GetTotalPagesResponse;
+
+import com.example.service.DeptService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/hrms/dept")
+public class DeptController {
+    private final DeptService deptService;
+
+    @Autowired
+    public DeptController(DeptService deptService) {
+        this.deptService = deptService;
+    }
+
+    @GetMapping("/getTotalPages")
+    public GetTotalPagesResponse getTotalPages() {
+        int totalPages = deptService.getTotalPages();
+        return new GetTotalPagesResponse(true, totalPages);
+    }
+}
+```
+
+```java
+// DeptMapper.java
+
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface DeptMapper {
+    int getTotalCount();
+}
+```
+
+```xml
+<!-- DeptMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.DeptMapper">
+    <select id="getTotalCount" resultType="int">
+        SELECT COUNT(*) FROM dept;
+    </select>
+</mapper>
+
+```
+代码执行的错误信息：
+```语法错误
+Dept.java:12:28
+java: 需要';'
+```

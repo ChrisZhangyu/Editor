@@ -1,0 +1,359 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// ExamPaper.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper")
+public class ExamPaper {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "subject_id")
+    private Integer subjectId;
+
+    @Column(name = "paper_type")
+    private String paperType;
+
+    @Column(name = "grade_level")
+    private Integer gradeLevel;
+
+    @Column(name = "score")
+    private Double score;
+
+    @Column(name = "question_count")
+    private Integer questionCount;
+
+    @Column(name = "suggest_time")
+    private Integer suggestTime;
+
+    @Column(name = "limit_start_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date limitStartTime;
+
+    @Column(name = "limit_end_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date limitEndTime;
+
+    @Column(name = "frame_text_content_id")
+    private Integer frameTextContentId;
+
+    @Column(name = "create_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createTime;
+
+    @Column(name = "deleted")
+    private Boolean deleted;
+
+    @Column(name = "task_exam_id")
+    private Integer taskExamId;
+
+}
+```
+
+```java
+// User.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_user")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "user_uuid")
+    private String userUuid;
+
+    @Column(name = "user_name")
+    private String userName;
+
+    @Column(name = "password")
+    private String password;
+
+    @Column(name = "real_name")
+    private String realName;
+
+    @Column(name = "age")
+    private int age;
+
+    @Column(name = "sex")
+    private int sex;
+
+    @Column(name = "birth_day")
+    private Date birthDay;
+
+    @Column(name = "user_level")
+    private int userLevel;
+
+    @Column(name = "phone")
+    private String phone;
+
+    @Column(name = "role")
+    private int role;
+
+    @Column(name = "status")
+    private int status;
+
+    @Column(name = "image_path")
+    private String imagePath;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+
+    @Column(name = "last_active_time")
+    private Date lastActiveTime;
+
+    @Column(name = "deleted")
+    private boolean deleted;
+
+    @Column(name = "wx_open_id")
+    private String wxOpenId;
+}
+```
+
+```java
+// ExamPaperService.java
+package com.example.service;
+
+import com.example.entity.ExamPaper;
+
+import java.util.List;
+
+public interface ExamPaperService {
+    List<ExamPaper> getFixedPapers(int gradeLevel);
+    List<ExamPaper> getTimeLimitPapers(int gradeLevel);
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.User;
+
+public interface UserService {
+    User getUserByUserName(String userName);
+}
+```
+
+```java
+// ExamPaperServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ExamPaper;
+import com.example.mapper.ExamPaperMapper;
+import com.example.service.ExamPaperService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ExamPaperServiceImpl implements ExamPaperService {
+
+    private final ExamPaperMapper examPaperMapper;
+
+    @Autowired
+    public ExamPaperServiceImpl(ExamPaperMapper examPaperMapper) {
+        this.examPaperMapper = examPaperMapper;
+    }
+
+    @Override
+    public List<ExamPaper> getFixedPapers(int gradeLevel) {
+        return examPaperMapper.getFixedPapers(gradeLevel);
+    }
+
+    @Override
+    public List<ExamPaper> getTimeLimitPapers(int gradeLevel) {
+        return examPaperMapper.getTimeLimitPapers(gradeLevel);
+    }
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.User;
+import com.example.mapper.UserMapper;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserMapper userMapper;
+
+    @Autowired
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public User getUserByUserName(String userName) {
+        return userMapper.getUserByUserName(userName);
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.ExamPaper;
+import com.example.entity.User;
+import com.example.service.ExamPaperService;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+public class UserController {
+
+    private final UserService userService;
+    private final ExamPaperService examPaperService;
+
+    @Autowired
+    public UserController(UserService userService, ExamPaperService examPaperService) {
+        this.userService = userService;
+        this.examPaperService = examPaperService;
+    }
+
+    @PostMapping("/api/student/dashboard/index")
+    public ApiResponse getDashboardIndex(@RequestParam("userName") String userName) {
+        User user = userService.getUserByUserName(userName);
+        if (user == null) {
+            return new ApiResponse(2, "未注册", null);
+        }
+
+        // 查询fixedPaper试卷记录
+        List<ExamPaper> fixedPaperList = examPaperService.getFixedPapers(user.getUserLevel());
+
+        // 查询timeLimitPaper试卷记录
+        List<ExamPaper> timeLimitPaperList = examPaperService.getTimeLimitPapers(user.getUserLevel());
+
+        Map<String, List<ExamPaper>> response = new HashMap<>();
+        response.put("fixedPaper", fixedPaperList);
+        response.put("timeLimitPaper", timeLimitPaperList);
+
+        return new ApiResponse(1, "成功", response);
+    }
+}
+```
+
+```java
+// ExamPaperMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface ExamPaperMapper {
+    List<ExamPaper> getFixedPapers(@Param("gradeLevel") int gradeLevel);
+    List<ExamPaper> getTimeLimitPapers(@Param("gradeLevel") int gradeLevel);
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface UserMapper {
+    User getUserByUserName(@Param("userName") String userName);
+}
+```
+
+```xml
+<!-- ExamPaperMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ExamPaperMapper">
+    <select id="getFixedPapers" resultType="com.example.entity.ExamPaper">
+        SELECT * FROM t_exam_paper WHERE grade_level = #{gradeLevel} AND paper_type = 1 AND deleted = 0 ORDER BY id DESC LIMIT 5
+    </select>
+
+    <select id="getTimeLimitPapers" resultType="com.example.entity.ExamPaper">
+        SELECT * FROM t_exam_paper
+        WHERE grade_level = #{gradeLevel}
+        AND paper_type = 4
+        AND deleted = 0
+        AND NOW() >= limit_start_time AND limit_end_time >= NOW()
+        ORDER BY id DESC LIMIT 5
+    </select>
+</mapper>
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="getUserByUserName" resultType="com.example.entity.User">
+        SELECT * FROM t_user WHERE user_name = #{userName}
+    </select>
+</mapper>
+
+```

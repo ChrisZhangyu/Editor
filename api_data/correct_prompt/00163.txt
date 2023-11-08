@@ -1,0 +1,232 @@
+业务功能逻辑：未读消息数量获取接口: 在t_user表中查询用户名等于输入参数的用户对象，获取对象ID；在t_message_user表中查询receive_user_id等于用户id的消息对象，并计算未读消息的数量num，返回 {"code":1,"message":"成功""response":num}.
+
+需要检查的代码：
+```java
+// UnreadCountRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UnreadCountRequest {
+    private String userName;
+}
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UnreadCountRequest {
+    private String userName;
+}
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class MessageUser {
+    private int id;
+    private int messageId;
+    private int receiveUserId;
+    private String receiveUserName;
+    private String receiveRealName;
+    private boolean readed;
+    private Date createTime;
+    private Date readTime;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.User;
+import com.example.mapper.MessageUserMapper;
+import com.example.mapper.UserMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserService {
+    private final UserMapper userMapper;
+    private final MessageUserMapper messageUserMapper;
+
+    @Autowired
+    public UserService(UserMapper userMapper, MessageUserMapper messageUserMapper) {
+        this.userMapper = userMapper;
+        this.messageUserMapper = messageUserMapper;
+    }
+
+    public int getUnreadMessageCount(String userName) {
+        User user = userMapper.getUserByUserName(userName);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        return messageUserMapper.getUnreadMessageCount(user.getId());
+    }
+}
+```
+
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.entity.UnreadCountRequest;
+import com.example.service.UserService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class UserController {
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/api/student/user/message/unreadCount")
+    public ApiResponse<Integer> getUnreadMessageCount(@RequestBody UnreadCountRequest request) {
+        int count = userService.getUnreadMessageCount(request.getUserName());
+        return new ApiResponse<>(1, "成功", count);
+    }
+}
+```
+
+```java
+// MessageUserMapper.java
+package com.example.mapper;
+
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+@Mapper
+public interface MessageUserMapper {
+    @Select("SELECT COUNT(*) FROM t_message_user WHERE receive_user_id = #{userId} AND readed = 0")
+    int getUnreadMessageCount(@Param("userId") int userId);
+}
+```
+```java
+// UserMapper.java
+package com.example.mapper;
+
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+@Mapper
+public interface MessageUserMapper {
+    @Select("SELECT COUNT(*) FROM t_message_user WHERE receive_user_id = #{userId} AND readed = 0")
+    int getUnreadMessageCount(@Param("userId") int userId);
+}
+import com.example.entity.User;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+@Mapper
+public interface UserMapper {
+    @Select("SELECT * FROM t_user WHERE user_name = #{userName}")
+    User getUserByUserName(@Param("userName") String userName);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="getUserByUserName" resultType="com.example.entity.User">
+        SELECT * FROM t_user WHERE user_name = #{userName}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\unreadCount_system\src\main\java\com\example\mapper\UserMapper.java:13
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\unreadCount_system\src\main\java\com\example\mapper\UserMapper.java:15
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\unreadCount_system\src\main\java\com\example\mapper\UserMapper.java:16
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\unreadCount_system\src\main\java\com\example\mapper\UserMapper.java:17
+java: 需要class, interface或enum
+Caused by: org.xml.sax.SAXParseException: 在 publicId 和 systemId 之间需要有空格。
+```
+```功能错误
+
+```

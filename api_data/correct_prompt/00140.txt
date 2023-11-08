@@ -1,0 +1,283 @@
+业务功能逻辑：
+根据categoryFirstId在tb_category_first表中查询记录，不存在返回(-1002, "该分类不存在",null)；根据category.categoryName在tb_category_first表中获取记录列表，如果列表不为空则获取第一条记录，如果为空返回(-1005, "分类名称已存在",null)；如果获取的tb_category_first.category_first_id不等于categoryFirstId则返回(-1005, "分类名称已存在",null)；更新tb_category_first表中的字段为category的属性，返回data设置为{tb_category_first记录}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// CategoryFirst.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_first")
+public class CategoryFirst {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+}
+```
+
+```java
+// CategoryFirstService.java
+package com.example.service;
+
+import java.util.List;
+
+public interface CategoryFirstService {
+    CategoryFirst getCategoryFirstById(int categoryFirstId);
+    List<CategoryFirst> getCategoryFirstListByName(String categoryName);
+    ApiResponse updateCategoryFirst(int categoryFirstId, CategoryFirst category);
+}
+```
+
+```java
+// CategoryFirstServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.List;
+
+@Service
+public class CategoryFirstServiceImpl implements CategoryFirstService {
+
+    private final CategoryFirstMapper categoryFirstMapper;
+
+    @Autowired
+    public CategoryFirstServiceImpl(CategoryFirstMapper categoryFirstMapper) {
+        this.categoryFirstMapper = categoryFirstMapper;
+    }
+
+    @Override
+    public CategoryFirst getCategoryFirstById(int categoryFirstId) {
+        return categoryFirstMapper.getCategoryFirstById(categoryFirstId);
+    }
+
+    @Override
+    public List<CategoryFirst> getCategoryFirstListByName(String categoryName) {
+        return categoryFirstMapper.getCategoryFirstListByName(categoryName);
+    }
+
+    @Override
+    public ApiResponse updateCategoryFirst(int categoryFirstId, CategoryFirst category) {
+        CategoryFirst existingCategory = categoryFirstMapper.getCategoryFirstById(categoryFirstId);
+        if (existingCategory == null) {
+            return new ApiResponse(-1002, "该分类不存在", null);
+        }
+
+        List<CategoryFirst> categoryList = categoryFirstMapper.getCategoryFirstListByName(category.getCategoryName());
+        if (!categoryList.isEmpty()) {
+            CategoryFirst firstCategory = categoryList.get(0);
+            if (firstCategory.getCategoryFirstId() != categoryFirstId) {
+                return new ApiResponse(-1005, "分类名称已存在", null);
+            }
+        }
+
+        category.setCategoryFirstId(categoryFirstId);
+        category.setUpdateTime(new Date());
+        categoryFirstMapper.updateCategoryFirst(category);
+
+        return new ApiResponse(100, "成功", categoryFirstMapper.getCategoryFirstById(categoryFirstId));
+    }
+}
+```
+
+```java
+// CategoryFirstController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/admin/v1/category/first")
+public class CategoryFirstController {
+
+    private final CategoryFirstService categoryFirstService;
+
+    @Autowired
+    public CategoryFirstController(CategoryFirstService categoryFirstService) {
+        this.categoryFirstService = categoryFirstService;
+    }
+
+    @GetMapping("/{categoryFirstId}")
+    public CategoryFirst getCategoryFirstById(@PathVariable int categoryFirstId) {
+        return categoryFirstService.getCategoryFirstById(categoryFirstId);
+    }
+
+    @GetMapping
+    public List<CategoryFirst> getCategoryFirstListByName(@RequestParam String categoryName) {
+        return categoryFirstService.getCategoryFirstListByName(categoryName);
+    }
+
+    @PatchMapping("/{categoryFirstId}")
+    public ApiResponse updateCategoryFirst(@PathVariable int categoryFirstId, @RequestBody CategoryFirst category) {
+        return categoryFirstService.updateCategoryFirst(categoryFirstId, category);
+    }
+}
+```
+
+```java
+// CategoryFirstMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface CategoryFirstMapper {
+    CategoryFirst getCategoryFirstById(int categoryFirstId);
+    List<CategoryFirst> getCategoryFirstListByName(String categoryName);
+    void updateCategoryFirst(@Param("category") CategoryFirst category);
+}
+```
+
+```xml
+<!-- CategoryFirstMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.CategoryFirstMapper">
+    <select id="getCategoryFirstById" resultType="com.example.entity.CategoryFirst">
+        SELECT * FROM tb_category_first WHERE category_first_id = #{categoryFirstId}
+    </select>
+
+    <select id="getCategoryFirstListByName" resultType="com.example.entity.CategoryFirst">
+        SELECT * FROM tb_category_first WHERE category_name = #{categoryName}
+    </select>
+
+    <update id="updateCategoryFirst">
+        UPDATE tb_category_first
+        SET category_name = #{category.categoryName},
+            update_time = #{category.updateTime}
+        WHERE category_first_id = #{category.categoryFirstId}
+    </update>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+CategoryFirstController.java:12:19
+java: 找不到符号
+  符号:   类 CategoryFirstService
+  位置: 类 com.example.controller.CategoryFirstController
+CategoryFirstController.java:15:36
+java: 找不到符号
+  符号:   类 CategoryFirstService
+  位置: 类 com.example.controller.CategoryFirstController
+CategoryFirstController.java:20:12
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 类 com.example.controller.CategoryFirstController
+CategoryFirstController.java:25:17
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 类 com.example.controller.CategoryFirstController
+CategoryFirstController.java:30:92
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 类 com.example.controller.CategoryFirstController
+CategoryFirstController.java:30:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.CategoryFirstController
+CategoryFirstMapper.java:10:5
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 接口 com.example.mapper.CategoryFirstMapper
+CategoryFirstMapper.java:11:10
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 接口 com.example.mapper.CategoryFirstMapper
+CategoryFirstMapper.java:12:49
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 接口 com.example.mapper.CategoryFirstMapper
+CategoryFirstService.java:6:5
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 接口 com.example.service.CategoryFirstService
+CategoryFirstService.java:7:10
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 接口 com.example.service.CategoryFirstService
+CategoryFirstService.java:8:58
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 接口 com.example.service.CategoryFirstService
+CategoryFirstService.java:8:5
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.CategoryFirstService
+CategoryFirstServiceImpl.java:10:50
+java: 找不到符号
+  符号: 类 CategoryFirstService
+CategoryFirstServiceImpl.java:12:19
+java: 找不到符号
+  符号:   类 CategoryFirstMapper
+  位置: 类 com.example.service.impl.CategoryFirstServiceImpl
+CategoryFirstServiceImpl.java:15:37
+java: 找不到符号
+  符号:   类 CategoryFirstMapper
+  位置: 类 com.example.service.impl.CategoryFirstServiceImpl
+CategoryFirstServiceImpl.java:20:12
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 类 com.example.service.impl.CategoryFirstServiceImpl
+CategoryFirstServiceImpl.java:25:17
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 类 com.example.service.impl.CategoryFirstServiceImpl
+CategoryFirstServiceImpl.java:30:65
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 类 com.example.service.impl.CategoryFirstServiceImpl
+CategoryFirstServiceImpl.java:30:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.CategoryFirstServiceImpl
+CategoryFirstServiceImpl.java:49:17
+java: 找不到符号
+  符号:   方法 setUpdateTime(java.util.Date)
+  位置: 类型为com.example.entity.CategoryFirst的变量 category
+```
+
+```功能错误
+在CategoryFirstController.java模块中getCategoryFirstById和getCategoryFirstListByName函数没有必要实现.
+在CategoryFirstService.java模块中getCategoryFirstById和getCategoryFirstListByName函数没有必要实现.
+```

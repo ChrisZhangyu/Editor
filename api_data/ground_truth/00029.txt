@@ -1,0 +1,157 @@
+```java
+// OmsOrderSetting.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderSetting {
+    /**
+     * 主键ID
+     */
+    private Long id;
+
+    /**
+     * 秒杀订单超时时间（单位：分钟）
+     */
+    private Integer flashOrderOvertime;
+
+    /**
+     * 普通订单超时时间（单位：分钟）
+     */
+    private Integer normalOrderOvertime;
+
+    /**
+     * 自动确认收货时间（单位：天）
+     */
+    private Integer confirmOvertime;
+
+    /**
+     * 自动完成交易时间（单位：天）
+     */
+    private Integer finishOvertime;
+
+    /**
+     * 自动好评时间（单位：天）
+     */
+    private Integer commentOvertime;
+}
+```
+```java
+// OrderSetting.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OrderSetting {
+    private int id;
+}
+```
+
+```java
+// OrderSettingService.java
+
+package com.example.service;
+
+import com.example.entity.OmsOrderSetting;
+import com.example.entity.OrderSetting;
+
+public interface OrderSettingService {
+    OmsOrderSetting getOrderSettingById(int id);
+}
+```
+
+```java
+// OrderSettingServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.entity.OmsOrderSetting;
+import com.example.mapper.OrderSettingMapper;
+import com.example.entity.OrderSetting;
+import com.example.service.OrderSettingService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class OrderSettingServiceImpl implements OrderSettingService {
+    @Autowired
+    private OrderSettingMapper orderSettingMapper;
+
+    @Override
+    public OmsOrderSetting getOrderSettingById(int id) {
+        return orderSettingMapper.getOrderSettingById(id);
+    }
+}
+```
+
+```java
+// OrderSettingController.java
+
+package com.example.controller;
+
+import com.example.entity.OmsOrderSetting;
+import com.example.entity.OrderSetting;
+import com.example.service.OrderSettingService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/orderSetting")
+public class OrderSettingController {
+    @Autowired
+    private OrderSettingService orderSettingService;
+
+    @GetMapping("/{id}")
+    public OmsOrderSetting getOrderSettingById(@PathVariable int id) {
+        OmsOrderSetting omsOrderSetting = orderSettingService.getOrderSettingById(id);
+        return omsOrderSetting;
+    }
+}
+```
+
+```java
+// OrderSettingMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.OmsOrderSetting;
+import com.example.entity.OrderSetting;
+
+public interface OrderSettingMapper {
+    OmsOrderSetting getOrderSettingById(int id);
+}
+```
+
+```xml
+<!-- OrderSettingMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.OrderSettingMapper">
+    <resultMap id="BaseResultMap" type="com.example.entity.OmsOrderSetting">
+        <id column="id" jdbcType="BIGINT" property="id" />
+        <result column="flash_order_overtime" jdbcType="INTEGER" property="flashOrderOvertime" />
+        <result column="normal_order_overtime" jdbcType="INTEGER" property="normalOrderOvertime" />
+        <result column="confirm_overtime" jdbcType="INTEGER" property="confirmOvertime" />
+        <result column="finish_overtime" jdbcType="INTEGER" property="finishOvertime" />
+        <result column="comment_overtime" jdbcType="INTEGER" property="commentOvertime" />
+    </resultMap>
+    <select id="getOrderSettingById" resultMap="BaseResultMap">
+        SELECT * FROM oms_order_setting WHERE id = #{id}
+    </select>
+</mapper>
+
+```
+

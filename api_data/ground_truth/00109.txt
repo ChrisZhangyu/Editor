@@ -1,0 +1,311 @@
+﻿
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer code;
+    private String message;
+    private Object response;
+}
+```
+```java
+// Message.java
+package com.example.entity;
+
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Message {
+    private Integer id;
+    private String title;
+    private String content;
+    private Date createTime;
+    private Integer sendUserId;
+    private String sendUserName;
+    private String sendRealName;
+    private String receiveUserName;
+    private Integer receiveUserCount;
+    private Integer readCount;
+
+
+    public void setReceiveUserNames(List<String> receiveUserNames) {
+    }
+}
+```
+```java
+// MessagePageRequest.java
+package com.example.entity;
+
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class MessagePageRequest {
+    private String sendUserName;
+    private Integer pageIndex;
+    private Integer pageSize;
+}
+```
+```java
+// MessagePageResponse.java
+package com.example.entity;
+
+
+
+import com.example.entity.Message;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class MessagePageResponse {
+    private Integer total;
+    private List<Message> list;
+}
+```
+```java
+// MessageUser.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class MessageUser {
+    private Integer id;
+    private Integer messageId;
+    private Integer receiveUserId;
+    private String receiveUserName;
+    private String receiveRealName;
+    private Boolean readed;
+    private Date createTime;
+    private Date readTime;
+}
+```
+
+```java
+// MessageService.java
+package com.example.service;
+
+import com.example.entity.MessagePageRequest;
+import com.example.entity.ApiResponse;
+
+public interface MessageService {
+    ApiResponse getMessagePage(MessagePageRequest request);
+}
+```
+
+```java
+// MessageServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.MessageService;
+import com.example.entity.ApiResponse;
+import com.example.entity.MessagePageRequest;
+import com.example.entity.Message;
+import com.example.mapper.MessageUserMapper;
+import com.example.entity.MessagePageResponse;
+import com.example.mapper.MessageMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class MessageServiceImpl implements MessageService {
+
+    private final MessageMapper messageMapper;
+    private final MessageUserMapper messageUserMapper;
+
+    @Autowired
+    public MessageServiceImpl(MessageMapper messageMapper, MessageUserMapper messageUserMapper) {
+        this.messageMapper = messageMapper;
+        this.messageUserMapper = messageUserMapper;
+    }
+
+    @Override
+    public ApiResponse getMessagePage(MessagePageRequest request) {
+        try {
+            List<Message> messageList = messageMapper.getMessagePage(request);
+            for (Message message : messageList) {
+                List<String> receiveUserNames = messageUserMapper.getReceiveUserNamesByMessageId(message.getId());
+                message.setReceiveUserNames(receiveUserNames);
+            }
+            int total = messageMapper.getMessageCount(request);
+            MessagePageResponse response = new MessagePageResponse(total, messageList);
+            return new ApiResponse(1, "成功", response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ApiResponse(0, "失败", null);
+        }
+    }
+}
+```
+
+```java
+// MessageController.java
+package com.example.controller;
+
+import com.example.service.MessageService;
+import com.example.entity.MessagePageRequest;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/message")
+public class MessageController {
+
+    private final MessageService messageService;
+
+    @Autowired
+    public MessageController(MessageService messageService) {
+        this.messageService = messageService;
+    }
+
+    @PostMapping("/page")
+    public ApiResponse getMessagePage(@RequestBody MessagePageRequest request) {
+        return messageService.getMessagePage(request);
+    }
+}
+```
+
+```java
+// MessageMapper.java
+package com.example.mapper;
+
+import com.example.entity.MessagePageRequest;
+import com.example.entity.Message;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface MessageMapper {
+    List<Message> getMessagePage(@Param("request") MessagePageRequest request);
+    int getMessageCount(@Param("request") MessagePageRequest request);
+}
+```
+```java
+// MessageUserMapper.java
+package com.example.mapper;
+
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import java.util.List;
+
+@Mapper
+public interface MessageUserMapper {
+    List<String> getReceiveUserNamesByMessageId(@Param("messageId") Integer messageId);
+}
+```
+
+```xml
+<!-- MessageUserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.MessageUserMapper">
+    <resultMap id="MessageUserResultMap" type="com.example.entity.MessageUser">
+        <id property="id" column="id"/>
+        <result property="messageId" column="message_id"/>
+        <result property="receiveUserId" column="receive_user_id"/>
+        <result property="receiveUserName" column="receive_user_name"/>
+        <result property="receiveRealName" column="receive_real_name"/>
+        <result property="readed" column="readed"/>
+        <result property="createTime" column="create_time"/>
+        <result property="readTime" column="read_time"/>
+    </resultMap>
+
+    <select id="getReceiveUserNamesByMessageId" resultType="String" resultMap="MessageUserResultMap">
+        SELECT receive_user_name FROM t_message_user
+        WHERE message_id = #{messageId}
+    </select>
+
+</mapper>
+
+```
+```xml
+<!-- MessageMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.MessageMapper">
+    <resultMap id="MessageResultMap" type="com.example.entity.Message">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="createTime" column="create_time"/>
+        <result property="sendUserId" column="send_user_id"/>
+        <result property="sendUserName" column="send_user_name"/>
+        <result property="sendRealName" column="send_real_name"/>
+        <result property="receiveUserCount" column="receive_user_count"/>
+        <result property="readCount" column="read_count"/>
+    </resultMap>
+
+    <select id="getMessagePage" resultType="com.example.entity.Message" resultMap="MessageResultMap">
+        SELECT * FROM t_message
+        WHERE
+        <if test="request.sendUserName != null">
+            send_user_name = #{request.sendUserName}
+        </if>
+        ORDER BY create_time DESC
+        LIMIT #{request.pageIndex}, #{request.pageSize}
+    </select>
+
+    <select id="getMessageCount" resultType="int">
+        SELECT COUNT(*) FROM t_message
+        WHERE
+        <if test="request.sendUserName != null">
+            send_user_name = #{request.sendUserName}
+        </if>
+    </select>
+
+</mapper>
+```
+

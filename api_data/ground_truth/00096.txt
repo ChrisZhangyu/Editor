@@ -1,0 +1,164 @@
+﻿```java
+// DeleteSubjectRequest.java
+package com.example.entity;
+
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+public class DeleteSubjectRequest {
+    private int id;
+}
+```
+```java
+// DeleteSubjectResponse.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class DeleteSubjectResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+```java
+// Subject.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Subject {
+    private int id;
+    private String name;
+    private int level;
+    private String levelName;
+    private int itemOrder;
+    private boolean deleted;
+}
+```
+
+```java
+// SubjectService.java
+package com.example.service;
+
+import com.example.entity.DeleteSubjectResponse;
+
+public interface SubjectService {
+    DeleteSubjectResponse deleteSubject(int id);
+}
+```
+
+```java
+// SubjectServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Subject;
+import com.example.mapper.SubjectMapper;
+import com.example.entity.DeleteSubjectResponse;
+import com.example.service.SubjectService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class SubjectServiceImpl implements SubjectService {
+
+    private final SubjectMapper subjectMapper;
+
+    @Autowired
+    public SubjectServiceImpl(SubjectMapper subjectMapper) {
+        this.subjectMapper = subjectMapper;
+    }
+
+    @Override
+    public DeleteSubjectResponse deleteSubject(int id) {
+        Subject subject = subjectMapper.getSubjectById(id);
+        if (subject == null) {
+            return new DeleteSubjectResponse(0, "学科不存在", null);
+        }
+
+        subject.setDeleted(true);
+        subjectMapper.updateSubject(subject);
+
+        return new DeleteSubjectResponse(1, "删除成功", null);
+    }
+}
+```
+
+```java
+// SubjectController.java
+package com.example.controller;
+
+import com.example.entity.DeleteSubjectResponse;
+import com.example.service.SubjectService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/admin/education/subject")
+public class SubjectController {
+
+    private final SubjectService subjectService;
+
+    @Autowired
+    public SubjectController(SubjectService subjectService) {
+        this.subjectService = subjectService;
+    }
+
+    @PostMapping("/delete/{id}")
+    public DeleteSubjectResponse deleteSubject(@PathVariable int id) {
+        return subjectService.deleteSubject(id);
+    }
+}
+```
+
+```java
+// SubjectMapper.java
+package com.example.mapper;
+
+import com.example.entity.Subject;
+
+public interface SubjectMapper {
+    Subject getSubjectById(int id);
+    void updateSubject(Subject subject);
+}
+```
+
+```xml
+<!-- SubjectMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.SubjectMapper">
+    <select id="getSubjectById" parameterType="int" resultType="com.example.entity.Subject">
+        SELECT * FROM t_subject WHERE id = #{id}
+    </select>
+
+    <update id="updateSubject" parameterType="com.example.entity.Subject">
+        UPDATE t_subject SET
+        name = #{name},
+        level = #{level},
+        level_name = #{levelName},
+        item_order = #{itemOrder},
+        deleted = #{deleted}
+        WHERE id = #{id}
+    </update>
+</mapper>
+
+```

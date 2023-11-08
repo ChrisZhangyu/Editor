@@ -1,0 +1,258 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// CategorySecond.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_second")
+public class CategorySecond {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+}
+```
+
+```java
+// Good.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_good")
+public class Good {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "good_name", length = 20)
+    private String goodName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+    @Column(name = "price", precision = 10, scale = 2)
+    private Double price;
+
+    @Column(name = "original_price", precision = 10, scale = 2)
+    private Double originalPrice;
+
+    @Column(name = "inventory")
+    private Integer inventory;
+
+    @Column(name = "sold_count")
+    private Integer soldCount;
+
+    @Column(name = "spec", length = 20)
+    private String spec;
+
+    @Column(name = "origin", length = 10)
+    private String origin;
+}
+```
+
+```java
+// GoodService.java
+package com.example.service;
+
+import com.example.entity.Good;
+
+import java.util.List;
+
+public interface GoodService {
+    List<Good> getGoods(int page, int rows, Good good, boolean goodStatus);
+}
+```
+
+```java
+// GoodServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Good;
+import com.example.mapper.GoodMapper;
+import com.example.service.GoodService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import java.util.List;
+
+@Service
+public class GoodServiceImpl implements GoodService {
+
+    private final GoodMapper goodMapper;
+
+    @Autowired
+    public GoodServiceImpl(GoodMapper goodMapper) {
+        this.goodMapper = goodMapper;
+    }
+
+    @Override
+    public List<Good> getGoods(int page, int rows, Good good, boolean goodStatus) {
+        int start = (page - 1) * rows;
+        return goodMapper.getGoodsByParams(good, goodStatus, start, rows);
+    }
+}
+```
+
+```java
+// GoodController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.CategorySecond;
+import com.example.entity.Good;
+import com.example.mapper.CategorySecondMapper;
+import com.example.service.GoodService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/admin/v1")
+public class GoodController {
+
+    private final GoodService goodService;
+
+    private final CategorySecondMapper categorySecondMapper;
+
+    @Autowired
+    public GoodController(GoodService goodService, CategorySecondMapper categorySecondMapper) {
+        this.goodService = goodService;
+        this.categorySecondMapper = categorySecondMapper;
+    }
+
+    @GetMapping("/goods")
+    public ApiResponse getGoods(@RequestParam int page, @RequestParam int rows, @RequestBody Good good, @RequestParam boolean goodStatus) {
+        List<Good> goods = goodService.getGoods(page, rows, good, goodStatus);
+        // 查询tb_category_second表中的记录
+        // 设置data为{["categorySecond"={tb_category_second记录},"image"=tb_good.image, "good"={tb_good记录}]}
+        List<Map<String, Object>> data = new ArrayList<>();
+        for(Good g : goods){
+            CategorySecond categorySecond = categorySecondMapper.selectByPrimaryKey(g.getCategorySecondId());
+            Map<String, Object> result = new HashMap<>();
+            result.put("categorySecond", categorySecond);
+            result.put("image", categorySecond.getImage());
+            result.put("good", g);
+            data.add(result);
+        }
+
+        return new ApiResponse(100, "成功", data);
+    }
+}
+```
+
+```java
+// CategorySecondMapper.java
+package com.example.mapper;
+
+import com.example.entity.CategorySecond;
+import com.example.entity.Good;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import java.util.List;
+
+@Mapper
+public interface CategorySecondMapper {
+    CategorySecond selectByPrimaryKey(int categorySecondId);
+}
+```
+```java
+// GoodMapper.java
+package com.example.mapper;
+
+import com.example.entity.Good;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import java.util.List;
+
+@Mapper
+public interface GoodMapper {
+    List<Good> getGoodsByParams(@Param("good") Good good, @Param("goodStatus") boolean goodStatus, @Param("start") int start, @Param("rows") int rows);
+}
+```
+
+```xml
+<!-- CategorySecondMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.CategorySecondMapper">
+    <select id="selectByPrimaryKey" resultType="com.example.entity.CategorySecond">
+        SELECT * FROM tb_category_second WHERE category_second_id = #{categorySecondId}
+    </select>
+</mapper>
+```
+
+```xml
+<!-- GoodMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.GoodMapper">
+    <select id="getGoodsByParams" resultType="com.example.entity.Good">
+        SELECT *
+        FROM tb_good
+        WHERE
+        (#{goodStatus} = false AND inventory = 0)
+        OR (#{goodStatus} = true AND inventory > 0)
+        <if test="good.goodId != null">
+            AND good_id = #{good.goodId}
+        </if>
+        <if test="good.goodName != null">
+            AND good_name = #{good.goodName}
+        </if>
+        <if test="good.categorySecondId != null">
+            AND category_second_id = #{good.categorySecondId}
+        </if>
+        LIMIT #{start}, #{rows}
+    </select>
+</mapper>
+```

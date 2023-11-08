@@ -1,0 +1,290 @@
+业务功能逻辑：
+在ums_user表中查询用户，查询条件是：username等于name或email等于email；如果用户存在，返回信息message设置"账号已存在"；如果用户不存在，则将输入用户插入到ums_user表中，其中password存储的是pass加密后的结果，加密方法是：使用MD5算法进行加密得到字符数组，将每个字节转换成正数并转换成对应的16进制字符串，将所有的16进制字符串拼接成最终的加密结果；返回信息data设置为{ums_user的新记录}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+```
+```java
+// RegisterDTO.java
+package com.example.entity;
+
+import lombok.Data;
+
+@Data
+public class RegisterDTO {
+    private String name;
+    private String pass;
+    private String checkPass;
+    private String email;
+}
+```
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    /**
+     * 用户ID
+     */
+    private String id;
+
+    /**
+     * 用户名
+     */
+    private String username;
+
+    /**
+     * 别名
+     */
+    private String alias;
+
+    /**
+     * 密码
+     */
+    private String password;
+
+    /**
+     * 头像
+     */
+    private String avatar;
+
+    /**
+     * 邮箱
+     */
+    private String email;
+
+    /**
+     * 手机号码
+     */
+    private String mobile;
+
+    /**
+     * 积分
+     */
+    private int score;
+
+    /**
+     * 令牌
+     */
+    private String token;
+
+    /**
+     * 个人简介
+     */
+    private String bio;
+
+    /**
+     * 是否激活
+     */
+    private boolean active;
+
+    /**
+     * 状态
+     */
+    private boolean status;
+
+    /**
+     * 角色ID
+     */
+    private String roleId;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 修改时间
+     */
+    private Date modifyTime;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.UmsUser;
+
+public interface UserService {
+    ApiResponse<UmsUser> registerUser(String name, String pass, String checkPass, String email);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.UmsUser;
+@Service
+public class UserServiceImpl implements UserService {
+
+    @Autowired
+    private UmsUserMapper umsUserMapper;
+
+    @Override
+    public ApiResponse<UmsUser> registerUser(String name, String pass, String checkPass, String email) {
+        // 在ums_user表中查询用户
+        UmsUser existingUser = umsUserMapper.findByUsernameOrEmail(name, email);
+        if (existingUser != null) {
+            return new ApiResponse<>(400, "账号已存在", null);
+        }
+
+        // 对密码进行加密
+        String encryptedPassword = encryptPassword(pass);
+
+        // 创建新用户
+        UmsUser newUser = new UmsUser();
+        newUser.setUsername(name);
+        newUser.setPassword(encryptedPassword);
+        newUser.setEmail(email);
+
+        // 将新用户插入到ums_user表中
+        umsUserMapper.insert(newUser);
+
+        return new ApiResponse<>(200, "操作成功", newUser);
+    }
+
+    private String encryptPassword(String password) {
+        // 使用MD5算法进行加密
+        // ...
+
+        return encryptedPassword;
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.entity.RegisterDTO;
+import com.example.entity.UmsUser;
+import com.example.service.UserService;
+
+@RestController
+@RequestMapping("/ums/user")
+public class UserController {
+
+    @Autowired
+    private UserService userService;
+
+    @PostMapping("/register")
+    public ApiResponse<UmsUser> registerUser(@RequestBody RegisterDTO registerDTO) {
+        return userService.registerUser(registerDTO.getName(), registerDTO.getPass(), registerDTO.getCheckPass(), registerDTO.getEmail());
+    }
+}
+```
+
+```java
+// UmsUserMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.UmsUser;
+
+public interface UmsUserMapper {
+    UmsUser findByUsernameOrEmail(String username, String email);
+    void insert(UmsUser user);
+}
+```
+
+```xml
+<!-- UmsUserMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.UmsUserMapper">
+
+    <select id="findByUsernameOrEmail" parameterType="map" resultType="com.example.entity.UmsUser">
+        SELECT * FROM ums_user WHERE username = #{username} OR email = #{email}
+    </select>
+
+    <insert id="insert" parameterType="com.example.entity.UmsUser">
+        INSERT INTO ums_user (username, password, email) VALUES (#{username}, #{password}, #{email})
+    </insert>
+
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+UserController.java:[7,2]
+java: 找不到符号
+  符号: 类 RestController
+UserController.java:[8,2]
+java: 找不到符号
+  符号: 类 RequestMapping
+UserController.java:[15,12]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.UserController
+UserController.java:[11,6]
+java: 找不到符号
+  符号:   类 Autowired
+  位置: 类 com.example.controller.UserController
+UserController.java:[15,47]
+java: 找不到符号
+  符号:   类 RequestBody
+  位置: 类 com.example.controller.UserController
+UserController.java:[14,6]
+java: 找不到符号
+  符号:   类 PostMapping
+  位置: 类 com.example.controller.UserController
+UserService.java:[6,5]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.UserService
+UserServiceImpl.java:[5,41]
+java: 找不到符号
+  符号: 类 UserService
+UserServiceImpl.java:[4,2]
+java: 找不到符号
+  符号: 类 Service
+UserServiceImpl.java:[8,13]
+java: 找不到符号
+  符号:   类 UmsUserMapper
+  位置: 类 com.example.service.impl.UserServiceImpl
+UserServiceImpl.java:[11,12]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.UserServiceImpl
+UserServiceImpl.java:[7,6]
+java: 找不到符号
+  符号:   类 Autowired
+  位置: 类 com.example.service.impl.UserServiceImpl
+UserServiceImpl.java:[43,16]
+java: 找不到符号
+  符号:   变量 encryptedPassword
+  位置: 类 com.example.service.impl.UserServiceImpl
+org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis.binding.BindingException: Parameter 'username' not found. Available parameters are [arg1, arg0, param1, param2].
+Error updating database.  Cause: java.sql.SQLException: Field 'id' doesn't have a default value.
+```
+
+```功能错误
+pass的md5加密方法没有实现.
+create_time创建时间没有自动创建.
+```

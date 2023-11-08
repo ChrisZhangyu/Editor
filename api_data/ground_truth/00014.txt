@@ -1,0 +1,135 @@
+﻿
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private boolean success;
+    private String message;
+}
+```
+```java
+// DelDeptRequest.java
+package com.example.entity;
+
+
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+public class DelDeptRequest {
+    private int deptId;
+}
+```
+```java
+// Dept.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Dept {
+    private int deptId;
+    private String deptName;
+    private String deptLeader;
+}
+```
+
+```java
+// DeptService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface DeptService {
+    ApiResponse deleteDept(int deptId);
+}
+```
+
+```java
+// DeptServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.DeptMapper;
+import com.example.service.DeptService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class DeptServiceImpl implements DeptService {
+    @Autowired
+    private DeptMapper deptMapper;
+
+    @Override
+    public ApiResponse deleteDept(int deptId) {
+        int rows = deptMapper.deleteDeptById(deptId);
+        if (rows > 0) {
+            return new ApiResponse(true, "删除成功");
+        } else {
+            return new ApiResponse(false, "id不存在");
+        }
+    }
+}
+```
+
+```java
+// DeptController.java
+package com.example.controller;
+
+import com.example.service.DeptService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/hrms/dept")
+public class DeptController {
+    @Autowired
+    private DeptService deptService;
+
+    @DeleteMapping("/delDept/{deptId}")
+    public ApiResponse deleteDept(@PathVariable int deptId) {
+        return deptService.deleteDept(deptId);
+    }
+}
+```
+
+```java
+// DeptMapper.java
+package com.example.mapper;
+
+
+public interface DeptMapper {
+    int deleteDeptById(int deptId);
+}
+```
+
+```xml
+<!-- DeptMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.DeptMapper">
+    <delete id="deleteDeptById" parameterType="int">
+        DELETE FROM tbl_dept WHERE dept_id = #{deptId}
+    </delete>
+</mapper>
+
+```

@@ -1,0 +1,473 @@
+业务功能逻辑：根据输入参数在t_user_token表中查找对应的用户id；根据用户id在t_user表中查找学生年级user_level；在t_exam_paper表中查询与学生年级对应的grade_level值；通过grade_level值在t_exam_paper表中查找对应的考试试卷类型paper_type；设置限定时间类考试，设置考试日期create_time为当前日期，grade_level和paper_type和上述查找到的值一致；在表t_exam_paper中设置限定时间类考试试卷名name，考试开始时间limit_start_time，考试结束时间limit_end_time；返回{"code":1,"message":"成功","response":{"fixedPaper":[{"id":66,"name":"aaa","limitStartTime":null,"limitEndTime":null}],"timeLimitPaper":[{"id":66,"name":"202008705","limitStartTime":1600704000000,"limitEndTime":1664985600000,"startTime":"2020-09-22 00:00:00","endTime":"2022-10-06 00:00:00"}],"classPaper":[{"paperId":21,"paperName":"20200908","className":"1班"}]}}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// DashboardIndexRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.Data;
+
+@Data
+public class DashboardIndexRequest {
+    private String token;
+}
+```
+```java
+// ExamPaper.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.Data;
+
+@Data
+public class DashboardIndexRequest {
+    private String token;
+}
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+    private int gradeLevel;
+    private int score;
+    private int questionCount;
+    private int suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private int taskExamId;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.Data;
+
+@Data
+public class DashboardIndexRequest {
+    private String token;
+}
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+    private int gradeLevel;
+    private int score;
+    private int questionCount;
+    private int suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private int taskExamId;
+}
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+```java
+// UserToken.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.Data;
+
+@Data
+public class DashboardIndexRequest {
+    private String token;
+}
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+    private int gradeLevel;
+    private int score;
+    private int questionCount;
+    private int suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private int taskExamId;
+}
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserToken {
+    private int id;
+    private String token;
+    private int userId;
+    private String wxOpenId;
+    private Timestamp createTime;
+    private Timestamp endTime;
+    private String userName;
+}
+```
+
+```java
+// DashboardService.java
+package com.example.service;
+
+import com.example.mapper.UserTokenMapper;
+import com.example.entity.ExamPaper;
+import com.example.entity.ApiResponse;
+import com.example.entity.DashboardIndexRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class DashboardService {
+    private final UserTokenMapper userTokenMapper;
+    private final UserMapper userMapper;
+    private final ExamPaperMapper examPaperMapper;
+
+    @Autowired
+    public DashboardService(UserTokenMapper userTokenMapper, UserMapper userMapper, ExamPaperMapper examPaperMapper) {
+        this.userTokenMapper = userTokenMapper;
+        this.userMapper = userMapper;
+        this.examPaperMapper = examPaperMapper;
+    }
+
+    public ApiResponse<DashboardIndexResponse> getDashboardIndex(DashboardIndexRequest request) {
+        // 根据输入参数在t_user_token表中查找对应的用户id
+        int userId = userTokenMapper.getUserIdByToken(request.getToken());
+
+        // 根据用户id在t_user表中查找学生年级user_level
+        int userLevel = userMapper.getUserLevelById(userId);
+
+        // 在t_exam_paper表中查询与学生年级对应的grade_level值
+        int gradeLevel = examPaperMapper.getGradeLevelByUserLevel(userLevel);
+
+        // 通过grade_level值在t_exam_paper表中查找对应的考试试卷类型paper_type
+        int paperType = examPaperMapper.getPaperTypeByGradeLevel(gradeLevel);
+
+        // 设置限定时间类考试，设置考试日期create_time为当前日期，grade_level和paper_type和上述查找到的值一致
+        ExamPaper examPaper = new ExamPaper();
+        examPaper.setName("限定时间类考试试卷名");
+        examPaper.setLimitStartTime(new Date());
+        examPaper.setLimitEndTime(new Date());
+        examPaper.setGradeLevel(gradeLevel);
+        examPaper.setPaperType(paperType);
+
+        // 在表t_exam_paper中插入限定时间类考试试卷
+        examPaperMapper.insertExamPaper(examPaper);
+
+        // 返回结果
+        DashboardIndexResponse response = new DashboardIndexResponse();
+        response.setFixedPaper(examPaperMapper.getFixedPapers());
+        response.setTimeLimitPaper(examPaperMapper.getTimeLimitPapers());
+        response.setClassPaper(examPaperMapper.getClassPapers());
+        return new ApiResponse<>(1, "成功", response);
+    }
+}
+```
+
+
+```java
+// DashboardController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.DashboardService;
+import com.example.entity.DashboardIndexRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/wx/student/dashboard")
+public class DashboardController {
+    private final DashboardService dashboardService;
+
+    @Autowired
+    public DashboardController(DashboardService dashboardService) {
+        this.dashboardService = dashboardService;
+    }
+
+    @PostMapping("/index")
+    public ApiResponse<DashboardIndexResponse> getDashboardIndex(@RequestBody DashboardIndexRequest request) {
+        return dashboardService.getDashboardIndex(request);
+    }
+}
+```
+
+```java
+// UserTokenMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
+
+@Mapper
+public interface UserTokenMapper {
+    @Select("SELECT user_id FROM t_user_token WHERE token = #{token}")
+    int getUserIdByToken(@Param("token") String token);
+}
+
+@Mapper
+public interface UserMapper {
+    @Select("SELECT user_level FROM t_user WHERE id = #{userId}")
+    int getUserLevelById(@Param("userId") int userId);
+}
+
+@Mapper
+public interface ExamPaperMapper {
+    @Select("SELECT grade_level FROM t_exam_paper WHERE user_level = #{userLevel}")
+    int getGradeLevelByUserLevel(@Param("userLevel") int userLevel);
+
+    @Select("SELECT paper_type FROM t_exam_paper WHERE grade_level = #{gradeLevel}")
+    int getPaperTypeByGradeLevel(@Param("gradeLevel") int gradeLevel);
+
+    @Insert("INSERT INTO t_exam_paper (name, limit_start_time, limit_end_time, grade_level, paper_type) " +
+            "VALUES (#{name}, #{limitStartTime}, #{limitEndTime}, #{gradeLevel}, #{paperType})")
+    void insertExamPaper(ExamPaper examPaper);
+
+    @Select("SELECT id, name, limit_start_time AS limitStartTime, limit_end_time AS limitEndTime " +
+            "FROM t_exam_paper WHERE limit_start_time IS NULL AND limit_end_time IS NULL")
+    List<ExamPaper> getFixedPapers();
+
+    @Select("SELECT id, name, limit_start_time AS limitStartTime, limit_end_time AS limitEndTime, " +
+            "start_time AS startTime, end_time AS endTime " +
+            "FROM t_exam_paper WHERE limit_start_time IS NOT NULL AND limit_end_time IS NOT NULL")
+    List<ExamPaper> getTimeLimitPapers();
+
+    @Select("SELECT paper_id AS paperId, paper_name AS paperName, class_name AS className " +
+            "FROM t_exam_paper WHERE paper_id IS NOT NULL AND paper_name IS NOT NULL AND class_name IS NOT NULL")
+    List<ExamPaper> getClassPapers();
+}
+```
+
+```xml
+<!-- ExamPaperMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ExamPaperMapper">
+    <select id="getFixedPapers" resultType="com.example.entity.ExamPaper">
+        SELECT id, name, limit_start_time AS limitStartTime, limit_end_time AS limitEndTime
+        FROM t_exam_paper WHERE limit_start_time IS NULL AND limit_end_time IS NULL
+    </select>
+
+    <select id="getTimeLimitPapers" resultType="com.example.entity.ExamPaper">
+        SELECT id, name, limit_start_time AS limitStartTime, limit_end_time AS limitEndTime,
+        start_time AS startTime, end_time AS endTime
+        FROM t_exam_paper WHERE limit_start_time IS NOT NULL AND limit_end_time IS NOT NULL
+    </select>
+
+    <select id="getClassPapers" resultType="com.example.entity.ExamPaper">
+        SELECT paper_id AS paperId, paper_name AS paperName, class_name AS className
+        FROM t_exam_paper WHERE paper_id IS NOT NULL AND paper_name IS NOT NULL AND class_name IS NOT NULL
+    </select>
+
+    <insert id="insertExamPaper">
+        INSERT INTO t_exam_paper (name, limit_start_time, limit_end_time, grade_level, paper_type)
+        VALUES (#{name}, #{limitStartTime}, #{limitEndTime}, #{gradeLevel}, #{paperType})
+    </insert>
+
+    <select id="getGradeLevelByUserLevel" resultType="int">
+        SELECT grade_level FROM t_exam_paper WHERE user_level = #{userLevel}
+    </select>
+
+    <select id="getPaperTypeByGradeLevel" resultType="int">
+        SELECT paper_type FROM t_exam_paper WHERE grade_level = #{gradeLevel}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\wx_index_system\src\main\java\com\example\entity\DashboardIndexRequest.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_index_system\src\main\java\com\example\entity\ExamPaper.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_index_system\src\main\java\com\example\entity\ExamPaper.java:24
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_index_system\src\main\java\com\example\entity\User.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_index_system\src\main\java\com\example\entity\User.java:24
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_index_system\src\main\java\com\example\entity\User.java:47
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_index_system\src\main\java\com\example\entity\UserToken.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_index_system\src\main\java\com\example\entity\UserToken.java:24
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_index_system\src\main\java\com\example\entity\UserToken.java:47
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_index_system\src\main\java\com\example\entity\UserToken.java:73
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_index_system\src\main\java\com\example\mapper\UserTokenMapper.java:19:8
+java: 接口 UserMapper 是公共的, 应在名为 UserMapper.java 的文件中声明
+D:\迅雷下载\xzs-project_test\wx_index_system\src\main\java\com\example\controller\DashboardController.java:24:24
+java: 找不到符号
+  符号:   类 DashboardIndexResponse
+  位置: 类 com.example.controller.DashboardController
+Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'sqlSessionFactory' defined in class path resource [org/mybatis/spring/boot/autoconfigure/MybatisAutoConfiguration.class]: Bean instantiation via factory method failed; nested exception is org.springframework.beans.BeanInstantiationException: Failed to instantiate [org.apache.ibatis.session.SqlSessionFactory]: Factory method 'sqlSessionFactory' threw exception; nested exception is org.springframework.core.NestedIOException: Failed to parse mapping resource: 'file [D:\迅雷下载\xzs-project_test\wx_index_system\target\classes\mapper\ExamPaperMapper.xml]'; nested exception is java.lang.IllegalArgumentException: Mapped Statements collection already contains value for com.example.mapper.ExamPaperMapper.getPaperTypeByGradeLevel. please check file [D:\迅雷下载\xzs-project_test\wx_index_system\target\classes\mapper\ExamPaperMapper.xml] and com/example/mapper/ExamPaperMapper.java (best guess)
+```
+```功能错误
+没实现查找paper_type和grade_level功能
+```

@@ -1,0 +1,213 @@
+业务功能逻辑：获取当前用户信息接口：接收请求后创建一个用户响应对象，从用户响应对象中获取当前的用户信息，如果成功获取，返回一个成功的响应，提示"获取成功"，包括响应数据 { "id": 64,"userUuid": "",  "userName": "admin", "realName": "", "age": 30, "role": 3, "sex": 1, "birthDay": "2019-09-07 18:56:07",  "phone": null, "lastActiveTime": "",  "createTime": "",   "modifyTime": "", "status": 1, "userLevel": null,"imagePath": null }}；如果获取失败，则返回一个失败的响应，提示"获取失败"。
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private Integer userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.User;
+
+import com.example.demo.entity.User;
+
+public interface UserService {
+    User getCurrentUser();
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.User;
+import com.example.service.UserService;
+import com.example.mapper.UserMapper;
+
+import com.example.demo.entity.User;
+import com.example.demo.mapper.UserMapper;
+import com.example.demo.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserMapper userMapper;
+
+    @Autowired
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public User getCurrentUser() {
+        // 根据具体业务逻辑获取当前用户信息
+        // 这里假设获取到的用户信息是从数据库中查询得到的
+        return userMapper.getCurrentUser();
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.entity.User;
+import com.example.service.UserService;
+import com.example.entity.ApiResponse;
+
+import com.example.demo.entity.ApiResponse;
+import com.example.demo.entity.User;
+import com.example.demo.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/user")
+public class UserController {
+
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/current")
+    public ApiResponse getCurrentUser() {
+        User currentUser = userService.getCurrentUser();
+        if (currentUser != null) {
+            return new ApiResponse(1, "成功", currentUser);
+        } else {
+            return new ApiResponse(0, "失败", null);
+        }
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+
+import com.example.demo.entity.User;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+
+@Mapper
+public interface UserMapper {
+
+    @Select("SELECT * FROM t_user LIMIT 1")
+    User getCurrentUser();
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.UserMapper">
+
+    <select id="getCurrentUser" resultType="com.example.demo.entity.User">
+        SELECT * FROM t_user LIMIT 1
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\order_t_user_get_system\src\main\java\com\example\entity\User.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_t_user_get_system\src\main\java\com\example\entity\User.java:18
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_t_user_get_system\src\main\java\com\example\entity\User.java:19
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_t_user_get_system\src\main\java\com\example\entity\User.java:21
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_t_user_get_system\src\main\java\com\example\controller\UserController.java:7:31
+java: 程序包com.example.demo.entity不存在
+D:\迅雷下载\xzs-project_test\order_t_user_get_system\src\main\java\com\example\service\UserService.java:5:31
+java: 程序包com.example.demo.entity不存在
+D:\迅雷下载\xzs-project_test\order_t_user_get_system\src\main\java\com\example\mapper\UserMapper.java:5:31
+java: 程序包com.example.demo.entity不存在
+Caused by: java.lang.ClassNotFoundException: Cannot find class: com.example.demo.entity.User
+D:\迅雷下载\xzs-project_test\order_t_user_get_system\src\main\java\com\example\service\impl\UserServiceImpl.java:11:8
+java: com.example.service.impl.UserServiceImpl不是抽象的, 并且未覆盖com.example.service.UserService中的抽象方法getCurrentUser(java.lang.Integer)
+```
+```功能错误
+直接获取数据库全部信息了
+已与地址为 ''127.0.0.1:54197'，传输: '套接字'' 的目标虚拟机断开连接
+```

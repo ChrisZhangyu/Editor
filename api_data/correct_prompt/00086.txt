@@ -1,0 +1,285 @@
+业务功能逻辑：
+在bms_tag表中查询标签，查询条件是bms_tag.name等于输入参数，如果不存在，返回data为"话题不存在，或已被管理员删除"；如果存在，在bms_post_tag表中查询topic_id列表，查询条件是bms_post_tag.tag_id等于bms_tag.id；分页查询bms_post表中的记录，查询条件是id等于bms_post_tag.topic_id列表；分页查询bms_tag表中的记录，查询条件是bms_tag.name不等于输入参数，按照bms_tag.topic_count列进行降序排序，最后以每页10条的方式返回第1页的结果；返回data设置为{"topic"={bms_post记录},"hotTags"={bms_tag记录}}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// BmsTag.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_tag")
+public class BmsTag {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "topic_count")
+    private int topicCount;
+}
+```
+
+```java
+// Post.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_post")
+public class Post {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "title")
+    private String title;
+
+    @Column(name = "content", columnDefinition = "longtext")
+    private String content;
+
+    @Column(name = "user_id", length = 20)
+    private String userId;
+
+    @Column(name = "comments")
+    private int comments;
+
+    @Column(name = "collects")
+    private int collects;
+
+    @Column(name = "view")
+    private int view;
+
+    @Column(name = "top")
+    private boolean top;
+
+    @Column(name = "essence")
+    private boolean essence;
+
+    @Column(name = "section_id")
+    private String sectionId;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+}
+```
+
+```java
+// TagService.java
+package com.example.service;
+
+import com.example.entity.Tag;
+import java.util.List;
+
+public interface TagService {
+    ApiResponse getTagByName(String name, int pageNum, int pageSize);
+}
+```
+
+```java
+// TagServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.BmsTag;
+import com.example.entity.Post;
+import com.example.mapper.TagMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class TagServiceImpl implements TagService {
+
+    private final TagMapper tagMapper;
+
+    @Autowired
+    public TagServiceImpl(TagMapper tagMapper) {
+        this.tagMapper = tagMapper;
+    }
+
+    @Override
+    public ApiResponse getTagByName(String name, int pageNum, int pageSize) {
+        BmsTag tag = tagMapper.getTagByName(name);
+        if (tag == null) {
+            return new ApiResponse(200, "话题不存在，或已被管理员删除", null);
+        }
+        List<String> topicIds = tagMapper.getTopicIdsByTagId(tag.getId());
+        List<Post> posts = tagMapper.getPostsByTopicIds(topicIds, pageNum, pageSize);
+        List<BmsTag> hotTags = tagMapper.getHotTags(name, pageNum, pageSize);
+        // 构造返回的ApiResponse对象
+        ApiResponse response = new ApiResponse();
+        response.setCode(200);
+        response.setMessage("操作成功");
+        response.setData(new HashMap<String, Object>() {{
+            put("topic", posts);
+            put("hotTags", hotTags);
+        }});
+        return response;
+    }
+}
+```
+
+```java
+// TagController.java
+package com.example.controller;
+
+import com.example.service.TagService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class TagController {
+
+    private final TagService tagService;
+
+    @Autowired
+    public TagController(TagService tagService) {
+        this.tagService = tagService;
+    }
+
+    @GetMapping("/tag/{name}")
+    public ApiResponse getTagByName(@PathVariable String name,
+                                    @RequestParam(defaultValue = "1") int pageNum,
+                                    @RequestParam(defaultValue = "10") int pageSize) {
+        return tagService.getTagByName(name, pageNum, pageSize);
+    }
+}
+```
+
+```java
+// TagMapper.java
+package com.example.mapper;
+
+import com.example.entity.Post;
+import com.example.entity.BmsTag;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface TagMapper {
+    BmsTag getTagByName(String name);
+
+    List<String> getTopicIdsByTagId(String tagId);
+
+    List<Post> getPostsByTopicIds(@Param("topicIds") List<String> topicIds,
+                                  @Param("pageNum") int pageNum,
+                                  @Param("pageSize") int pageSize);
+
+    List<BmsTag> getHotTags(@Param("name") String name,
+                         @Param("pageNum") int pageNum,
+                         @Param("pageSize") int pageSize);
+}
+```
+
+```xml
+<!-- TagMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.TagMapper">
+
+    <select id="getTagByName" resultType="com.example.entity.BmsTag">
+        SELECT * FROM bms_tag WHERE name = #{name}
+    </select>
+
+    <select id="getTopicIdsByTagId" resultType="String">
+        SELECT topic_id FROM bms_post_tag WHERE tag_id = #{tagId}
+    </select>
+
+    <select id="getPostsByTopicIds" resultType="com.example.entity.Post">
+        SELECT * FROM bms_post WHERE id IN
+        <foreach collection="topicIds" item="topicId" open="(" separator="," close=")">
+            #{topicId}
+        </foreach>
+        LIMIT #{pageNum}, #{pageSize}
+    </select>
+
+    <select id="getHotTags" resultType="com.example.entity.BmsTag">
+        SELECT * FROM bms_tag WHERE name != #{name} ORDER BY topic_count DESC LIMIT #{pageNum}, #{pageSize}
+    </select>
+
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+TagController.java:21:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.TagController
+TagService.java:7:5
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.TagService
+TagServiceImpl.java:10:40
+java: 找不到符号
+  符号: 类 TagService
+TagServiceImpl.java:20:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.TagServiceImpl
+TagServiceImpl.java:27:9
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.service.impl.TagServiceImpl
+TagServiceImpl.java:28:9
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.service.impl.TagServiceImpl
+TagServiceImpl.java:29:9
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.service.impl.TagServiceImpl
+TagServiceImpl.java:34:30
+java: 找不到符号
+  符号:   类 HashMap
+  位置: 类 com.example.service.impl.TagServiceImpls
+```
+
+```功能错误
+分页查询中的LIMIT计算错误，没有从结果集的第(pageNum-1)*pageSize行开始返回.
+在bms_tag表的分页查询中，最后以每页10条的方式返回第1页的结果逻辑没有实现.
+```

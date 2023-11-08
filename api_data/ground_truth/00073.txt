@@ -1,0 +1,244 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private OmsCompanyAddress omsCompanyAddress;
+}
+```
+```java
+// OmsCompanyAddress.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsCompanyAddress {
+    private Long id;
+    private String addressName;
+    private Integer sendStatus;
+    private Integer receiveStatus;
+    private String name;
+    private String phone;
+    private String province;
+    private String city;
+    private String region;
+    private String detailAddress;
+}
+```
+```java
+// OmsOrderReturnApply.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderReturnApply {
+    private Long id;
+    private Long orderId;
+    private Long companyAddressId;
+    private Long productId;
+    private String orderSn;
+    private Date createTime;
+    private String memberUsername;
+    private BigDecimal returnAmount;
+    private String returnName;
+    private String returnPhone;
+    private Integer status;
+    private Date handleTime;
+    private String productPic;
+    private String productName;
+    private String productBrand;
+    private String productAttr;
+    private Integer productCount;
+    private BigDecimal productPrice;
+    private BigDecimal productRealPrice;
+    private String reason;
+    private String description;
+    private String proofPics;
+    private String handleNote;
+    private String handleMan;
+    private String receiveMan;
+    private Date receiveTime;
+    private String receiveNote;
+}```
+```java
+// ReturnApplyRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ReturnApplyRequest {
+    private Long id;
+}```
+
+```java
+// ReturnApplyService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface ReturnApplyService {
+    ApiResponse getReturnApplyDetail(Long id);
+}
+```
+
+```java
+// ReturnApplyServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.OmsCompanyAddress;
+import com.example.mapper.OmsCompanyAddressMapper;
+import com.example.mapper.OmsOrderReturnApplyMapper;
+import com.example.entity.OmsOrderReturnApply;
+import com.example.service.ReturnApplyService;
+import org.springframework.stereotype.Service;
+
+
+
+@Service
+public class ReturnApplyServiceImpl implements ReturnApplyService {
+    private final OmsOrderReturnApplyMapper returnApplyMapper;
+    private final OmsCompanyAddressMapper companyAddressMapper;
+
+    public ReturnApplyServiceImpl(OmsOrderReturnApplyMapper returnApplyMapper, OmsCompanyAddressMapper companyAddressMapper) {
+        this.returnApplyMapper = returnApplyMapper;
+        this.companyAddressMapper = companyAddressMapper;
+    }
+
+    @Override
+    public ApiResponse getReturnApplyDetail(Long id) {
+        OmsOrderReturnApply returnApply = returnApplyMapper.selectById(id);
+        OmsCompanyAddress companyAddress = companyAddressMapper.selectById(returnApply.getCompanyAddressId());
+        return new ApiResponse(companyAddress);
+    }
+}
+```
+
+```java
+// ReturnApplyController.java
+package com.example.controller;
+
+
+import com.example.entity.ApiResponse;
+import com.example.service.ReturnApplyService;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/returnApply")
+public class ReturnApplyController {
+    private final ReturnApplyService returnApplyService;
+
+    public ReturnApplyController(ReturnApplyService returnApplyService) {
+        this.returnApplyService = returnApplyService;
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse getReturnApplyDetail(@PathVariable Long id) {
+        return returnApplyService.getReturnApplyDetail(id);
+    }
+}
+```
+
+```java
+// OmsCompanyAddressMapper.java
+package com.example.mapper;
+
+import com.example.entity.OmsCompanyAddress;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface OmsCompanyAddressMapper {
+    OmsCompanyAddress selectById(@Param("id") Long id);
+}
+```
+```java
+// OmsOrderReturnApplyMapper.java
+package com.example.mapper;
+
+import com.example.entity.OmsCompanyAddress;
+import com.example.entity.OmsOrderReturnApply;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface OmsOrderReturnApplyMapper {
+    OmsOrderReturnApply selectById(@Param("id") Long id);
+}
+
+
+```
+
+```xml
+<!-- OmsOrderReturnApplyMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.OmsOrderReturnApplyMapper">
+    <resultMap id="BaseResultMap" type="com.example.entity.OmsOrderReturnApply">
+        <id column="id" property="id" />
+        <result column="order_id" property="orderId" />
+        <result column="company_address_id" property="companyAddressId" />
+        <result column="product_id" property="productId" />
+        <result column="order_sn" property="orderSn" />
+        <result column="create_time" property="createTime" />
+        <result column="member_username" property="memberUsername" />
+        <result column="return_amount" property="returnAmount" />
+        <result column="return_name" property="returnName" />
+        <result column="return_phone" property="returnPhone" />
+        <result column="status" property="status" />
+        <result column="handle_time" property="handleTime" />
+        <result column="product_pic" property="productPic" />
+        <result column="product_name" property="productName" />
+        <result column="product_brand" property="productBrand" />
+        <result column="product_attr" property="productAttr" />
+        <result column="product_count" property="productCount" />
+        <result column="product_price" property="productPrice" />
+        <result column="product_real_price" property="productRealPrice" />
+        <result column="reason" property="reason" />
+        <result column="description" property="description" />
+        <result column="proof_pics" property="proofPics" />
+        <result column="handle_note" property="handleNote" />
+        <result column="handle_man" property="handleMan" />
+        <result column="receive_man" property="receiveMan" />
+        <result column="receive_time" property="receiveTime" />
+        <result column="receive_note" property="receiveNote" />
+    </resultMap>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM oms_order_return_apply WHERE id = #{id}
+    </select>
+</mapper>
+
+```
+

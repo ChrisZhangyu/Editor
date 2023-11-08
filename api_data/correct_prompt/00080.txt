@@ -1,0 +1,507 @@
+业务功能逻辑：通过输入参数在oms_order表中，更新数据库中的订单记录。包括订单ID、操作历史的创建时间、操作人（在这里是"后台管理员"）、订单状态以及一条操作备注，说明了操作的目的，即"修改收货人信息"。实现更新订单的收货人信息，并在数据库中记录订单操作历史，用于追踪订单的修改记录。返回参数{"count"}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer count;
+}
+```
+```java
+// OmsOrder.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer count;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrder {
+    private Long id;
+    private Long memberId;
+    private Long couponId;
+    private String orderSn;
+    private Timestamp createTime;
+    private String memberUsername;
+    private BigDecimal totalAmount;
+    private BigDecimal payAmount;
+    private BigDecimal freightAmount;
+    private BigDecimal promotionAmount;
+    private BigDecimal integrationAmount;
+    private BigDecimal couponAmount;
+    private BigDecimal discountAmount;
+    private Integer payType;
+    private Integer sourceType;
+    private Integer status;
+    private Integer orderType;
+    private String deliveryCompany;
+    private String deliverySn;
+    private Integer autoConfirmDay;
+    private Integer integration;
+    private Integer growth;
+    private String promotionInfo;
+    private Integer billType;
+    private String billHeader;
+    private String billContent;
+    private String billReceiverPhone;
+    private String billReceiverEmail;
+    private String receiverName;
+    private String receiverPhone;
+    private String receiverPostCode;
+    private String receiverProvince;
+    private String receiverCity;
+    private String receiverRegion;
+    private String receiverDetailAddress;
+    private String note;
+    private Integer confirmStatus;
+    private Integer deleteStatus;
+    private Integer useIntegration;
+    private Timestamp paymentTime;
+    private Timestamp deliveryTime;
+    private Timestamp receiveTime;
+    private Timestamp commentTime;
+    private Timestamp modifyTime;
+}
+```
+```java
+// OmsOrderOperateHistory.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer count;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrder {
+    private Long id;
+    private Long memberId;
+    private Long couponId;
+    private String orderSn;
+    private Timestamp createTime;
+    private String memberUsername;
+    private BigDecimal totalAmount;
+    private BigDecimal payAmount;
+    private BigDecimal freightAmount;
+    private BigDecimal promotionAmount;
+    private BigDecimal integrationAmount;
+    private BigDecimal couponAmount;
+    private BigDecimal discountAmount;
+    private Integer payType;
+    private Integer sourceType;
+    private Integer status;
+    private Integer orderType;
+    private String deliveryCompany;
+    private String deliverySn;
+    private Integer autoConfirmDay;
+    private Integer integration;
+    private Integer growth;
+    private String promotionInfo;
+    private Integer billType;
+    private String billHeader;
+    private String billContent;
+    private String billReceiverPhone;
+    private String billReceiverEmail;
+    private String receiverName;
+    private String receiverPhone;
+    private String receiverPostCode;
+    private String receiverProvince;
+    private String receiverCity;
+    private String receiverRegion;
+    private String receiverDetailAddress;
+    private String note;
+    private Integer confirmStatus;
+    private Integer deleteStatus;
+    private Integer useIntegration;
+    private Timestamp paymentTime;
+    private Timestamp deliveryTime;
+    private Timestamp receiveTime;
+    private Timestamp commentTime;
+    private Timestamp modifyTime;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderOperateHistory {
+    private Long id;
+    private Long orderId;
+    private String operateMan;
+    private Timestamp createTime;
+    private Integer orderStatus;
+    private String note;
+}
+```
+```java
+// UpdateReceiverInfoRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer count;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrder {
+    private Long id;
+    private Long memberId;
+    private Long couponId;
+    private String orderSn;
+    private Timestamp createTime;
+    private String memberUsername;
+    private BigDecimal totalAmount;
+    private BigDecimal payAmount;
+    private BigDecimal freightAmount;
+    private BigDecimal promotionAmount;
+    private BigDecimal integrationAmount;
+    private BigDecimal couponAmount;
+    private BigDecimal discountAmount;
+    private Integer payType;
+    private Integer sourceType;
+    private Integer status;
+    private Integer orderType;
+    private String deliveryCompany;
+    private String deliverySn;
+    private Integer autoConfirmDay;
+    private Integer integration;
+    private Integer growth;
+    private String promotionInfo;
+    private Integer billType;
+    private String billHeader;
+    private String billContent;
+    private String billReceiverPhone;
+    private String billReceiverEmail;
+    private String receiverName;
+    private String receiverPhone;
+    private String receiverPostCode;
+    private String receiverProvince;
+    private String receiverCity;
+    private String receiverRegion;
+    private String receiverDetailAddress;
+    private String note;
+    private Integer confirmStatus;
+    private Integer deleteStatus;
+    private Integer useIntegration;
+    private Timestamp paymentTime;
+    private Timestamp deliveryTime;
+    private Timestamp receiveTime;
+    private Timestamp commentTime;
+    private Timestamp modifyTime;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderOperateHistory {
+    private Long id;
+    private Long orderId;
+    private String operateMan;
+    private Timestamp createTime;
+    private Integer orderStatus;
+    private String note;
+}
+
+import lombok.Data;
+
+@Data
+public class UpdateReceiverInfoRequest {
+    private Long orderId;
+    private String receiverName;
+    private String receiverPhone;
+    private String receiverPostCode;
+    private String receiverDetailAddress;
+    private String receiverProvince;
+    private String receiverCity;
+    private String receiverRegion;
+    private Integer status;
+}
+```
+
+```java
+// OmsOrderService.java
+package com.example.service;
+
+import com.example.entity.UpdateReceiverInfoRequest;
+import com.example.entity.OmsOrder;
+import com.example.entity.OmsOrderOperateHistory;
+
+import com.example.demo.entity.OmsOrder;
+import com.example.demo.entity.OmsOrderOperateHistory;
+import com.example.demo.request.UpdateReceiverInfoRequest;
+
+public interface OmsOrderService {
+    int updateReceiverInfo(UpdateReceiverInfoRequest request);
+}
+```
+
+```java
+// OmsOrderServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.OmsOrder;
+import com.example.entity.UpdateReceiverInfoRequest;
+import com.example.mapper.OmsOrderOperateHistoryMapper;
+import com.example.mapper.OmsOrderMapper;
+import com.example.entity.OmsOrderOperateHistory;
+import com.example.service.OmsOrderService;
+
+import com.example.demo.entity.OmsOrder;
+import com.example.demo.entity.OmsOrderOperateHistory;
+import com.example.demo.mapper.OmsOrderMapper;
+import com.example.demo.mapper.OmsOrderOperateHistoryMapper;
+import com.example.demo.request.UpdateReceiverInfoRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.sql.Timestamp;
+
+@Service
+public class OmsOrderServiceImpl implements OmsOrderService {
+
+    private OmsOrderMapper orderMapper;
+    private OmsOrderOperateHistoryMapper operateHistoryMapper;
+
+    @Autowired
+    public OmsOrderServiceImpl(OmsOrderMapper orderMapper, OmsOrderOperateHistoryMapper operateHistoryMapper) {
+        this.orderMapper = orderMapper;
+        this.operateHistoryMapper = operateHistoryMapper;
+    }
+
+    @Override
+    @Transactional
+    public int updateReceiverInfo(UpdateReceiverInfoRequest request) {
+        OmsOrder order = orderMapper.selectByPrimaryKey(request.getOrderId());
+        if (order == null) {
+            return 0;
+        }
+
+        order.setReceiverName(request.getReceiverName());
+        order.setReceiverPhone(request.getReceiverPhone());
+        order.setReceiverPostCode(request.getReceiverPostCode());
+        order.setReceiverDetailAddress(request.getReceiverDetailAddress());
+        order.setReceiverProvince(request.getReceiverProvince());
+        order.setReceiverCity(request.getReceiverCity());
+        order.setReceiverRegion(request.getReceiverRegion());
+        order.setStatus(request.getStatus());
+
+        int count = orderMapper.updateByPrimaryKey(order);
+
+        OmsOrderOperateHistory operateHistory = new OmsOrderOperateHistory();
+        operateHistory.setOrderId(order.getId());
+        operateHistory.setOperateMan("后台管理员");
+        operateHistory.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        operateHistory.setOrderStatus(order.getStatus());
+        operateHistory.setNote("修改收货人信息");
+
+        operateHistoryMapper.insert(operateHistory);
+
+        return count;
+    }
+}
+```
+
+```java
+// OmsOrderController.java
+package com.example.controller;
+
+import com.example.service.OmsOrderService;
+import com.example.entity.ApiResponse;
+import com.example.entity.UpdateReceiverInfoRequest;
+
+import com.example.demo.request.UpdateReceiverInfoRequest;
+import com.example.demo.service.OmsOrderService;
+import com.example.demo.vo.ApiResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/order")
+public class OmsOrderController {
+
+    private OmsOrderService orderService;
+
+    @Autowired
+    public OmsOrderController(OmsOrderService orderService) {
+        this.orderService = orderService;
+    }
+
+    @PostMapping("/update/receiverInfo")
+    public ApiResponse updateReceiverInfo(@RequestBody UpdateReceiverInfoRequest request) {
+        int count = orderService.updateReceiverInfo(request);
+        return new ApiResponse(count);
+    }
+}
+```
+
+```java
+// OmsOrderMapper.java
+package com.example.mapper;
+
+import com.example.entity.OmsOrder;
+
+import com.example.demo.entity.OmsOrder;
+
+public interface OmsOrderMapper {
+    int deleteByPrimaryKey(Long id);
+
+    int insert(OmsOrder record);
+
+    int insertSelective(OmsOrder record);
+
+    OmsOrder selectByPrimaryKey(Long id);
+
+    int updateByPrimaryKeySelective(OmsOrder record);
+
+    int updateByPrimaryKey(OmsOrder record);
+}
+```
+```java
+// OmsOrderOperateHistoryMapper.java
+package com.example.mapper;
+
+import com.example.entity.OmsOrder;
+
+import com.example.demo.entity.OmsOrder;
+
+public interface OmsOrderMapper {
+    int deleteByPrimaryKey(Long id);
+
+    int insert(OmsOrder record);
+
+    int insertSelective(OmsOrder record);
+
+    OmsOrder selectByPrimaryKey(Long id);
+
+    int updateByPrimaryKeySelective(OmsOrder record);
+
+    int updateByPrimaryKey(OmsOrder record);
+}
+import com.example.entity.OmsOrderOperateHistory;
+
+import com.example.demo.entity.OmsOrderOperateHistory;
+
+public interface OmsOrderOperateHistoryMapper {
+    int deleteByPrimaryKey(Long id);
+
+    int insert(OmsOrderOperateHistory record);
+
+    int insertSelective(OmsOrderOperateHistory record);
+
+    OmsOrderOperateHistory selectByPrimaryKey(Long id);
+
+    int updateByPrimaryKeySelective(OmsOrderOperateHistory record);
+
+    int updateByPrimaryKey(OmsOrderOperateHistory record);
+}
+```
+
+```xml
+<!-- OmsOrderOperateHistoryMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.demo.mapper.OmsOrderOperateHistoryMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.demo.entity.OmsOrderOperateHistory">
+        <!-- 省略映射关系 -->
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        <!-- 省略字段列表 -->
+    </sql>
+
+    <insert id="insert" parameterType="com.example.demo.entity.OmsOrderOperateHistory">
+        INSERT INTO oms_order_operate_history (id, order_id, operate_man, create_time, order_status, note)
+        VALUES (#{id,jdbcType=BIGINT}, #{orderId,jdbcType=BIGINT}, #{operateMan,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{orderStatus,jdbcType=INTEGER}, #{note,jdbcType=VARCHAR})
+    </insert>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\order_update_receiverInfo_system\src\main\java\com\example\entity\OmsOrder.java:15
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_update_receiverInfo_system\src\main\java\com\example\controller\OmsOrderController.java:7:32
+java: 程序包com.example.demo.request不存在
+Caused by: java.lang.ClassNotFoundException: Cannot find class: com.example.demo.entity.OmsOrder
+```
+```功能错误
+mapper.xml文件没实现
+```

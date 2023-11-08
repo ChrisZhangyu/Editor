@@ -1,0 +1,253 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// ExamPaper.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+    private int gradeLevel;
+    private int score;
+    private int questionCount;
+    private int suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private int taskExamId;
+}
+```
+```java
+// ExamPaperRequest.java
+package com.example.entity;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperRequest {
+    private int userId;
+    private int paperType;
+    private int pageIndex;
+    private int pageSize;
+}
+```
+```java
+// PageResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PageResponse<T> {
+    private int total;
+    private T list;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+
+```java
+// ExamPaperService.java
+package com.example.service;
+
+import com.example.entity.ExamPaper;
+import com.example.entity.ApiResponse;
+import com.example.entity.ExamPaperRequest;
+import com.example.entity.PageResponse;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import java.util.List;
+
+public interface ExamPaperService {
+    ApiResponse<PageResponse<List<ExamPaper>>> getExamPaperList(@RequestBody ExamPaperRequest request);
+}
+```
+
+```java
+// ExamPaperServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ExamPaperRequest;
+import com.example.mapper.ExamPaperMapper;
+import com.example.entity.PageResponse;
+import com.example.entity.ApiResponse;
+import com.example.mapper.UserMapper;
+import com.example.service.ExamPaperService;
+import com.example.entity.ExamPaper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import java.util.List;
+
+@Service
+public class ExamPaperServiceImpl implements ExamPaperService {
+
+    private final ExamPaperMapper examPaperMapper;
+    private final UserMapper userMapper;
+
+    @Autowired
+    public ExamPaperServiceImpl(ExamPaperMapper examPaperMapper, UserMapper userMapper) {
+        this.examPaperMapper = examPaperMapper;
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public ApiResponse<PageResponse<List<ExamPaper>>> getExamPaperList(ExamPaperRequest request) {
+        int userLevel = userMapper.getUserLevelByUserId(request.getUserId());
+        List<ExamPaper> examPaperList = examPaperMapper.getExamPaperList(userLevel, request.getPaperType(), request.getPageIndex(),request.getPageSize());
+        int total = examPaperMapper.getExamPaperCount(userLevel);
+        return new ApiResponse<>(1, "成功", new PageResponse<>(total, examPaperList));
+    }
+}
+```
+
+```java
+// ExamPaperController.java
+package com.example.controller;
+
+import com.example.entity.ExamPaperRequest;
+import com.example.entity.ApiResponse;
+import com.example.entity.PageResponse;
+import com.example.service.ExamPaperService;
+import com.example.entity.ExamPaper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/wx/student/exampaper")
+public class ExamPaperController {
+
+    private final ExamPaperService examPaperService;
+
+    @Autowired
+    public ExamPaperController(ExamPaperService examPaperService) {
+        this.examPaperService = examPaperService;
+    }
+
+    @PostMapping("/pageList")
+    public ApiResponse<PageResponse<List<ExamPaper>>> getExamPaperList(@RequestBody ExamPaperRequest request) {
+        return examPaperService.getExamPaperList(request);
+    }
+}
+```
+
+```java
+// ExamPaperMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface ExamPaperMapper {
+    List<ExamPaper> getExamPaperList(@Param("userLevel") int userLevel, @Param("paperType") int paperType, @Param("pageIndex") int pageIndex, @Param("pageSize") int pageSize);
+
+    int getExamPaperCount(@Param("userLevel") int userLevel);
+}
+```
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Param;
+
+public interface UserMapper {
+    int getUserLevelByUserId(@Param("userId") int userId);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+
+    <select id="getUserLevelByUserId" resultType="int">
+        SELECT user_level FROM t_user WHERE id = #{userId}
+    </select>
+
+</mapper>
+
+```
+

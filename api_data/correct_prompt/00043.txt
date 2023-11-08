@@ -1,0 +1,222 @@
+业务功能逻辑：
+在ums_user表中查询用户，查询条件是：name等于username；如果用户存在，回信息data设置为{ums_user的记录}；如果用户不存在，返回信息data设置为null.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    /**
+     * 用户ID
+     */
+    private String id;
+
+    /**
+     * 用户名
+     */
+    private String username;
+
+    /**
+     * 别名
+     */
+    private String alias;
+
+    /**
+     * 密码
+     */
+    private String password;
+
+    /**
+     * 头像
+     */
+    private String avatar;
+
+    /**
+     * 邮箱
+     */
+    private String email;
+
+    /**
+     * 手机号码
+     */
+    private String mobile;
+
+    /**
+     * 积分
+     */
+    private int score;
+
+    /**
+     * 令牌
+     */
+    private String token;
+
+    /**
+     * 个人简介
+     */
+    private String bio;
+
+    /**
+     * 是否激活
+     */
+    private boolean active;
+
+    /**
+     * 状态
+     */
+    private boolean status;
+
+    /**
+     * 角色ID
+     */
+    private String roleId;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 修改时间
+     */
+    private Date modifyTime;
+}
+```
+
+```java
+// UmsUserService.java
+package com.example.service;
+
+import com.example.entity.UmsUser;
+
+public interface UmsUserService {
+    UmsUser getUserByUsername(String username);
+}
+```
+
+```java
+// UmsUserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.UmsUser;
+import com.example.mapper.UmsUserMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UmsUserServiceImpl implements UmsUserService {
+
+    private final UmsUserMapper umsUserMapper;
+
+    @Autowired
+    public UmsUserServiceImpl(UmsUserMapper umsUserMapper) {
+        this.umsUserMapper = umsUserMapper;
+    }
+
+    @Override
+    public UmsUser getUserByUsername(String username) {
+        return umsUserMapper.getUserByUsername(username);
+    }
+}
+```
+
+```java
+// UmsUserController.java
+package com.example.controller;
+
+import com.example.entity.UmsUser;
+import com.example.service.UmsUserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class UmsUserController {
+    private final UmsUserService umsUserService;
+
+    @Autowired
+    public UmsUserController(UmsUserService umsUserService) {
+        this.umsUserService = umsUserService;
+    }
+
+    @GetMapping("/ums/user/info")
+    public ApiResponse<UmsUser> getUserInfo(@RequestParam("username") String username) {
+        UmsUser user = umsUserService.getUserByUsername(username);
+        if (user != null) {
+            return new ApiResponse<>(200, "操作成功", user);
+        } else {
+            return new ApiResponse<>(200, "操作成功", null);
+        }
+    }
+}
+```
+
+```java
+// UmsUserMapper.java
+package com.example.mapper;
+
+import com.example.entity.UmsUser;
+
+import com.example.entity.UmsUser;
+
+public interface UmsUserMapper {
+    UmsUser getUserByUsername(String username);
+}
+```
+
+```xml
+<!-- UmsUserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.UmsUserMapper">
+
+    <select id="getUserByUsername" resultType="com.example.entity.UmsUser">
+        SELECT * FROM ums_user WHERE name = #{username}
+    </select>
+
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+UmsUserController.java:[20,12]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.UmsUserController
+msUserServiceImpl.java:[9,44]
+java: 找不到符号
+  符号: 类 UmsUserService
+Error querying database.  Cause: java.sql.SQLSyntaxErrorException: Unknown column 'name' in 'where clause' ### The error may exist in file [UmsUserMapper.xml].
+```
+
+```功能错误
+返回信息data=UmsUser(createTime=null, modifyTime=null)的createTime和modifyTime为空.
+```

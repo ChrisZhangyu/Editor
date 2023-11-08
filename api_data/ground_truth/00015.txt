@@ -1,0 +1,165 @@
+﻿
+```java
+// AddDeptRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AddDeptRequest {
+    private int deptId;
+    private String deptName;
+    private String deptLeader;
+}
+```
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private boolean success;
+    private String message;
+    private Dept data;
+}
+```
+```java
+// Dept.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Dept {
+    private int deptId;
+    private String deptName;
+    private String deptLeader;
+}
+```
+
+```java
+// DeptService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.AddDeptRequest;
+
+public interface DeptService {
+    ApiResponse addDept(AddDeptRequest request);
+}
+```
+
+```java
+// DeptServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Dept;
+import com.example.mapper.DeptMapper;
+import com.example.entity.AddDeptRequest;
+import com.example.service.DeptService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class DeptServiceImpl implements DeptService {
+
+    private final DeptMapper deptMapper;
+
+    @Autowired
+    public DeptServiceImpl(DeptMapper deptMapper) {
+        this.deptMapper = deptMapper;
+    }
+
+    @Override
+    public ApiResponse addDept(AddDeptRequest request) {
+        int deptId = request.getDeptId();
+        Dept existingDept = deptMapper.getDeptById(deptId);
+        if (existingDept != null) {
+            return new ApiResponse(false, "添加异常", null);
+        }
+        Dept newDept = new Dept(deptId, request.getDeptName(), request.getDeptLeader());
+        deptMapper.addDept(newDept);
+        return new ApiResponse(true, "新增成功", newDept);
+    }
+}
+```
+
+```java
+// DeptController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.AddDeptRequest;
+import com.example.service.DeptService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/hrms/dept")
+public class DeptController {
+
+    private final DeptService deptService;
+
+    @Autowired
+    public DeptController(DeptService deptService) {
+        this.deptService = deptService;
+    }
+
+    @PutMapping("/addDept")
+    public ApiResponse addDept(@RequestBody AddDeptRequest request) {
+        return deptService.addDept(request);
+    }
+}
+```
+
+```java
+// DeptMapper.java
+package com.example.mapper;
+
+import com.example.entity.Dept;
+
+public interface DeptMapper {
+    Dept getDeptById(int deptId);
+    void addDept(Dept dept);
+}
+```
+
+```xml
+<!-- DeptMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.DeptMapper">
+    <resultMap id="DeptResultMap" type="com.example.entity.Dept">
+        <id property="deptId" column="dept_id"/>
+        <result property="deptName" column="dept_name"/>
+        <result property="deptLeader" column="dept_leader"/>
+    </resultMap>
+    <select id="getDeptById" parameterType="int" resultType="com.example.entity.Dept" resultMap="DeptResultMap">
+        SELECT * FROM tbl_dept WHERE dept_id = #{deptId}
+    </select>
+    
+    <insert id="addDept" parameterType="com.example.entity.Dept">
+        INSERT INTO tbl_dept (dept_id, dept_name, dept_leader)
+        VALUES (#{deptId}, #{deptName}, #{deptLeader})
+    </insert>
+</mapper>
+
+```

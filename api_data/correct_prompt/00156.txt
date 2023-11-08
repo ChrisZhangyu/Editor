@@ -1,0 +1,214 @@
+﻿业务功能逻辑：
+用户状态修改：切换用户帐户的状态，使其在"启用"和"禁用"之间切换，1表示启用，2表示禁用。根据路径参数id检索用户信息，获取用户的当前状态，检查当前状态是否为"启用"或"禁用"。根据当前状态，将状态代码在0和1之间切换。使用新状态更新用户的状态，并将modifyTime字段设置为当前日期和时间，然后在表t_user中更新用户的状态。最后，返回ApiResponse,ApiResponse对象中的response为更新后的状态代码。
+
+需要检查的代码：
+```java
+// UserStatusResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserStatusResponse {
+    private int response;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private Integer age;
+    private Integer sex;
+    private Date birthDay;
+    private Integer userLevel;
+    private String phone;
+    private Integer role;
+    private Integer status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private Boolean deleted;
+    private String wxOpenId;
+}
+```
+```java
+// UserStatusChangeRequest.java
+package com.example.entity;
+
+
+
+
+import lombok.Data;
+
+@Data
+public class UserStatusChangeRequest {
+    private int id;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.User;
+
+public interface UserService {
+    User getUserById(int id);
+    int changeUserStatus(int id);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.UserMapper;
+import com.example.service.UserService;
+import com.example.entity.User;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Override
+    public User getUserById(int id) {
+        return userMapper.getUserById(id);
+    }
+
+    @Override
+    public int changeUserStatus(int id) {
+        User user = userMapper.getUserById(id);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+
+        int currentStatus = user.getStatus();
+        int newStatus = currentStatus == 1 ? 2 : 1;
+
+        user.setStatus(newStatus);
+        user.setModifyTime(new Date());
+
+        userMapper.updateUser(user);
+
+        return newStatus;
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.entity.User;
+import com.example.entity.UserStatusChangeResponse;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/user")
+public class UserController {
+
+    @Autowired
+    private UserService userService;
+
+    @PostMapping("/changeStatus/{id}")
+    public ApiResponse<User> changeUserStatus(@PathVariable int id) {
+        int newStatus = userService.changeUserStatus(id);
+        UserStatusChangeResponse response = new UserStatusChangeResponse(newStatus);
+        return new ApiResponse<>(1, "成功", response);
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+
+public interface UserMapper {
+    User getUserById(int id);
+    void updateUser(User user);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="getUserById" resultType="com.example.entity.User">
+        SELECT * FROM t_user WHERE id = #{id}
+    </select>
+    
+    <update id="updateUser">
+        UPDATE t_user
+        SET user_uuid = #{userUuid},
+            user_name = #{userName},
+            password = #{password},
+            real_name = #{realName},
+            age = #{age},
+            sex = #{sex},
+            birth_day = #{birthDay},
+            user_level = #{userLevel},
+            phone = #{phone},
+            role = #{role},
+            status = #{status},
+            image_path = #{imagePath},
+            create_time = #{createTime},
+            modify_time = #{modifyTime},
+            last_active_time = #{lastActiveTime},
+            deleted = #{deleted},
+            wx_open_id = #{wxOpenId}
+        WHERE id = #{id}
+    </update>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```语法错误
+在UserMapper.xml中缺少User实体类属性与表t_user字段间的映射语句。
+```
+```依赖错误
+依赖引用错误，在代码中引用并未生成的ApiResponse类。UserController.java:3:26
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 程序包 com.example.entity
+```
+```功能错误
+返回参数不完整，仅返回修改后的状态，响应对象中应包括code和message。
+```

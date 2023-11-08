@@ -1,0 +1,178 @@
+业务功能逻辑：根据输入参数在表oms_order_return_reason中批量删除退货原因信息。返回参数{"count"}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int count;
+}
+```
+```java
+// DeleteReturnReasonRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int count;
+}
+
+import lombok.Data;
+
+@Data
+public class DeleteReturnReasonRequest {
+    private List<Long> ids;
+}
+```
+```java
+// OmsOrderReturnReason.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int count;
+}
+
+import lombok.Data;
+
+@Data
+public class DeleteReturnReasonRequest {
+    private List<Long> ids;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderReturnReason {
+    private Long id;
+    private String name;
+    private Integer sort;
+    private Integer status;
+    private Date createTime;
+}
+```
+
+```java
+// ReturnReasonService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface ReturnReasonService {
+    ApiResponse deleteReturnReason(List<Long> ids);
+}
+```
+
+```java
+// ReturnReasonServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.ReturnReasonService;
+import com.example.entity.ApiResponse;
+import com.example.mapper.OmsOrderReturnReasonMapper;
+
+@Service
+public class ReturnReasonServiceImpl implements ReturnReasonService {
+    private final OmsOrderReturnReasonMapper returnReasonMapper;
+
+    public ReturnReasonServiceImpl(OmsOrderReturnReasonMapper returnReasonMapper) {
+        this.returnReasonMapper = returnReasonMapper;
+    }
+
+    @Override
+    public ApiResponse deleteReturnReason(List<Long> ids) {
+        int count = returnReasonMapper.deleteReturnReason(ids);
+        return new ApiResponse(count);
+    }
+}
+```
+
+```java
+// ReturnReasonController.java
+package com.example.controller;
+
+import com.example.service.ReturnReasonService;
+import com.example.entity.DeleteReturnReasonRequest;
+import com.example.entity.ApiResponse;
+
+@RestController
+@RequestMapping("/returnReason")
+public class ReturnReasonController {
+    private final ReturnReasonService returnReasonService;
+
+    public ReturnReasonController(ReturnReasonService returnReasonService) {
+        this.returnReasonService = returnReasonService;
+    }
+
+    @PostMapping("/delete")
+    public ApiResponse deleteReturnReason(@RequestBody DeleteReturnReasonRequest request) {
+        return returnReasonService.deleteReturnReason(request.getIds());
+    }
+}
+```
+
+```java
+// OmsOrderReturnReasonMapper.java
+package com.example.mapper;
+
+
+public interface OmsOrderReturnReasonMapper {
+    int deleteReturnReason(List<Long> ids);
+}
+```
+
+```xml
+<!-- OmsOrderReturnReasonMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.example.mapper.OmsOrderReturnReasonMapper">
+    <delete id="deleteReturnReason">
+        DELETE FROM oms_order_return_reason WHERE id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\order_returnReason_delete_system\src\main\java\com\example\controller\ReturnReasonController.java:7:2
+java: 找不到符号
+  符号: 类 RestController
+Caused by: org.xml.sax.SAXParseException: 在 publicId 和 systemId 之间需要有空格。
+```
+```功能错误
+
+```

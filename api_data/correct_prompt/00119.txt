@@ -1,0 +1,827 @@
+业务功能逻辑：根据输入参数在t_user_token表中查找对应的用户id；根据用户id在t_user表中查找学生年级user_level；在t_task_exam表中查询符合学生年级的grade_level值并记录对应任务考试id；通过任务考试id和用户id在t_task_exam_customer_answer表中查找对应的考试答卷id；并将所有结果记录在t_text_content表中的content里；返回{"code":1,"message":"成功","response":{"fixedPaper":[{"id":66,"name":"aaa","limitStartTime":null,"limitEndTime":null}],"timeLimitPaper":[{"id":66,"name":"202008705","limitStartTime":1600704000000,"limitEndTime":1664985600000,"startTime":"2020-09-22 00:00:00","endTime":"2022-10-06 00:00:00"}],"classPaper":[{"paperId":21,"paperName":"20200908","className":"1班"}]}}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// TaskExam.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskExam {
+    private int id;
+    private String title;
+    private int gradeLevel;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private String createUserName;
+}
+```
+```java
+// TaskExamCustomerAnswer.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskExam {
+    private int id;
+    private String title;
+    private int gradeLevel;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private String createUserName;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskExamCustomerAnswer {
+    private int id;
+    private int taskExamId;
+    private int createUser;
+    private Date createTime;
+    private int textContentId;
+}
+```
+```java
+// TaskRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskExam {
+    private int id;
+    private String title;
+    private int gradeLevel;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private String createUserName;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskExamCustomerAnswer {
+    private int id;
+    private int taskExamId;
+    private int createUser;
+    private Date createTime;
+    private int textContentId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskRequest {
+    private String token;
+}
+```
+```java
+// TaskResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskExam {
+    private int id;
+    private String title;
+    private int gradeLevel;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private String createUserName;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskExamCustomerAnswer {
+    private int id;
+    private int taskExamId;
+    private int createUser;
+    private Date createTime;
+    private int textContentId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskRequest {
+    private String token;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskResponse {
+    private List<String> contents;
+}
+```
+```java
+// TextContent.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskExam {
+    private int id;
+    private String title;
+    private int gradeLevel;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private String createUserName;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskExamCustomerAnswer {
+    private int id;
+    private int taskExamId;
+    private int createUser;
+    private Date createTime;
+    private int textContentId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskRequest {
+    private String token;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskResponse {
+    private List<String> contents;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TextContent {
+    private int id;
+    private String content;
+    private Date createTime;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskExam {
+    private int id;
+    private String title;
+    private int gradeLevel;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private String createUserName;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskExamCustomerAnswer {
+    private int id;
+    private int taskExamId;
+    private int createUser;
+    private Date createTime;
+    private int textContentId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskRequest {
+    private String token;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskResponse {
+    private List<String> contents;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TextContent {
+    private int id;
+    private String content;
+    private Date createTime;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+
+```java
+// TaskService.java
+package com.example.service;
+
+import com.example.entity.TaskResponse;
+import com.example.entity.ApiResponse;
+import com.example.entity.TaskRequest;
+
+public interface TaskService {
+    ApiResponse<TaskResponse> getTask(TaskRequest request);
+}
+```
+
+```java
+// TaskServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.TaskService;
+import com.example.mapper.UserMapper;
+import com.example.entity.ApiResponse;
+import com.example.mapper.TaskExamMapper;
+import com.example.mapper.TextContentMapper;
+import com.example.entity.TaskRequest;
+import com.example.entity.TaskResponse;
+import com.example.mapper.UserTokenMapper;
+import com.example.mapper.TaskExamCustomerAnswerMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class TaskServiceImpl implements TaskService {
+
+    private UserTokenMapper userTokenMapper;
+    private UserMapper userMapper;
+    private TaskExamMapper taskExamMapper;
+    private TaskExamCustomerAnswerMapper taskExamCustomerAnswerMapper;
+    private TextContentMapper textContentMapper;
+
+    @Autowired
+    public TaskServiceImpl(UserTokenMapper userTokenMapper, UserMapper userMapper, TaskExamMapper taskExamMapper, TaskExamCustomerAnswerMapper taskExamCustomerAnswerMapper, TextContentMapper textContentMapper) {
+        this.userTokenMapper = userTokenMapper;
+        this.userMapper = userMapper;
+        this.taskExamMapper = taskExamMapper;
+        this.taskExamCustomerAnswerMapper = taskExamCustomerAnswerMapper;
+        this.textContentMapper = textContentMapper;
+    }
+
+    @Override
+    public ApiResponse<TaskResponse> getTask(TaskRequest request) {
+        // 根据输入参数在t_user_token表中查找对应的用户id
+        int userId = userTokenMapper.getUserIdByToken(request.getToken());
+
+        // 根据用户id在t_user表中查找学生年级user_level
+        int userLevel = userMapper.getUserLevelById(userId);
+
+        // 在t_task_exam表中查询符合学生年级的grade_level值并记录对应任务考试id
+        List<Integer> taskExamIds = taskExamMapper.getTaskExamIdsByGradeLevel(userLevel);
+
+        // 通过任务考试id和用户id在t_task_exam_customer_answer表中查找对应的考试答卷id
+        List<Integer> answerIds = taskExamCustomerAnswerMapper.getAnswerIdsByTaskExamIdsAndUserId(taskExamIds, userId);
+
+        // 将所有结果记录在t_text_content表中的content里
+        List<String> contents = textContentMapper.getContentsByIds(answerIds);
+
+        // 构造返回结果
+        TaskResponse response = new TaskResponse();
+        response.setContents(contents);
+
+        ApiResponse<TaskResponse> apiResponse = new ApiResponse<>();
+        apiResponse.setCode(1);
+        apiResponse.setMessage("成功");
+        apiResponse.setResponse(response);
+
+        return apiResponse;
+    }
+}
+```
+
+```java
+// TaskController.java
+package com.example.controller;
+
+import com.example.service.TaskService;
+import com.example.entity.TaskRequest;
+import com.example.entity.TaskResponse;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class TaskController {
+
+    private TaskService taskService;
+
+    @Autowired
+    public TaskController(TaskService taskService) {
+        this.taskService = taskService;
+    }
+
+    @PostMapping("/api/wx/student/dashboard/task")
+    public ApiResponse<TaskResponse> getTask(@RequestBody TaskRequest request) {
+        return taskService.getTask(request);
+    }
+}
+```
+
+```java
+// TaskExamCustomerAnswerMapper.java
+package com.example.mapper;
+
+
+import java.util.List;
+
+public interface TaskExamCustomerAnswerMapper {
+    List<Integer> getAnswerIdsByTaskExamIdsAndUserId(List<Integer> taskExamIds, int userId);
+}
+```
+```java
+// TaskExamMapper.java
+package com.example.mapper;
+
+
+import java.util.List;
+
+public interface TaskExamCustomerAnswerMapper {
+    List<Integer> getAnswerIdsByTaskExamIdsAndUserId(List<Integer> taskExamIds, int userId);
+}
+
+import java.util.List;
+
+public interface TaskExamMapper {
+    List<Integer> getTaskExamIdsByGradeLevel(int gradeLevel);
+}
+```
+```java
+// TextContentMapper.java
+package com.example.mapper;
+
+
+import java.util.List;
+
+public interface TaskExamCustomerAnswerMapper {
+    List<Integer> getAnswerIdsByTaskExamIdsAndUserId(List<Integer> taskExamIds, int userId);
+}
+
+import java.util.List;
+
+public interface TaskExamMapper {
+    List<Integer> getTaskExamIdsByGradeLevel(int gradeLevel);
+}
+
+import java.util.List;
+
+public interface TextContentMapper {
+    List<String> getContentsByIds(List<Integer> ids);
+}
+```
+```java
+// UserMapper.java
+package com.example.mapper;
+
+
+import java.util.List;
+
+public interface TaskExamCustomerAnswerMapper {
+    List<Integer> getAnswerIdsByTaskExamIdsAndUserId(List<Integer> taskExamIds, int userId);
+}
+
+import java.util.List;
+
+public interface TaskExamMapper {
+    List<Integer> getTaskExamIdsByGradeLevel(int gradeLevel);
+}
+
+import java.util.List;
+
+public interface TextContentMapper {
+    List<String> getContentsByIds(List<Integer> ids);
+}
+
+public interface UserMapper {
+    int getUserLevelById(int userId);
+}
+```
+```java
+// UserTokenMapper.java
+package com.example.mapper;
+
+
+import java.util.List;
+
+public interface TaskExamCustomerAnswerMapper {
+    List<Integer> getAnswerIdsByTaskExamIdsAndUserId(List<Integer> taskExamIds, int userId);
+}
+
+import java.util.List;
+
+public interface TaskExamMapper {
+    List<Integer> getTaskExamIdsByGradeLevel(int gradeLevel);
+}
+
+import java.util.List;
+
+public interface TextContentMapper {
+    List<String> getContentsByIds(List<Integer> ids);
+}
+
+public interface UserMapper {
+    int getUserLevelById(int userId);
+}
+
+public interface UserTokenMapper {
+    int getUserIdByToken(String token);
+}
+```
+
+```xml
+<!-- TaskMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.TaskMapper">
+
+    <select id="getUserIdByToken" resultType="int">
+        SELECT user_id FROM t_user_token WHERE token = #{token}
+    </select>
+
+    <select id="getUserLevelById" resultType="int">
+        SELECT user_level FROM t_user WHERE id = #{userId}
+    </select>
+
+    <select id="getTaskExamIdsByGradeLevel" resultType="int">
+        SELECT id FROM t_task_exam WHERE grade_level = #{gradeLevel}
+    </select>
+
+    <select id="getAnswerIdsByTaskExamIdsAndUserId" resultType="int">
+        SELECT id FROM t_task_exam_customer_answer WHERE task_exam_id IN
+        <foreach collection="taskExamIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND create_user = #{userId}
+    </select>
+
+    <select id="getContentsByIds" resultType="String">
+        SELECT content FROM t_text_content WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskExam.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskExam.java:18
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskExam.java:19
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskExam.java:21
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskExamCustomerAnswer.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskExamCustomerAnswer.java:18
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskExamCustomerAnswer.java:19
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskExamCustomerAnswer.java:21
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskExamCustomerAnswer.java:37
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskExamCustomerAnswer.java:38
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskExamCustomerAnswer.java:39
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskExamCustomerAnswer.java:41
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskRequest.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskRequest.java:18
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskRequest.java:19
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskRequest.java:21
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskRequest.java:37
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskRequest.java:38
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskRequest.java:39
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskRequest.java:41
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskRequest.java:54
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskRequest.java:55
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskRequest.java:56
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskResponse.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskResponse.java:18
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskResponse.java:19
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskResponse.java:21
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskResponse.java:37
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskResponse.java:38
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskResponse.java:39
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskResponse.java:41
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskResponse.java:54
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskResponse.java:55
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskResponse.java:56
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskResponse.java:65
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskResponse.java:66
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskResponse.java:67
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\entity\TaskResponse.java:69
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\mapper\UserMapper.java:10
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\mapper\UserMapper.java:16
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\mapper\UserTokenMapper.java:10
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_task_system\src\main\java\com\example\mapper\UserTokenMapper.java:16
+java: 需要class, interface或enum
+
+```
+```功能错误
+未获取所有信息并将其更新到content中
+```

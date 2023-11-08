@@ -1,0 +1,185 @@
+﻿业务功能逻辑：
+学科编辑: 根据输入参数id查询表t_subject中是否存在该id；如果表中不存在该id设置deleted为false并将输入参数插入表中，如果存在该id则根据输入参数更新数据库表；如果编辑成功，返回{"code": 1, "message": "编辑成功", "response": {"id": 64, "name": "", "level": 1, "levelName": ""}}，否则返回一个编辑失败的JSON响应。
+需要检查的代码：
+```java
+// Subject.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Subject {
+    private int id;
+    private String name;
+    private int level;
+    private String levelName;
+    private int itemOrder;
+    private boolean deleted;
+}
+```
+```java
+// SubjectEditRequest.java
+package com.example.entity;
+
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SubjectEditRequest {
+    private int id;
+    private String name;
+    private int level;
+    private String levelName;
+}
+```
+
+```java
+// SubjectService.java
+package com.example.service;
+
+import com.example.entity.SubjectEditResponse;
+import com.example.entity.SubjectEditRequest;
+
+public interface SubjectService {
+    SubjectEditResponse editSubject(SubjectEditRequest request);
+}
+```
+
+```java
+// SubjectServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Subject;
+import com.example.service.SubjectService;
+import com.example.entity.SubjectEditRequest;
+import com.example.mapper.SubjectMapper;
+import com.example.entity.SubjectEditResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class SubjectServiceImpl implements SubjectService {
+
+    private final SubjectMapper subjectMapper;
+
+    @Autowired
+    public SubjectServiceImpl(SubjectMapper subjectMapper) {
+        this.subjectMapper = subjectMapper;
+    }
+
+    @Override
+    public SubjectEditResponse editSubject(SubjectEditRequest request) {
+        SubjectEditResponse response = new SubjectEditResponse();
+        Subject subject = subjectMapper.findById(request.getId());
+        if (subject == null) {
+            subject = new Subject();
+            subject.setId(request.getId());
+            subject.setName(request.getName());
+            subject.setLevel(request.getLevel());
+            subject.setLevelName(request.getLevelName());
+            subject.setDeleted(false);
+            subjectMapper.insert(subject);
+            response.setCode(1);
+            response.setMessage("编辑成功");
+            response.setResponse(subject);
+        } else {
+            subject.setName(request.getName());
+            subject.setLevel(request.getLevel());
+            subject.setLevelName(request.getLevelName());
+            subjectMapper.update(subject);
+            response.setCode(1);
+            response.setMessage("编辑成功");
+            response.setResponse(subject);
+        }
+        return response;
+    }
+}
+```
+
+```java
+// SubjectController.java
+package com.example.controller;
+
+import com.example.entity.SubjectEditRequest;
+import com.example.service.SubjectService;
+import com.example.entity.SubjectEditResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/education/subject")
+public class SubjectController {
+
+    private final SubjectService subjectService;
+
+    @Autowired
+    public SubjectController(SubjectService subjectService) {
+        this.subjectService = subjectService;
+    }
+
+    @PostMapping("/edit")
+    public SubjectEditResponse editSubject(@RequestBody SubjectEditRequest request) {
+        return subjectService.editSubject(request);
+    }
+}
+```
+
+```java
+// SubjectMapper.java
+package com.example.mapper;
+
+import com.example.entity.Subject;
+
+public interface SubjectMapper {
+    Subject findById(int id);
+    void insert(Subject subject);
+    void update(Subject subject);
+}
+```
+
+```xml
+<!-- SubjectMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.SubjectMapper">
+    <select id="findById" parameterType="int" resultType="com.example.entity.Subject">
+        SELECT * FROM t_subject WHERE id = #{id}
+    </select>
+    
+    <insert id="insert" parameterType="com.example.entity.Subject">
+        INSERT INTO t_subject (id, name, level, level_name, item_order, deleted)
+        VALUES (#{id}, #{name}, #{level}, #{levelName}, #{itemOrder}, #{deleted})
+    </insert>
+    
+    <update id="update" parameterType="com.example.entity.Subject">
+        UPDATE t_subject SET name = #{name}, level = #{level}, level_name = #{levelName}, item_order = #{itemOrder}, deleted = #{deleted}
+        WHERE id = #{id}
+    </update>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+SubjectController.java:5:26
+java: 找不到符号
+  符号:   类 SubjectEditResponse
+  位置: 程序包 com.example.entity
+```

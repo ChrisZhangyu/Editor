@@ -1,0 +1,207 @@
+﻿
+```java
+// Appointment.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Appointment {
+    private int bookId;
+    private int studentId;
+    private Date appointTime;
+}
+```
+```java
+// Book.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Book {
+    private int bookId;
+    private String name;
+    private int number;
+}
+```
+```java
+// BookAppointRequest.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class BookAppointRequest {
+    private int studentId;
+}
+```
+```java
+// BookAppointResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class BookAppointResponse {
+    private int bookId;
+    private int studentId;
+    private Date appointTime;
+    private String state;
+    private String stateInfo;
+}
+```
+
+```java
+// BookService.java
+package com.example.service;
+
+import com.example.entity.Book;
+import com.example.entity.BookAppointResponse;
+
+public interface BookService {
+    Book getBookById(int bookId);
+    BookAppointResponse appointBook(int bookId, int studentId);
+}
+```
+
+```java
+// BookServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.AppointmentMapper;
+import com.example.service.BookService;
+import com.example.entity.Book;
+import com.example.entity.BookAppointResponse;
+import com.example.mapper.BookMapper;
+import com.example.entity.Appointment;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+
+@Service
+public class BookServiceImpl implements BookService {
+
+    private final BookMapper bookMapper;
+    private final AppointmentMapper appointmentMapper;
+
+    @Autowired
+    public BookServiceImpl(BookMapper bookMapper, AppointmentMapper appointmentMapper) {
+        this.bookMapper = bookMapper;
+        this.appointmentMapper = appointmentMapper;
+    }
+
+    @Override
+    public Book getBookById(int bookId) {
+        return bookMapper.getBookById(bookId);
+    }
+
+    @Override
+    public BookAppointResponse appointBook(int bookId, int studentId) {
+        Book book = bookMapper.getBookById(bookId);
+        if (book == null) {
+            return new BookAppointResponse(0, 0, null, "FAIL", "书籍不存在");
+        }
+        if (studentId == 0) {
+            return new BookAppointResponse(0, 0, null, "FAIL", "学号不能为空");
+        }
+        Appointment appointment = new Appointment(bookId, studentId, new Date());
+        appointmentMapper.insertAppointment(appointment);
+        return new BookAppointResponse(bookId, studentId, appointment.getAppointTime(), "SUCCESS", "预约成功");
+    }
+}
+```
+
+```java
+// BookController.java
+package com.example.controller;
+
+import com.example.entity.BookAppointResponse;
+import com.example.service.BookService;
+import com.example.entity.BookAppointRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/book")
+public class BookController {
+
+    private final BookService bookService;
+
+    @Autowired
+    public BookController(BookService bookService) {
+        this.bookService = bookService;
+    }
+
+    @PostMapping("/{bookId}/appoint")
+    public ResponseEntity<BookAppointResponse> appointBook(@PathVariable int bookId, @RequestBody BookAppointRequest request) {
+        int studentId = request.getStudentId();
+        BookAppointResponse response = bookService.appointBook(bookId, studentId);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+}
+```
+
+```java
+// AppointmentMapper.java
+package com.example.mapper;
+
+import com.example.entity.Appointment;
+
+public interface AppointmentMapper {
+    void insertAppointment(Appointment appointment);
+}
+```
+```java
+// BookMapper.java
+package com.example.mapper;
+
+import com.example.entity.Book;
+
+public interface BookMapper {
+    Book getBookById(int bookId);
+}
+```
+
+```xml
+<!-- BookMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.BookMapper">
+    <select id="getBookById" parameterType="int" resultType="com.example.entity.Book">
+        SELECT * FROM book WHERE book_id = #{bookId}
+    </select>
+</mapper>
+
+```

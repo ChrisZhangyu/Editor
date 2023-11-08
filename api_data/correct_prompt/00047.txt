@@ -1,0 +1,357 @@
+业务功能逻辑：
+在bms_user表中查询用户，查询条件是：username等于输入userName；根据user_id和输入参数CommentDTO在bms_comment表中插入一条记录，create_time设置为创建时间，返回信息date设置为{bms_comment的记录}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Comment.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import java.util.Date;
+
+@Entity
+@Table(name = "bms_comment")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Comment {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "content", length = 1000)
+    private String content;
+
+    @Column(name = "user_id", length = 20)
+    private String userId;
+
+    @Column(name = "topic_id", length = 20)
+    private String topicId;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+}
+```
+
+```java
+// CommentDTO.java
+package com.example.entity;
+
+import lombok.Data;
+
+@Data
+public class CommentDTO {
+    private String topic_id;
+    private String content;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    /**
+     * 用户ID
+     */
+    private String id;
+
+    /**
+     * 用户名
+     */
+    private String username;
+
+    /**
+     * 别名
+     */
+    private String alias;
+
+    /**
+     * 密码
+     */
+    private String password;
+
+    /**
+     * 头像
+     */
+    private String avatar;
+
+    /**
+     * 邮箱
+     */
+    private String email;
+
+    /**
+     * 手机号码
+     */
+    private String mobile;
+
+    /**
+     * 积分
+     */
+    private int score;
+
+    /**
+     * 令牌
+     */
+    private String token;
+
+    /**
+     * 个人简介
+     */
+    private String bio;
+
+    /**
+     * 是否激活
+     */
+    private boolean active;
+
+    /**
+     * 状态
+     */
+    private boolean status;
+
+    /**
+     * 角色ID
+     */
+    private String roleId;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 修改时间
+     */
+    private Date modifyTime;
+}
+```
+
+```java
+// CommentService.java
+package com.example.service;
+
+public interface CommentService {
+    void addComment(String username, CommentDTO commentDTO);
+}
+```
+
+```java
+// CommentServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+
+@Service
+public class CommentServiceImpl implements CommentService {
+    private final BmsUserMapper bmsUserMapper;
+    private final CommentMapper commentMapper;
+
+    @Autowired
+    public CommentServiceImpl(BmsUserMapper bmsUserMapper, CommentMapper commentMapper) {
+        this.bmsUserMapper = bmsUserMapper;
+        this.commentMapper = commentMapper;
+    }
+
+    @Override
+    public void addComment(String username, CommentDTO commentDTO) {
+        BmsUser user = bmsUserMapper.getUserByUsername(username);
+        if (user != null) {
+            Comment comment = new Comment();
+            comment.setUser_id(user.getUser_id());
+            comment.setTopic_id(commentDTO.getTopic_id());
+            comment.setContent(commentDTO.getContent());
+            comment.setCreate_time(new Date().toString());
+            commentMapper.addComment(user.getUser_id(), commentDTO, comment.getCreate_time());
+        }
+    }
+}
+```
+
+```java
+// CommentController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Date;
+
+@RestController
+@RequestMapping("/comment")
+public class CommentController {
+    private final CommentService commentService;
+
+    @Autowired
+    public CommentController(CommentService commentService) {
+        this.commentService = commentService;
+    }
+
+    @PostMapping("/add_comment")
+    public ResponseEntity<ApiResponse> addComment(@RequestHeader("userName") String userName, @RequestBody CommentDTO commentDTO) {
+        commentService.addComment(userName, commentDTO);
+        ApiResponse response = new ApiResponse(200, "操作成功", null);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+}
+```
+
+```java
+// BmsUserMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+@Mapper
+public interface BmsUserMapper {
+    @Select("SELECT * FROM ums_user WHERE username = #{username}")
+    UmsUser getUserByUsername(@Param("username") String username);
+}
+```
+```java
+// CommentMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface CommentMapper {
+    @Insert("INSERT INTO bms_comment (user_id, topic_id, content, create_time) VALUES (#{userId}, #{commentDTO.topic_id}, #{commentDTO.content}, #{createTime})")
+    void addComment(@Param("userId") int userId, @Param("commentDTO") CommentDTO commentDTO, @Param("createTime") String createTime);
+}
+```
+
+代码执行的错误信息：
+```运行错误
+CommentController.java:17:19
+java: 找不到符号
+  符号:   类 CommentService
+  位置: 类 com.example.controller.CommentController
+CommentController.java:20:30
+java: 找不到符号
+  符号:   类 CommentService
+  位置: 类 com.example.controller.CommentController
+CommentController.java:25:108
+java: 找不到符号
+  符号:   类 CommentDTO
+  位置: 类 com.example.controller.CommentController
+CommentController.java:25:27
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.CommentController
+BmsUserMapper.java:10:5
+java: 找不到符号
+  符号:   类 UmsUser
+  位置: 接口 com.example.mapper.BmsUserMapper
+CommentMapper.java:10:71
+java: 找不到符号
+  符号:   类 CommentDTO
+  位置: 接口 com.example.mapper.CommentMapper
+CommentService.java:4:38
+java: 找不到符号
+  符号:   类 CommentDTO
+  位置: 接口 com.example.service.CommentService
+CommentServiceImpl.java:9:44
+java: 找不到符号
+  符号: 类 CommentService
+CommentServiceImpl.java:10:19
+java: 找不到符号
+  符号:   类 BmsUserMapper
+  位置: 类 com.example.service.impl.CommentServiceImpl
+CommentServiceImpl.java:11:19
+java: 找不到符号
+  符号:   类 CommentMapper
+  位置: 类 com.example.service.impl.CommentServiceImpl
+CommentServiceImpl.java:14:31
+java: 找不到符号
+  符号:   类 BmsUserMapper
+  位置: 类 com.example.service.impl.CommentServiceImpl
+CommentServiceImpl.java:14:60
+java: 找不到符号
+  符号:   类 CommentMapper
+  位置: 类 com.example.service.impl.CommentServiceImpl
+CommentServiceImpl.java:20:45
+java: 找不到符号
+  符号:   类 CommentDTO
+  位置: 类 com.example.service.impl.CommentServiceImpl
+CommentServiceImpl.java:30:36
+java: 找不到符号
+  符号:   方法 getUser_id()
+  位置: 类型为com.example.entity.UmsUser的变量 user
+CommentServiceImpl.java:31:20
+java: 找不到符号
+  符号:   方法 setTopic_id(java.lang.String)
+  位置: 类型为com.example.entity.Comment的变量 comment
+CommentServiceImpl.java:33:20
+java: 找不到符号
+  符号:   方法 setCreate_time(java.lang.String)
+  位置: 类型为com.example.entity.Comment的变量 comment
+CommentServiceImpl.java:34:42
+java: 找不到符号
+  符号:   方法 getUser_id()
+  位置: 类型为com.example.entity.UmsUser的变量 user
+CommentServiceImpl.java:34:76
+java: 找不到符号
+  符号:   方法 getCreate_time()
+  位置: 类型为com.example.entity.Comment的变量 comment
+CommentServiceImpl.java:33:54
+java: 不兼容的类型: java.lang.String无法转换为java.util.Date
+CommentServiceImpl.java:34:48
+java: 不兼容的类型: java.lang.String无法转换为int
+java.lang.NumberFormatException: For input string: "1349290158897311745".
+Error updating database.  Cause: com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: Incorrect datetime value: 'Tue Oct 10 18:10:26 CST 2023' for column 'create_time' at row 1.
+Error updating database.  Cause: java.sql.SQLException: Field 'id' doesn't have a default value The error may exist in CommentMapper.java (best guess).
+```
+
+```功能错误
+```

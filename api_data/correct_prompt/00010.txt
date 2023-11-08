@@ -1,0 +1,213 @@
+业务功能逻辑：
+在bms_billboard中查询对象列表，查询条件是：`show`为1；返回信息data设置为{"billboards":[{"id":0,"content":"","create_time":"","show":1}]}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Billboard.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.*;
+import java.util.Date;
+
+@Entity
+@Table(name = "bms_billboard")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Billboard {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "content")
+    private String content;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "show")
+    private boolean show;
+}
+```
+
+```java
+// BillboardService.java
+package com.example.service;
+
+import java.util.List;
+
+public interface BillboardService {
+    List<Billboard> getBillboards();
+}
+```
+
+```java
+// BillboardServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class BillboardServiceImpl implements BillboardService {
+    private final BillboardMapper billboardMapper;
+
+    @Autowired
+    public BillboardServiceImpl(BillboardMapper billboardMapper) {
+        this.billboardMapper = billboardMapper;
+    }
+
+    @Override
+    public List<Billboard> getBillboards() {
+        return billboardMapper.getBillboards();
+    }
+}
+```
+
+```java
+// BillboardController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List; // 添加import语句
+
+@RestController
+@RequestMapping("/billboard")
+public class BillboardController {
+    private final BillboardService billboardService;
+
+    @Autowired
+    public BillboardController(BillboardService billboardService) {
+        this.billboardService = billboardService;
+    }
+
+    @GetMapping("/show")
+    public ApiResponse getBillboards() {
+        List<Billboard> billboards = billboardService.getBillboards();
+        ApiResponse response = new ApiResponse(200, "操作成功", billboards);
+        return response;
+    }
+}
+```
+
+```java
+// BillboardMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
+
+@Mapper
+public interface BillboardMapper {
+    @Select("SELECT * FROM bms_billboard WHERE show = true")
+    List<Billboard> getBillboards();
+}
+```
+
+```xml
+<!-- BillboardMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.BillboardMapper">
+    <select id="getBillboards" resultType="com.example.entity.Billboard">
+        SELECT * FROM bms_billboard WHERE show = true
+    </select>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+BillboardController.java:[13,19]
+java: 找不到符号
+  符号:   类 BillboardService
+  位置: 类 com.example.controller.BillboardController
+BillboardController.java:[16,32]
+java: 找不到符号
+  符号:   类 BillboardService
+  位置: 类 com.example.controller.BillboardController
+BillboardController.java:[21,12]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.BillboardController
+Billboard.java:[10,2]
+java: 找不到符号
+  符号: 类 Entity
+Billboard.java:[11,2]
+java: 找不到符号
+  符号: 类 Table
+Billboard.java:[16,6]
+java: 找不到符号
+  符号:   类 Id
+  位置: 类 com.example.entity.Billboard
+Billboard.java:[17,6]
+java: 找不到符号
+  符号:   类 GeneratedValue
+  位置: 类 com.example.entity.Billboard
+Billboard.java:[20,6]
+java: 找不到符号
+  符号:   类 Column
+  位置: 类 com.example.entity.Billboard
+Billboard.java:[23,6]
+java: 找不到符号
+  符号:   类 Column
+  位置: 类 com.example.entity.Billboard
+Billboard.java:[26,6]
+java: 找不到符号
+  符号:   类 Column
+  位置: 类 com.example.entity.Billboard
+BillboardMapper.java:[11,10]
+java: 找不到符号
+  符号:   类 Billboard
+  位置: 接口 com.example.mapper.BillboardMapper
+BillboardService.java:[6,10]
+java: 找不到符号
+  符号:   类 Billboard
+  位置: 接口 com.example.service.BillboardService
+BillboardServiceImpl.java:[10,19]
+java: 找不到符号
+  符号:   类 BillboardMapper
+  位置: 类 com.example.service.impl.BillboardServiceImpl
+BillboardServiceImpl.java:[13,33]
+java: 找不到符号
+  符号:   类 BillboardMapper
+  位置: 类 com.example.service.impl.BillboardServiceImpl
+BillboardServiceImpl.java:[18,17]
+java: 找不到符号
+  符号:   类 Billboard
+  位置: 类 com.example.service.impl.BillboardServiceImpl
+Mapped Statements collection already contains value for com.example.mapper.BillboardMapper.getBillboards. please check file [BillboardMapper.xml] and cBillboardMapper.java.
+```
+
+```功能错误
+返回信息data=Billboard(id=4, content=系统已更新至最新版1.0.1, createTime=null, show=true)的createTime为空.
+```

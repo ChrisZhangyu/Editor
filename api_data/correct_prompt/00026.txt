@@ -1,0 +1,242 @@
+业务功能逻辑：实现了对数据库中优惠券领取记录的查询操作，并返回符合条件的结果进行展示。返回参数
+{"id": null, "couponId": null, "memberId": null, "couponCode": null, "memberNickname": "领取人昵称", "getType": "获取类型：0->后台赠送；1->主动获取", "createTime": null, "useStatus": "使用状态：0->未使用；1->已使用；2->已过期", "useTime": "使用时间", "orderId": "订单编号", "orderSn": "订单号码"}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Long id;
+    private Long couponId;
+    private Long memberId;
+    private String couponCode;
+    private String memberNickname;
+    private Integer getType;
+    private Date createTime;
+    private Integer useStatus;
+    private Date useTime;
+    private Long orderId;
+    private String orderSn;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CouponHistoryListRequest {
+    private Long couponId;
+    private Integer useStatus;
+    private String orderSn;
+    private Integer pageSize;
+    private Integer pageNum;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SmsCouponHistory {
+    /**
+     * 主键ID
+     */
+    private Long id;
+
+    /**
+     * 优惠券ID
+     */
+    private Long couponId;
+
+    /**
+     * 会员ID
+     */
+    private Long memberId;
+
+    /**
+     * 优惠码
+     */
+    private String couponCode;
+
+    /**
+     * 会员昵称
+     */
+    private String memberNickname;
+
+    /**
+     * 获取类型
+     */
+    private Integer getType;
+
+    /**
+     * 创建时间
+     */
+    private Timestamp createTime;
+
+    /**
+     * 使用状态
+     */
+    private Integer useStatus;
+
+    /**
+     * 使用时间
+     */
+    private Timestamp useTime;
+
+    /**
+     * 订单ID
+     */
+    private Long orderId;
+
+    /**
+     * 订单编号
+     */
+    private String orderSn;
+}
+```
+
+```java
+// CouponHistoryService.java
+
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.CouponHistoryListRequest;
+import com.example.mapper.CouponHistoryMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class CouponHistoryService {
+    private final CouponHistoryMapper couponHistoryMapper;
+
+    @Autowired
+    public CouponHistoryService(CouponHistoryMapper couponHistoryMapper) {
+        this.couponHistoryMapper = couponHistoryMapper;
+    }
+
+    public List<ApiResponse> getCouponHistoryList(CouponHistoryListRequest request) {
+        // 调用couponHistoryMapper的方法查询数据库中符合条件的优惠券领取记录
+        return couponHistoryMapper.getCouponHistoryList(request);
+    }
+}
+```
+
+
+```java
+// CouponHistoryController.java
+
+package com.example.controller;
+
+import com.example.service.CouponHistoryService;
+import com.example.entity.ApiResponse;
+import com.example.entity.CouponHistoryListRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/couponHistory")
+public class CouponHistoryController {
+    private final CouponHistoryService couponHistoryService;
+
+    @Autowired
+    public CouponHistoryController(CouponHistoryService couponHistoryService) {
+        this.couponHistoryService = couponHistoryService;
+    }
+
+    @GetMapping("/list")
+    public List<ApiResponse> getCouponHistoryList(@RequestParam Long couponId,
+                                                  @RequestParam Integer useStatus,
+                                                  @RequestParam String orderSn,
+                                                  @RequestParam Integer pageSize,
+                                                  @RequestParam Integer pageNum) {
+        CouponHistoryListRequest request = new CouponHistoryListRequest(couponId, useStatus, orderSn, pageSize, pageNum);
+        return couponHistoryService.getCouponHistoryList(request);
+    }
+}
+```
+
+```java
+// CouponHistoryMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.CouponHistoryListRequest;
+
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface CouponHistoryMapper {
+    List<ApiResponse> getCouponHistoryList(CouponHistoryListRequest request);
+}
+```
+
+```xml
+<!-- CouponHistoryMapper.xml -->
+
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.CouponHistoryMapper">
+    <select id="getCouponHistoryList" resultType="com.example.entity.ApiResponse">
+        SELECT id, coupon_id, member_id, coupon_code, member_nickname, get_type, create_time, use_status, use_time, order_id, order_sn
+        FROM coupon_history
+        WHERE coupon_id = #{couponId}
+        AND use_status = #{useStatus}
+        AND order_sn = #{orderSn}
+        LIMIT #{pageSize} OFFSET #{pageNum}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+xzs-project_test\sms_coupon_system\src\main\java\com\example\entity\ApiResponse.java:26
+java: 需要class, interface或enum
+xzs-project_test\sms_coupon_system\src\main\java\com\example\entity\ApiResponse.java:27
+java: 需要class, interface或enum
+xzs-project_test\sms_coupon_system\src\main\java\com\example\entity\ApiResponse.java:28
+java: 需要class, interface或enum
+xzs-project_test\sms_coupon_system\src\main\java\com\example\entity\ApiResponse.java:41
+java: 需要class, interface或enum
+xzs-project_test\sms_coupon_system\src\main\java\com\example\entity\ApiResponse.java:42
+java: 需要class, interface或enum
+xzs-project_test\sms_coupon_system\src\main\java\com\example\entity\ApiResponse.java:43
+java: 需要class, interface或enum
+xzs-project_test\sms_coupon_system\src\main\java\com\example\entity\ApiResponse.java:45
+java: 需要class, interface或enum
+```
+```功能错误
+### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'null OFFSET null' at line 6
+### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: Table 'test.coupon_history' doesn't exist
+返回字符为空
+```

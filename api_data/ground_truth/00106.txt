@@ -1,0 +1,174 @@
+﻿
+```java
+// DeleteTaskRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class DeleteTaskRequest {
+    private int id;
+}
+```
+```java
+// DeleteTaskResponse.java
+package com.example.entity;
+
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class DeleteTaskResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+```java
+// TaskExam.java
+package com.example.entity;
+
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskExam {
+    private int id;
+    private String title;
+    private int gradeLevel;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private String createUserName;
+}
+```
+
+```java
+// TaskService.java
+package com.example.service;
+
+import com.example.entity.DeleteTaskResponse;
+
+public interface TaskService {
+    DeleteTaskResponse deleteTask(int id);
+}
+```
+
+```java
+// TaskServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.DeleteTaskResponse;
+import com.example.mapper.TaskExamMapper;
+import com.example.entity.TaskExam;
+import com.example.service.TaskService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class TaskServiceImpl implements TaskService {
+
+    private final TaskExamMapper taskExamMapper;
+
+    @Autowired
+    public TaskServiceImpl(TaskExamMapper taskExamMapper) {
+        this.taskExamMapper = taskExamMapper;
+    }
+
+    @Override
+    public DeleteTaskResponse deleteTask(int id) {
+        TaskExam taskExam = taskExamMapper.getTaskExamById(id);
+        if (taskExam == null) {
+            return new DeleteTaskResponse(0, "任务不存在", null);
+        }
+        taskExam.setDeleted(true);
+        taskExamMapper.updateTaskExam(taskExam);
+        return new DeleteTaskResponse(1, "删除成功", null);
+    }
+}
+```
+
+```java
+// TaskController.java
+package com.example.controller;
+
+import com.example.entity.DeleteTaskResponse;
+import com.example.service.TaskService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/admin/task")
+public class TaskController {
+
+    private final TaskService taskService;
+
+    @Autowired
+    public TaskController(TaskService taskService) {
+        this.taskService = taskService;
+    }
+
+    @PostMapping("/delete/{id}")
+    public DeleteTaskResponse deleteTask(@PathVariable int id) {
+        return taskService.deleteTask(id);
+    }
+}
+```
+
+```java
+// TaskExamMapper.java
+package com.example.mapper;
+
+import com.example.entity.TaskExam;
+
+public interface TaskExamMapper {
+    TaskExam getTaskExamById(int id);
+    void updateTaskExam(TaskExam taskExam);
+}
+```
+
+```xml
+<!-- TaskExamMapper.xml -->
+<?xml version ="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.TaskExamMapper">
+    <select id="getTaskExamById" parameterType="int" resultType="com.example.entity.TaskExam">
+        SELECT * FROM t_task_exam WHERE id = #{id}
+    </select>
+    
+    <update id="updateTaskExam" parameterType="com.example.entity.TaskExam">
+        UPDATE t_task_exam SET
+        title = #{title},
+        grade_level = #{gradeLevel},
+        frame_text_content_id = #{frameTextContentId},
+        create_user = #{createUser},
+        create_time = #{createTime},
+        deleted = #{deleted},
+        create_user_name = #{createUserName}
+        WHERE id = #{id}
+    </update>
+</mapper>
+
+```

@@ -1,0 +1,223 @@
+﻿
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+```java
+// Question.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Question {
+    private int id;
+    private int questionType;
+    private int subjectId;
+    private int score;
+    private int gradeLevel;
+    private int difficult;
+    private String correct;
+    private int infoTextContentId;
+    private int createUser;
+    private int status;
+    private Date createTime;
+    private boolean deleted;
+}
+```
+```java
+// QuestionEditRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class QuestionEditRequest {
+    private int id;
+    private int questionType;
+    private int subjectId;
+    private int gradeLevel;
+    private String correct;
+    private int score;
+    private int difficult;
+    private String infoTextContentId;
+    private String createUser;
+}
+```
+
+```java
+// QuestionService.java
+package com.example.service;
+
+import com.example.entity.QuestionEditRequest;
+import com.example.entity.ApiResponse;
+
+public interface QuestionService {
+    ApiResponse editQuestion(QuestionEditRequest request);
+}
+```
+
+```java
+// QuestionServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.QuestionService;
+import com.example.entity.ApiResponse;
+import com.example.entity.QuestionEditRequest;
+import com.example.entity.Question;
+import com.example.mapper.QuestionMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class QuestionServiceImpl implements QuestionService {
+
+    private final QuestionMapper questionMapper;
+
+    @Autowired
+    public QuestionServiceImpl(QuestionMapper questionMapper) {
+        this.questionMapper = questionMapper;
+    }
+
+    @Override
+    public ApiResponse editQuestion(QuestionEditRequest request) {
+        Question question = questionMapper.findById(request.getId());
+        if (question == null) {
+            // 插入新记录
+            question = new Question();
+            question.setId(request.getId());
+            question.setQuestionType(request.getQuestionType());
+            question.setSubjectId(request.getSubjectId());
+            question.setGradeLevel(request.getGradeLevel());
+            question.setCorrect(request.getCorrect());
+            question.setScore(request.getScore());
+            question.setDifficult(request.getDifficult());
+            question.setInfoTextContentId(Integer.parseInt(request.getInfoTextContentId()));
+            question.setCreateUser(Integer.parseInt(request.getCreateUser()));
+            questionMapper.insert(question);
+        } else {
+            // 更新记录
+            question.setQuestionType(request.getQuestionType());
+            question.setSubjectId(request.getSubjectId());
+            question.setGradeLevel(request.getGradeLevel());
+            question.setCorrect(request.getCorrect());
+            question.setScore(request.getScore());
+            question.setDifficult(request.getDifficult());
+            question.setInfoTextContentId(Integer.parseInt(request.getInfoTextContentId()));
+            question.setCreateUser(Integer.parseInt(request.getCreateUser()));
+            questionMapper.update(question);
+        }
+        return new ApiResponse(1, "成功", question);
+    }
+}
+```
+
+```java
+// QuestionController.java
+package com.example.controller;
+
+import com.example.entity.QuestionEditRequest;
+import com.example.service.QuestionService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/question")
+public class QuestionController {
+
+    private final QuestionService questionService;
+
+    @Autowired
+    public QuestionController(QuestionService questionService) {
+        this.questionService = questionService;
+    }
+
+    @PostMapping("/edit")
+    public ApiResponse editQuestion(@RequestBody QuestionEditRequest request) {
+        return questionService.editQuestion(request);
+    }
+}
+```
+
+```java
+// QuestionMapper.java
+package com.example.mapper;
+
+import com.example.entity.Question;
+
+public interface QuestionMapper {
+    Question findById(int id);
+    void insert(Question question);
+    void update(Question question);
+}
+```
+
+```xml
+<!-- QuestionMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.QuestionMapper">
+    <resultMap id="questionResultMap" type="com.example.entity.Question">
+        <id property="id" column="id"/>
+        <result property="questionType" column="question_type"/>
+        <result property="subjectId" column="subject_id"/>
+        <result property="score" column="score"/>
+        <result property="gradeLevel" column="grade_level"/>
+        <result property="difficult" column="difficult"/>
+        <result property="correct" column="correct"/>
+        <result property="infoTextContentId" column="info_text_content_id"/>
+        <result property="createUser" column="create_user"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="deleted" column="deleted"/>
+    </resultMap>
+
+    <select id="findById" resultMap="questionResultMap">
+        SELECT * FROM t_question WHERE id = #{id}
+    </select>
+
+    <insert id="insert">
+        INSERT INTO t_question (question_type, subject_id, score, grade_level, difficult, correct, info_text_content_id, create_user, status, create_time, deleted)
+        VALUES (#{questionType}, #{subjectId}, #{score}, #{gradeLevel}, #{difficult}, #{correct}, #{infoTextContentId}, #{createUser}, #{status}, #{createTime}, #{deleted})
+    </insert>
+
+    <update id="update">
+        UPDATE t_question SET question_type = #{questionType}, subject_id = #{subjectId}, score = #{score}, grade_level = #{gradeLevel},
+        difficult = #{difficult}, correct = #{correct}, info_text_content_id = #{infoTextContentId}, create_user = #{createUser},
+        status = #{status}, create_time = #{createTime}, deleted = #{deleted}
+        WHERE id = #{id}
+    </update>
+</mapper>
+
+```

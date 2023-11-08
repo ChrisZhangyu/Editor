@@ -1,0 +1,4 @@
+apt --fix-broken install
+sudo apt update
+apt install mpich
+pip install mpi4py

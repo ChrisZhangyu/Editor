@@ -1,0 +1,514 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Cart.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_cart")
+public class Cart {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "cart_id")
+    private Integer cartId;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "amount")
+    private Double amount;
+}
+```
+
+```java
+// CartDetail.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_cart_detail")
+public class CartDetail {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "cart_detail_id")
+    private Long cartDetailId;
+
+    @Column(name = "cart_id")
+    private Long cartId;
+
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "count")
+    private Integer count;
+}
+```
+
+```java
+// Good.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_good")
+public class Good {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "good_name", length = 20)
+    private String goodName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+    @Column(name = "price", precision = 10, scale = 2)
+    private Double price;
+
+    @Column(name = "original_price", precision = 10, scale = 2)
+    private Double originalPrice;
+
+    @Column(name = "inventory")
+    private Integer inventory;
+
+    @Column(name = "sold_count")
+    private Integer soldCount;
+
+    @Column(name = "spec", length = 20)
+    private String spec;
+
+    @Column(name = "origin", length = 10)
+    private String origin;
+}
+```
+
+```java
+// Order.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_order")
+public class Order {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "order_id")
+    private Long orderId;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "address_id")
+    private Integer addressId;
+
+    @Column(name = "amount")
+    private Double amount;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "remarks")
+    private String remarks;
+
+    @Column(name = "status")
+    private Integer status;
+}
+```
+
+```java
+// OrderDetail.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_order_detail")
+public class OrderDetail {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "order_detail_id")
+    private Long orderDetailId;
+
+    @Column(name = "order_id")
+    private Long orderId;
+
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "count")
+    private Integer count;
+}
+```
+
+```java
+// OrderService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+import com.example.entity.Order;
+
+public interface OrderService {
+    ApiResponse createOrder(int userId, int addressId, String remarks, String cartDetailIds);
+}
+```
+
+```java
+// OrderServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.*;
+import com.example.mapper.*;
+import com.example.service.OrderService;
+import org.omg.CORBA.PRIVATE_MEMBER;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+
+@Service
+public class OrderServiceImpl implements OrderService {
+    private final OrderMapper orderMapper;
+    private final CartDetailMapper cartDetailMapper;
+    private final CartMapper cartMapper;
+    private final GoodMapper goodMapper;
+    private final OrderDetailMapper orderDetailMapper;
+
+    @Autowired
+    public OrderServiceImpl(OrderMapper orderMapper, CartDetailMapper cartDetailMapper, CartMapper cartMapper, GoodMapper goodMapper, OrderDetailMapper orderDetailMapper) {
+        this.orderMapper = orderMapper;
+        this.cartDetailMapper = cartDetailMapper;
+        this.cartMapper = cartMapper;
+        this.goodMapper = goodMapper;
+        this.orderDetailMapper = orderDetailMapper;
+    }
+
+    @Override
+    public ApiResponse createOrder(int userId, int addressId, String remarks, String cartDetailIds) {
+        // 按,分割cartDetailIds获取序列
+        String[] cartDetailIdArray = cartDetailIds.split(",");
+        String firstCartDetailId = cartDetailIdArray[0];
+
+        // 在tb_cart_detail表中查找记录
+        CartDetail cartDetail = cartDetailMapper.selectCartDetailById(Long.valueOf(firstCartDetailId));
+        if (cartDetail == null) {
+            return new ApiResponse(-1002, "购物车不存在", null);
+        }
+
+        // 在tb_cart表中查找用户购物车
+        Cart cart = cartMapper.selectCartByUserId(Math.toIntExact(cartDetail.getCartId()));
+
+        if (cart == null) {
+            // 如果为空，创建一个新的用户购物车
+            cart = new Cart();
+        }
+
+        // 在tb_order表中插入新的订单
+        Order order = new Order();
+        order.setUserId(userId);
+        order.setAddressId(addressId);
+        order.setRemarks(remarks);
+        order.setAmount(0.0);
+        order.setCreateTime(new Date());
+        order.setStatus(0);
+        orderMapper.insertOrder(order);
+
+        for (String cartDetailId : cartDetailIdArray) {
+            // 在tb_cart_detail表中查找记录
+            CartDetail cartDetail1 = cartDetailMapper.selectCartDetailById(Long.valueOf(firstCartDetailId));
+
+            if (cartDetail1 == null) {
+                // 在tb_order表中删除已插入的订单
+                orderMapper.deleteOrder(order.getOrderId());
+                return new ApiResponse(-1002, "购物车不存在", null);
+            }
+
+            // 根据tb_cart_detail.good_id在tb_good表中查找记录
+            Good good = goodMapper.selectGoodById(cartDetail.getGoodId());
+
+            if (good == null) {
+                // 在tb_order表中删除已插入的订单
+                orderMapper.deleteOrder(order.getOrderId());
+                return new ApiResponse(-1003, "商品不存在", null);
+            }
+
+            if (good.getInventory() < cartDetail.getCount()) {
+                // 在tb_order表中删除已插入的订单
+                orderMapper.deleteOrder(order.getOrderId());
+                return new ApiResponse(-1004, "商品库存不足", null);
+            }
+
+            // 在tb_good表中更新字段
+            good.setSoldCount(good.getSoldCount() + cartDetail.getCount());
+            good.setInventory(good.getInventory() - cartDetail.getCount());
+            goodMapper.updateGood(good);
+
+            // 在tb_order_detail表中插入新的记录
+            OrderDetail orderDetail = new OrderDetail();
+            orderDetail.setOrderId(order.getOrderId());
+            orderDetail.setGoodId(good.getGoodId());
+            orderDetail.setCount(cartDetail.getCount());
+            orderDetailMapper.insertOrderDetail(orderDetail);
+
+            // 更新订单总金额
+            order.setAmount(order.getAmount() + good.getPrice() * cartDetail.getCount()) ;
+
+            // 更新购物车总金额
+            cart.setAmount(cart.getAmount() - good.getPrice() * cartDetail.getCount());
+            // 删除购物车详情
+            cartDetailMapper.deleteByPrimaryKey(Long.parseLong(cartDetailId));
+        }
+
+        // 更新购物车信息
+        cartMapper.updateByPrimaryKey(cart);
+        // 更新订单信息
+        orderMapper.updateByPrimaryKey(order);
+
+        return new ApiResponse(100, "成功", null);
+    }
+}
+```
+
+```java
+// OrderController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/user/v1/user/{userId}/order")
+public class OrderController {
+    private final OrderService orderService;
+
+    @Autowired
+    public OrderController(OrderService orderService) {
+        this.orderService = orderService;
+    }
+
+    @PostMapping
+    public ApiResponse createOrder(@PathVariable int userId, @RequestParam int addressId, @RequestParam(required = false) String remarks, @RequestParam String cartDetailIds) {
+        return orderService.createOrder(userId, addressId, remarks, cartDetailIds);
+    }
+}
+```
+
+```java
+// CartDetailMapper.java
+package com.example.mapper;
+
+import com.example.entity.CartDetail;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface CartDetailMapper {
+    CartDetail selectCartDetailById(Long cartDetailId);
+    void deleteByPrimaryKey(long cartDetailId);
+}
+```
+
+```java
+// CartMapper.java
+package com.example.mapper;
+
+import com.example.entity.Cart;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface CartMapper {
+    Cart selectCartByUserId(int cartId);
+    void updateByPrimaryKey(Cart cart);
+}
+```
+
+```java
+// GoodMapper.java
+package com.example.mapper;
+
+import com.example.entity.Good;
+import com.example.entity.Order;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface GoodMapper {
+    Good selectGoodById(int goodId);
+    void updateGood(Good good);
+}
+```
+
+```java
+// OrderDetailMapper.java
+package com.example.mapper;
+
+import com.example.entity.OrderDetail;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface OrderDetailMapper {
+    void insertOrderDetail(OrderDetail orderDetail);
+}
+```
+
+```java
+// OrderMapper.java
+package com.example.mapper;
+
+
+import com.example.entity.Order;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface OrderMapper {
+    void insertOrder(Order order);
+    void updateByPrimaryKey(Order order);
+    void deleteOrder(long orderId);
+}
+```
+
+```xml
+<!-- CartDetailMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.CartDetailMapper">
+    <select id="selectCartDetailById" resultType="com.example.entity.CartDetail">
+        SELECT * FROM tb_cart_detail WHERE cart_detail_id = #{cartDetailId}
+    </select>
+
+    <delete id="deleteByPrimaryKey" parameterType="long">
+        DELETE FROM tb_cart_detail WHERE cart_detail_id = #{cartDetailId}
+    </delete>
+</mapper>
+```
+
+```xml
+<!-- CartMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.CartMapper">
+    <select id="selectCartByUserId" resultType="com.example.entity.Cart">
+        SELECT * FROM tb_cart WHERE cart_id = #{cartId}
+    </select>
+
+    <update id="updateByPrimaryKey" parameterType="com.example.entity.Cart">
+        UPDATE tb_cart SET user_id = #{userId}, amount = #{amount} WHERE cart_id = #{cartId}
+    </update>
+</mapper>
+```
+
+```xml
+<!-- GoodMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.GoodMapper">
+    <select id="selectGoodById" resultType="com.example.entity.Good">
+        SELECT * FROM tb_good WHERE good_id = #{goodId}
+    </select>
+
+    <update id="updateGood" parameterType="com.example.entity.Good">
+        UPDATE tb_good SET sold_count = #{soldCount}, inventory = #{inventory} WHERE good_id = #{goodId}
+    </update>
+</mapper>
+```
+
+```xml
+<!-- OrderDetailMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.OrderDetailMapper">
+    <insert id="insertOrderDetail">
+        <selectKey keyProperty="orderDetailId" resultType="long" order="AFTER">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO tb_order_detail (order_id, good_id, count)
+        VALUES (#{orderId}, #{goodId}, #{count})
+    </insert>
+</mapper>
+```
+
+```xml
+<!-- OrderMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.OrderMapper">
+    <insert id="insertOrder">
+        <selectKey keyProperty="orderId" resultType="long" order="AFTER">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO tb_order (user_id, address_id, amount, create_time, remarks, status)
+        VALUES (#{userId}, #{addressId}, #{amount}, #{createTime}, #{remarks}, #{status})
+    </insert>
+
+    <update id="updateByPrimaryKey" parameterType="com.example.entity.Order">
+        UPDATE tb_order SET user_id = #{userId}, address_id = #{addressId}, amount = #{amount},
+        create_time = #{createTime}, remarks = #{remarks}, status = #{status} WHERE order_id = #{orderId}
+    </update>
+
+    <delete id="deleteOrder" parameterType="long">
+        DELETE FROM tb_order WHERE order_id = #{orderId}
+    </delete>
+
+</mapper>
+
+```

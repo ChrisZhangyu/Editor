@@ -1,0 +1,224 @@
+﻿
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+
+    public static ApiResponse success(Object response) {
+        return new ApiResponse(1, "成功", response);
+    }
+
+    public static ApiResponse error(String message) {
+        return new ApiResponse(0, message, null);
+    }
+}
+```
+```java
+// TExamPaper.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TExamPaper {
+    private int id;
+    private String name;
+    private int questionCount;
+    private int score;
+    private String createTime;
+    private int createUser;
+    private int subjectId;
+    private int paperType;
+    private int frameTextContentId;
+}
+```
+```java
+// TTaskExam.java
+package com.example.entity;
+
+
+
+import com.example.entity.TExamPaper;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TTaskExam {
+    private int id;
+    private String title;
+    private int gradeLevel;
+    private int frameTextContentId;
+    private int createUser;
+    private String createTime;
+    private boolean deleted;
+    private String createUserName;
+    private List<TExamPaper> paperItems;
+}
+```
+
+```java
+// TaskService.java
+package com.example.service;
+
+import com.example.entity.TExamPaper;
+import com.example.entity.TTaskExam;
+
+import java.util.List;
+
+public interface TaskService {
+    TTaskExam getTaskExamById(int id);
+    List<TExamPaper> getExamPapersByTaskId(int taskId);
+}
+```
+
+```java
+// TaskServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.TaskService;
+import com.example.entity.TTaskExam;
+import com.example.entity.TExamPaper;
+import com.example.mapper.TaskMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class TaskServiceImpl implements TaskService {
+
+    @Autowired
+    private TaskMapper taskMapper;
+
+    @Override
+    public TTaskExam getTaskExamById(int id) {
+        return taskMapper.getTaskExamById(id);
+    }
+
+    @Override
+    public List<TExamPaper> getExamPapersByTaskId(int taskId) {
+        return taskMapper.getExamPapersByTaskId(taskId);
+    }
+}
+```
+
+```java
+// TaskController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.TExamPaper;
+import com.example.entity.TTaskExam;
+
+import com.example.service.TaskService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/admin/task")
+public class TaskController {
+    @Autowired
+    private TaskService taskService;
+
+    @PostMapping("/select/{id}")
+    public ApiResponse selectTask(@PathVariable int id) {
+        // 根据id查询任务信息
+        TTaskExam taskExam = taskService.getTaskExamById(id);
+        if (taskExam == null) {
+            return ApiResponse.error("任务不存在");
+        }
+
+        // 查询试卷信息
+        List<TExamPaper> examPapers = taskService.getExamPapersByTaskId(id);
+        taskExam.setPaperItems(examPapers);
+
+        return ApiResponse.success(taskExam);
+    }
+}
+```
+
+```java
+// TaskMapper.java
+package com.example.mapper;
+
+import com.example.entity.TExamPaper;
+import com.example.entity.TTaskExam;
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface TaskMapper {
+    TTaskExam getTaskExamById(int id);
+    List<TExamPaper> getExamPapersByTaskId(int taskId);
+}
+```
+
+```xml
+<!-- TaskMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.TaskMapper">
+
+    <resultMap id="taskExamResultMap" type="com.example.entity.TTaskExam">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="gradeLevel" column="grade_level"/>
+        <result property="frameTextContentId" column="frame_text_content_id"/>
+        <result property="createUser" column="create_user"/>
+        <result property="createTime" column="create_time"/>
+        <result property="deleted" column="deleted"/>
+        <result property="createUserName" column="create_user_name"/>
+    </resultMap>
+
+    <resultMap id="examPaperResultMap" type="com.example.entity.TExamPaper">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="questionCount" column="question_count"/>
+        <result property="score" column="score"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createUser" column="create_user"/>
+        <result property="subjectId" column="subject_id"/>
+        <result property="paperType" column="paper_type"/>
+        <result property="frameTextContentId" column="frame_text_content_id"/>
+    </resultMap>
+
+    <select id="getTaskExamById" resultMap="taskExamResultMap">
+        SELECT id, title, grade_level, frame_text_content_id, create_user, create_time, deleted, create_user_name
+        FROM t_task_exam
+        WHERE id = #{id}
+    </select>
+
+    <select id="getExamPapersByTaskId" resultMap="examPaperResultMap">
+        SELECT id, name, question_count, score, create_time, create_user, subject_id, paper_type, frame_text_content_id
+        FROM t_exam_paper
+        WHERE id IN (SELECT id FROM t_task_exam WHERE id = #{taskId})
+    </select>
+
+</mapper>
+
+```

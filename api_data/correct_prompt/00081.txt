@@ -1,0 +1,165 @@
+业务功能逻辑：
+遍历bms_promotion表的所有对象记录，返回data设置为{[bms_promotion的记录]}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// BmsPromotion.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_promotion")
+public class BmsPromotion {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+
+    @Column(name = "title", length = 255)
+    private String title;
+
+    @Column(name = "link", length = 255)
+    private String link;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    // Getters and setters
+}
+```
+
+```java
+// PromotionService.java
+package com.example.service;
+
+import com.example.entity.BmsPromotion;
+
+import java.util.List;
+
+public interface PromotionService {
+    List<BmsPromotion> getAllPromotions();
+}
+```
+
+```java
+// PromotionServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.BmsPromotion;
+import com.example.mapper.PromotionMapper;
+import com.example.service.PromotionService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class PromotionServiceImpl implements PromotionService {
+
+    private final PromotionMapper promotionMapper;
+
+    @Autowired
+    public PromotionServiceImpl(PromotionMapper promotionMapper) {
+        this.promotionMapper = promotionMapper;
+    }
+
+    @Override
+    public List<BmsPromotion> getAllPromotions() {
+        return promotionMapper.getAllPromotions();
+    }
+}
+```
+
+```java
+// PromotionController.java
+package com.example.controller;
+
+import com.example.entity.BmsPromotion;
+import com.example.entity.ApiResponse;
+import com.example.service.PromotionService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/promotion")
+public class PromotionController {
+
+    private final PromotionService promotionService;
+
+    @Autowired
+    public PromotionController(PromotionService promotionService) {
+        this.promotionService = promotionService;
+    }
+
+    @GetMapping("/all")
+    public ApiResponse getAllPromotions() {
+        List<BmsPromotion> promotions = promotionService.getAllPromotions();
+        return new ApiResponse(200, "操作成功", promotions);
+    }
+}
+```
+
+```java
+// PromotionMapper.java
+package com.example.mapper;
+
+import com.example.entity.BmsPromotion;
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface PromotionMapper {
+    List<BmsPromotion> getAllPromotions();
+}
+```
+
+```xml
+<!-- PromotionMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.PromotionMapper">
+
+    <select id="getAllPromotions" resultType="com.example.entity.BmsPromotion">
+        SELECT * FROM bms_promotion
+    </select>
+
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+```
+
+```功能错误
+```

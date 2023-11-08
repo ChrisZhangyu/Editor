@@ -1,0 +1,208 @@
+业务功能逻辑：
+在tb_address表中查询地址，查询条件是address_id等于输入参数，如果地址为空或者tb_address.user_id不等于输入参数，返回(-1002, "收货地址不存在", null)；否则返回data设置为{address_id.address}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+```
+
+```java
+// TbAddress.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_address")
+public class TbAddress {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "address_id")
+    private Integer addressId;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    private String consignee;
+
+    private Long phone;
+
+    private String city;
+
+    private String address;
+
+    @Column(name = "street_number")
+    private String streetNumber;
+
+    @Column(name = "is_default")
+    private Boolean isDefault;
+}
+```
+
+```java
+// AddressService.java
+package com.example.service;
+
+import java.util.Optional;
+
+public interface AddressService {
+    Optional<TbAddress> getAddress(int userId, int addressId);
+}
+```
+
+```java
+// AddressServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+
+@Service
+public class AddressServiceImpl implements AddressService {
+
+    private final AddressMapper addressMapper;
+
+    @Autowired
+    public AddressServiceImpl(AddressMapper addressMapper) {
+        this.addressMapper = addressMapper;
+    }
+
+    @Override
+    public Optional<TbAddress> getAddress(int userId, int addressId) {
+        TbAddress address = addressMapper.getAddressById(addressId);
+        if (address == null || address.getUserId() != userId) {
+            return Optional.empty();
+        }
+        return Optional.of(address);
+    }
+}
+```
+
+```java
+// AddressController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/user/v1/user/{userId}/address")
+public class AddressController {
+
+    private final AddressService addressService;
+
+    @Autowired
+    public AddressController(AddressService addressService) {
+        this.addressService = addressService;
+    }
+
+    @GetMapping("/{addressId}")
+    public ApiResponse<TbAddress> getAddress(@PathVariable int userId, @PathVariable int addressId) {
+        Optional<TbAddress> optionalAddress = addressService.getAddress(userId, addressId);
+        if (optionalAddress.isPresent()) {
+            return new ApiResponse<>(100, "成功", optionalAddress.get());
+        } else {
+            return new ApiResponse<>(-1002, "收货地址不存在", null);
+        }
+    }
+}
+```
+
+```java
+// AddressMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface AddressMapper {
+    TbAddress getAddressById(@Param("addressId") int addressId);
+}
+```
+
+```xml
+<!-- AddressMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.AddressMapper">
+    <select id="getAddressById" resultType="com.example.entity.TbAddress">
+        SELECT * FROM tb_address WHERE address_id = #{addressId}
+    </select>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+AddressController.java:13:19
+java: 找不到符号
+  符号:   类 AddressService
+  位置: 类 com.example.controller.AddressController
+AddressController.java:16:30
+java: 找不到符号
+  符号:   类 AddressService
+  位置: 类 com.example.controller.AddressController
+AddressController.java:21:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.AddressController
+AddressController.java:21:24
+java: 找不到符号
+  符号:   类 TbAddress
+  位置: 类 com.example.controller.AddressController
+AddressMapper.java:8:5
+java: 找不到符号
+  符号:   类 TbAddress
+  位置: 接口 com.example.mapper.AddressMapper
+AddressService.java:6:14
+java: 找不到符号
+  符号:   类 TbAddress
+  位置: 接口 com.example.service.AddressService
+AddressServiceImpl.java:9:44
+java: 找不到符号
+  符号: 类 AddressService
+AddressServiceImpl.java:11:19
+java: 找不到符号
+  符号:   类 AddressMapper
+  位置: 类 com.example.service.impl.AddressServiceImpl
+AddressServiceImpl.java:14:31
+java: 找不到符号
+  符号:   类 AddressMapper
+  位置: 类 com.example.service.impl.AddressServiceImpl
+AddressServiceImpl.java:19:21
+java: 找不到符号
+  符号:   类 TbAddress
+  位置: 类 com.example.service.impl.AddressServiceImpl
+AddressController.java:25:9
+java: 找不到符号
+  符号:   类 Optional
+  位置: 类 com.example.controller.AddressController
+```
+
+```功能错误
+```

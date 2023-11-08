@@ -1,0 +1,183 @@
+﻿业务功能逻辑：
+根据传入的参数从表ssm_store中获取商店书籍分页列表,如果获取成功，返回ApiResponse。
+
+需要检查的代码：
+```java
+// StoreBook.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class StoreBook {
+    private int id;
+    private String isbn;
+    private int storeId;
+    private int number;
+    private Date inDate;
+}
+```
+```java
+// StoreBookListRequest.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class StoreBookListRequest {
+    private int storeId;
+    private int page;
+    private int rows;
+}
+```
+
+
+```java
+// StoreBookService.java
+package com.example.service;
+
+import com.example.entity.StoreBookListResponse;
+import com.example.entity.StoreBookListRequest;
+
+public interface StoreBookService {
+    StoreBookListResponse getStoreBookList(StoreBookListRequest request);
+}
+```
+
+```java
+// StoreBookServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.StoreBookService;
+import com.example.entity.StoreBookListResponse;
+import com.example.entity.StoreBookListRequest;
+import com.example.entity.StoreBook;
+import com.example.mapper.StoreBookMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class StoreBookServiceImpl implements StoreBookService {
+
+    private final StoreBookMapper storeBookMapper;
+
+    @Autowired
+    public StoreBookServiceImpl(StoreBookMapper storeBookMapper) {
+        this.storeBookMapper = storeBookMapper;
+    }
+
+    @Override
+    public StoreBookListResponse getStoreBookList(StoreBookListRequest request) {
+        StoreBookListResponse response = new StoreBookListResponse();
+        try {
+            int total = storeBookMapper.getStoreBookCount(request.getStoreId());
+            List<StoreBook> list = storeBookMapper.getStoreBookList(request);
+            StoreBookListResponse.StoreBookListData data = new StoreBookListResponse.StoreBookListData(total, list);
+            response.setCode(1);
+            response.setMessage("成功");
+            response.setResponse(data);
+        } catch (Exception e) {
+            response.setCode(0);
+            response.setMessage("失败：" + e.getMessage());
+        }
+        return response;
+    }
+}
+```
+
+```java
+// StoreBookController.java
+package com.example.controller;
+
+import com.example.service.StoreBookService;
+import com.example.entity.StoreBookListResponse;
+import com.example.entity.StoreBookListRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/storeBook")
+public class StoreBookController {
+
+    private final StoreBookService storeBookService;
+
+    @Autowired
+    public StoreBookController(StoreBookService storeBookService) {
+        this.storeBookService = storeBookService;
+    }
+
+    @GetMapping("/list")
+    public StoreBookListResponse getStoreBookList(@RequestBody StoreBookListRequest request) {
+        return storeBookService.getStoreBookList(request);
+    }
+}
+```
+
+```java
+// StoreBookMapper.java
+package com.example.mapper;
+
+import com.example.entity.StoreBookListRequest;
+import com.example.entity.StoreBook;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface StoreBookMapper {
+    int getStoreBookCount(@Param("storeId") int storeId);
+
+    List<StoreBook> getStoreBookList(StoreBookListRequest request);
+}
+```
+
+```xml
+<!-- StoreBookMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.StoreBookMapper">
+
+    <select id="getStoreBookCount" resultType="int">
+        SELECT COUNT(*) FROM ssm_storebook WHERE storeId = #{storeId}
+    </select>
+
+    <select id="getStoreBookList" resultType="com.example.entity.StoreBook">
+        SELECT * FROM ssm_storebook WHERE storeId = #{storeId} LIMIT #{page}, #{rows}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+StoreBookController.java:4:26
+java: 找不到符号
+  符号:   类 StoreBookListResponse
+  位置: 程序包 com.example.entity
+```
+```语法错误
+在StoreBookMapper.xml中缺少StoreBook实体类属性与表ssm_storebook字段间的映射语句。
+```

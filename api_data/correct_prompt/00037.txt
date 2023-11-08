@@ -1,0 +1,193 @@
+业务功能逻辑：
+根据pageNo计算出记录的偏移量offset=(pageNo-1)*5，根据offset和5在tbl_emp表中查询获取分页员工信息，查询条件是：在tbl_emp和tbl_dept表中检索员工信息，并将department_id与dept_id连接，然后按照员工ID升序排列；获取tbl_emp表中总的记录数totalItems和总页数totalPages(信息条数除以5，如果总条数不能被5整除，总页数加1)，返回信息data设置为 {"employee":[{"empId": 1,"empName": "John Doe","empEmail": "Manager","gender": "Sales","departmentId":101}],"totalItems":totalItems,"totalPages":totalPages,"curPage":pageNo}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private String status;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Department.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Department {
+    private int deptId;
+    private String deptName;
+    private String deptLeader;
+}
+```
+
+```java
+// Employee.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Employee {
+    private int empId;
+    private String empName;
+    private String empEmail;
+    private String gender;
+    private int departmentId;
+}
+```
+
+```java
+// EmployeeService.java
+package com.example.service;
+
+import com.example.entity.Employee;
+import com.example.entity.ApiResponse;
+
+public interface EmployeeService {
+    ApiResponse getEmpList(int pageNo);
+}
+```
+
+```java
+// EmployeeServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Employee;
+import com.example.entity.ApiResponse;
+import com.example.mapper.EmployeeMapper;
+import com.example.service.EmployeeService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class EmployeeServiceImpl implements EmployeeService {
+    private static final int PAGE_SIZE = 5;
+
+    @Autowired
+    private EmployeeMapper employeeMapper;
+
+    @Override
+    public ApiResponse getEmpList(int pageNo) {
+        int offset = (pageNo - 1) * PAGE_SIZE;
+        List<Employee> employeeList = employeeMapper.getEmpList(offset, PAGE_SIZE);
+        int totalItems = employeeMapper.getTotalItems();
+        int totalPages = (int) Math.ceil((double) totalItems / PAGE_SIZE);
+
+        ApiResponse apiResponse = new ApiResponse();
+        apiResponse.setStatus("success");
+        apiResponse.setMessage("操作成功");
+        apiResponse.setData(employeeList);
+        apiResponse.setTotalItems(totalItems);
+        apiResponse.setTotalPages(totalPages);
+        apiResponse.setCurPage(pageNo);
+
+        return apiResponse;
+    }
+}
+```
+
+```java
+// EmployeeController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.EmployeeService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/hrms/emp")
+public class EmployeeController {
+    @Autowired
+    private EmployeeService employeeService;
+
+    @GetMapping("/getEmpList")
+    public ApiResponse getEmpList(@RequestParam("pageNo") int pageNo) {
+        return employeeService.getEmpList(pageNo);
+    }
+}
+```
+
+```java
+// EmployeeMapper.java
+package com.example.mapper;
+
+import com.example.entity.Employee;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface EmployeeMapper {
+    List<Employee> getEmpList(@Param("offset") int offset, @Param("limit") int limit);
+    int getTotalItems();
+}
+```
+
+```xml
+<!-- EmployeeMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.EmployeeMapper">
+    <select id="getEmpList" resultType="com.example.entity.Employee">
+        SELECT e.emp_id as empId, e.emp_name as empName, e.emp_email as empEmail, e.gender, e.department_id as departmentId
+        FROM tbl_emp e
+        INNER JOIN tbl_dept d ON e.department_id = d.dept_id
+        ORDER BY e.emp_id ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="getTotalItems" resultType="int">
+        SELECT COUNT(*) FROM tbl_emp
+    </select>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+EmployeeServiceImpl.java: [30,20]
+java: 找不到符号
+  符号:   方法 setTotalItems(int)
+  位置: 类型为com.example.entity.ApiResponse的变量 apiResponse
+EmployeeServiceImpl.java: [31,20]
+java: 找不到符号
+  符号:   方法 setTotalPages(int)
+  位置: 类型为com.example.entity.ApiResponse的变量 apiResponse
+EmployeeServiceImpl.java: [32,20]
+java: 找不到符号
+  符号:   方法 setCurPage(int)
+  位置: 类型为com.example.entity.ApiResponse的变量 apiResponse
+```
+
+```功能错误
+返回信息data的内容格式不对.
+```

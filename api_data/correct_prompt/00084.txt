@@ -1,0 +1,186 @@
+业务功能逻辑：
+在ums_user表中查询用户，查询条件是username等于输入参数；如果用户为空，返回data为{"hasFollow":false}；如果用户不为空，在bms_follow表中查询对象，查询条件是parent_id等于ums_user.id、follower_id等于输入参数，如果对象不为空，返回data为{"hasFollow":true}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    private String id;
+    private String username;
+    private String alias;
+    private String password;
+    private String avatar;
+    private String email;
+    private String mobile;
+    private int score;
+    private String token;
+    private String bio;
+    private boolean active;
+    private boolean status;
+    private String roleId;
+    private Date createTime;
+    private Date modifyTime;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.UmsUser;
+
+public interface UserService {
+    UmsUser getUserByUsername(String username);
+    boolean hasFollow(String topicUserId, String followerId);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.UmsUser;
+import com.example.mapper.UserMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserMapper userMapper;
+
+    @Autowired
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public UmsUser getUserByUsername(String username) {
+        return userMapper.getUserByUsername(username);
+    }
+
+    @Override
+    public boolean hasFollow(String topicUserId, String followerId) {
+        return userMapper.hasFollow(topicUserId, followerId) != null;
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/relationship")
+public class UserController {
+
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/validate/{topicUserId}")
+    public ApiResponse validateFollow(@PathVariable String topicUserId, @RequestHeader String userName) {
+        UmsUser user = userService.getUserByUsername(userName);
+        if (user == null) {
+            return new ApiResponse(200, "操作成功", new ApiResponse.Data(false));
+        } else {
+            boolean hasFollow = userService.hasFollow(topicUserId, user.getId());
+            return new ApiResponse(200, "操作成功", new ApiResponse.Data(hasFollow));
+        }
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.UmsUser;
+
+public interface UserMapper {
+    UmsUser getUserByUsername(String username);
+    UmsUser hasFollow(String topicUserId, String followerId);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.UserMapper">
+
+    <select id="getUserByUsername" resultType="com.example.entity.UmsUser">
+        SELECT * FROM ums_user WHERE username = #{username}
+    </select>
+
+    <select id="hasFollow" resultType="com.example.entity.UmsUser">
+        SELECT * FROM bms_follow WHERE parent_id = #{topicUserId} AND follower_id = #{followerId}
+    </select>
+
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+UserServiceImpl.java:9:41
+java: 找不到符号
+  符号: 类 UserService
+UserController.java:25:9
+java: 找不到符号
+  符号:   类 UmsUser
+  位置: 类 com.example.controller.UserController
+UserController.java:27:64
+java: 找不到符号
+  符号:   类 Data
+  位置: 类 com.example.entity.ApiResponse
+UserController.java:30:64
+java: 找不到符号
+  符号:   类 Data
+  位置: 类 com.example.entity.ApiResponse
+org.apache.ibatis.binding.BindingException: Parameter 'topicUserId' not found. Available parameters are [arg1, arg0, param1, param2].
+```
+
+```功能错误
+```

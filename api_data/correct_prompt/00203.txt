@@ -1,0 +1,209 @@
+业务功能逻辑：根据输入参数在表oms_order_return_reason中批量修改退货原因启用状态。返回参数{"count"}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer count;
+}
+```
+```java
+// OmsOrderReturnReason.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer count;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderReturnReason {
+    private Long id;
+    private String name;
+    private Integer sort;
+    private Integer status;
+    private Date createTime;
+}
+```
+```java
+// UpdateReturnReasonStatusRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer count;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderReturnReason {
+    private Long id;
+    private String name;
+    private Integer sort;
+    private Integer status;
+    private Date createTime;
+}
+
+import lombok.Data;
+
+import java.util.List;
+
+@Data
+public class UpdateReturnReasonStatusRequest {
+    private Integer status;
+    private List<Long> ids;
+}
+```
+
+```java
+// ReturnReasonService.java
+package com.example.service;
+
+import com.example.entity.UpdateReturnReasonStatusRequest;
+import com.example.entity.ApiResponse;
+
+public interface ReturnReasonService {
+    ApiResponse updateReturnReasonStatus(UpdateReturnReasonStatusRequest request);
+}
+```
+
+```java
+// ReturnReasonServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.UpdateReturnReasonStatusRequest;
+import com.example.mapper.ReturnReasonMapper;
+import com.example.service.ReturnReasonService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ReturnReasonServiceImpl implements ReturnReasonService {
+
+    private final ReturnReasonMapper returnReasonMapper;
+
+    @Autowired
+    public ReturnReasonServiceImpl(ReturnReasonMapper returnReasonMapper) {
+        this.returnReasonMapper = returnReasonMapper;
+    }
+
+    @Override
+    public ApiResponse updateReturnReasonStatus(UpdateReturnReasonStatusRequest request) {
+        int count = returnReasonMapper.updateReturnReasonStatus(request.getStatus(), request.getIds());
+        return new ApiResponse(count);
+    }
+}
+```
+
+```java
+// ReturnReasonController.java
+package com.example.controller;
+
+import com.example.entity.UpdateReturnReasonStatusRequest;
+import com.example.service.ReturnReasonService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/returnReason")
+public class ReturnReasonController {
+
+    private final ReturnReasonService returnReasonService;
+
+    @Autowired
+    public ReturnReasonController(ReturnReasonService returnReasonService) {
+        this.returnReasonService = returnReasonService;
+    }
+
+    @PostMapping("/update/status")
+    public ApiResponse updateReturnReasonStatus(@RequestBody UpdateReturnReasonStatusRequest request) {
+        return returnReasonService.updateReturnReasonStatus(request);
+    }
+}
+```
+
+```java
+// ReturnReasonMapper.java
+package com.example.mapper;
+
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface ReturnReasonMapper {
+    int updateReturnReasonStatus(@Param("status") Integer status, @Param("ids") List<Long> ids);
+}
+```
+
+```xml
+<!-- ReturnReasonMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ReturnReasonMapper">
+
+    <update id="updateReturnReasonStatus">
+        UPDATE oms_order_return_reason
+        SET status = #{status}
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+
+```
+```功能错误
+
+```

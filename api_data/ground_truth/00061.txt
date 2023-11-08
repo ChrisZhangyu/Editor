@@ -1,0 +1,362 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+```
+
+```java
+// BmsTag.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_tag")
+public class BmsTag {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "topic_count")
+    private int topicCount;
+}
+```
+
+```java
+// Post.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_post")
+public class Post {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "title")
+    private String title;
+
+    @Column(name = "content", columnDefinition = "longtext")
+    private String content;
+
+    @Column(name = "user_id", length = 20)
+    private String userId;
+
+    @Column(name = "comments")
+    private int comments;
+
+    @Column(name = "collects")
+    private int collects;
+
+    @Column(name = "view")
+    private int view;
+
+    @Column(name = "top")
+    private boolean top;
+
+    @Column(name = "essence")
+    private boolean essence;
+
+    @Column(name = "section_id")
+    private String sectionId;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+}
+```
+
+```java
+// PostVO.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
+import java.util.Date;
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PostVO implements Serializable {
+    private String id;
+    private String userId;
+    private String avatar;
+    private String alias;
+    private String username;
+    private String title;
+    private Integer comments;
+    private Boolean top;
+    private Boolean essence;
+    private Integer collects;
+    private List<BmsTag> tags;
+    private Integer view;
+    private Date createTime;
+    private Date modifyTime;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    /**
+     * 用户ID
+     */
+    private String id;
+
+    /**
+     * 用户名
+     */
+    private String username;
+
+    /**
+     * 别名
+     */
+    private String alias;
+
+    /**
+     * 密码
+     */
+    private String password;
+
+    /**
+     * 头像
+     */
+    private String avatar;
+
+    /**
+     * 邮箱
+     */
+    private String email;
+
+    /**
+     * 手机号码
+     */
+    private String mobile;
+
+    /**
+     * 积分
+     */
+    private int score;
+
+    /**
+     * 令牌
+     */
+    private String token;
+
+    /**
+     * 个人简介
+     */
+    private String bio;
+
+    /**
+     * 是否激活
+     */
+    private boolean active;
+
+    /**
+     * 状态
+     */
+    private boolean status;
+
+    /**
+     * 角色ID
+     */
+    private String roleId;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 修改时间
+     */
+    private Date modifyTime;
+}
+```
+
+```java
+// PostService.java
+package com.example.service;
+
+import com.example.entity.PostVO;
+
+import java.util.List;
+
+public interface PostService {
+    List<PostVO> getPostList(String tab, int pageNo, int pageSize);
+}
+```
+
+```java
+// PostServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.PostVO;
+import com.example.service.PostService;
+import com.example.mapper.PostMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class PostServiceImpl implements PostService {
+    private final PostMapper postMapper;
+
+    @Autowired
+    public PostServiceImpl(PostMapper postMapper) {
+        this.postMapper = postMapper;
+    }
+
+    @Override
+    public List<PostVO> getPostList(String tab, int pageNo, int pageSize) {
+        // 根据传入的参数进行查询逻辑
+        List<PostVO> postList = postMapper.getPostList(tab, pageNo, pageSize);
+        return postList;
+    }
+}
+```
+
+```java
+// PostController.java
+package com.example.controller;
+
+import com.example.entity.PostVO;
+import com.example.service.PostService;
+import com.example.entity.ApiResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/post")
+public class PostController {
+    private final PostService postService;
+
+    @Autowired
+    public PostController(PostService postService) {
+        this.postService = postService;
+    }
+
+    @GetMapping("/list")
+    public ApiResponse<List<PostVO>> getPostList(@RequestParam("tab") String tab,
+                                                 @RequestParam("pageNo") int pageNo,
+                                                 @RequestParam("pageSize") int pageSize) {
+        List<PostVO> postList = postService.getPostList(tab, pageNo, pageSize);
+        return new ApiResponse<>(200, "操作成功", postList);
+    }
+}
+```
+
+```java
+// PostMapper.java
+package com.example.mapper;
+
+import com.example.entity.PostVO;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface PostMapper {
+    List<PostVO> getPostList(@Param("tab") String tab,
+                             @Param("pageNo") int pageNo,
+                             @Param("pageSize") int pageSize);
+}
+```
+
+```xml
+<!-- PostMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.PostMapper">
+    <resultMap id="postResultMap" type="com.example.entity.PostVO">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="user_id" property="userId"/>
+        <result column="comments" property="comments"/>
+        <result column="view" property="view"/>
+        <result column="collects" property="collects"/>
+        <result column="top" property="top"/>
+        <result column="essence" property="essence"/>
+        <result column="create_time" property="createTime"/>
+        <result column="modify_time" property="modifyTime"/>
+        <result column="username" property="username"/>
+        <result column="alias" property="alias"/>
+        <result column="avatar" property="avatar"/>
+    </resultMap>
+
+    <select id="getPostList" resultMap="postResultMap">
+        SELECT
+        t.id,t.title,t.user_id,t.comments,
+        t.view,t.collects,t.top,t.essence,
+        t.create_time ,t.modify_time ,
+        u.username,u.alias, u.avatar
+        FROM bms_post t
+        LEFT JOIN ums_user u
+        ON t.user_id = u.id
+        <if test="tab != 'hot'">
+            order by t.create_time desc
+        </if>
+        <if test="tab == 'hot'">
+            order by t.view desc, t.create_time desc
+            LIMIT #{pageSize} OFFSET #{pageNo}
+        </if>
+    </select>
+</mapper>
+```

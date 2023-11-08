@@ -1,0 +1,214 @@
+```java
+// ApiResponse.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Long id;
+    private Long categoryId;
+    private String title;
+    private String pic;
+    private Integer productCount;
+    private Integer recommendStatus;
+    private Date createTime;
+    private Integer collectCount;
+    private Integer readCount;
+    private Integer commentCount;
+    private String albumPics;
+    private String description;
+    private Integer showStatus;
+    private Integer forwardCount;
+    private String categoryName;
+    private String content;
+}```
+```java
+// CmsSubject.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CmsSubject {
+    private Long id;
+    private Long categoryId;
+    private String title;
+    private String pic;
+    private Integer productCount;
+    private Integer recommendStatus;
+    private Timestamp createTime;
+    private Integer collectCount;
+    private Integer readCount;
+    private Integer commentCount;
+    private String albumPics;
+    private String description;
+    private Integer showStatus;
+    private Integer forwardCount;
+    private String categoryName;
+}
+```
+```java
+// SubjectListAllRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SubjectListAllRequest {
+    private String distinct;
+    private String refid;
+    private String _parameter;
+    private String orderByClause;
+}
+```
+
+```java
+// SubjectService.java
+
+package com.example.service;
+
+import com.example.entity.SubjectListAllRequest;
+import com.example.entity.ApiResponse;
+
+import java.util.List;
+
+public interface SubjectService {
+    List<ApiResponse> getAllSubjects(SubjectListAllRequest request);
+}
+```
+
+```java
+// SubjectServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.mapper.SubjectMapper;
+import com.example.service.SubjectService;
+import com.example.entity.ApiResponse;
+import com.example.entity.SubjectListAllRequest;
+
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class SubjectServiceImpl implements SubjectService {
+    private final SubjectMapper subjectMapper;
+
+    public SubjectServiceImpl(SubjectMapper subjectMapper) {
+        this.subjectMapper = subjectMapper;
+    }
+
+    @Override
+    public List<ApiResponse> getAllSubjects(SubjectListAllRequest request) {
+        return subjectMapper.getAllSubjects(request);
+    }
+}
+```
+
+```java
+// SubjectController.java
+
+package com.example.controller;
+
+import com.example.entity.SubjectListAllRequest;
+import com.example.service.SubjectService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/subject")
+public class SubjectController {
+    private final SubjectService subjectService;
+
+    public SubjectController(SubjectService subjectService) {
+        this.subjectService = subjectService;
+    }
+
+    @GetMapping("/listAll")
+    public List<ApiResponse> getAllSubjects(SubjectListAllRequest request) {
+        return subjectService.getAllSubjects(request);
+    }
+}
+```
+
+```java
+// SubjectMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.SubjectListAllRequest;
+import com.example.entity.ApiResponse;
+
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface SubjectMapper {
+    List<ApiResponse> getAllSubjects(SubjectListAllRequest request);
+}
+```
+
+```xml
+<!-- SubjectMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.SubjectMapper">
+    <resultMap id="BaseResultMap" type="com.example.entity.ApiResponse">
+        <id column="id" jdbcType="BIGINT" property="id" />
+        <result column="category_id" jdbcType="BIGINT" property="categoryId" />
+        <result column="title" jdbcType="VARCHAR" property="title" />
+        <result column="pic" jdbcType="VARCHAR" property="pic" />
+        <result column="product_count" jdbcType="INTEGER" property="productCount" />
+        <result column="recommend_status" jdbcType="INTEGER" property="recommendStatus" />
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+        <result column="collect_count" jdbcType="INTEGER" property="collectCount" />
+        <result column="read_count" jdbcType="INTEGER" property="readCount" />
+        <result column="comment_count" jdbcType="INTEGER" property="commentCount" />
+        <result column="album_pics" jdbcType="VARCHAR" property="albumPics" />
+        <result column="description" jdbcType="VARCHAR" property="description" />
+        <result column="show_status" jdbcType="INTEGER" property="showStatus" />
+        <result column="forward_count" jdbcType="INTEGER" property="forwardCount" />
+        <result column="category_name" jdbcType="VARCHAR" property="categoryName" />
+    </resultMap>
+    <select id="getAllSubjects" resultMap="BaseResultMap">
+        SELECT
+        <if test="refid != null">
+            <if test="distinct">DISTINCT</if>
+            id, category_id, title, pic, product_count, recommend_status, create_time, collect_count, read_count, comment_count, album_pics, description, show_status, forward_count, category_name
+            FROM cms_subject
+            WHERE 1=1
+        </if>
+        <if test="orderByClause != null">
+            ORDER BY ${orderByClause}
+        </if>
+    </select>
+</mapper>
+
+```
+

@@ -1,0 +1,247 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+```
+```java
+// OmsOrderReturnApply.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderReturnApply {
+    private Long id;
+    private Long orderId;
+    private Integer companyAddressId;
+    private Long productId;
+    private String orderSn;
+    private Timestamp createTime;
+    private String memberUsername;
+    private BigDecimal returnAmount;
+    private String returnName;
+    private String returnPhone;
+    private Integer status;
+    private Timestamp handleTime;
+    private String productPic;
+    private String productName;
+    private String productBrand;
+    private String productAttr;
+    private Integer productCount;
+    private BigDecimal productPrice;
+    private BigDecimal productRealPrice;
+    private String reason;
+    private String description;
+    private String proofPics;
+    private String handleNote;
+    private String handleMan;
+    private String receiveMan;
+    private Timestamp receiveTime;
+    private String receiveNote;
+}```
+```java
+// UpdateReturnApplyStatusParam.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateReturnApplyStatusParam {
+    private Long id;
+    private Integer companyAddressId;
+    private BigDecimal returnAmount;
+    private String handleNote;
+    private String handleMan;
+    private String receiveNote;
+    private String receiveMan;
+    private Integer status;
+}
+```
+
+```java
+// OmsOrderReturnApplyService.java
+package com.example.service;
+
+import com.example.entity.UpdateReturnApplyStatusParam;
+
+import com.example.entity.OmsOrderReturnApply;
+import com.example.entity.UpdateReturnApplyStatusParam;
+
+public interface OmsOrderReturnApplyService {
+    int updateStatusById(Long id, UpdateReturnApplyStatusParam param);
+}
+```
+
+```java
+// OmsOrderReturnApplyServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.OmsOrderReturnApply;
+import com.example.entity.UpdateReturnApplyStatusParam;
+import com.example.service.OmsOrderReturnApplyService;
+
+import com.example.mapper.OmsOrderReturnApplyMapper;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
+import java.util.Date;
+
+@Service
+public class OmsOrderReturnApplyServiceImpl implements OmsOrderReturnApplyService {
+
+    @Resource
+    private OmsOrderReturnApplyMapper omsOrderReturnApplyMapper;
+
+    @Override
+    public int updateStatusById(Long id, UpdateReturnApplyStatusParam param) {
+        Integer status = param.getStatus();
+        OmsOrderReturnApply returnApply = new OmsOrderReturnApply();
+        if(status.equals(1)){
+            //确认退货
+            returnApply.setId(id);
+            returnApply.setStatus(1);
+            returnApply.setReturnAmount(param.getReturnAmount());
+            returnApply.setCompanyAddressId(param.getCompanyAddressId());
+            returnApply.setHandleMan(param.getHandleMan());
+            returnApply.setHandleNote(param.getHandleNote());
+        }else if(status.equals(2)){
+            //完成退货
+            returnApply.setId(id);
+            returnApply.setStatus(2);
+            returnApply.setReceiveMan(param.getReceiveMan());
+            returnApply.setReceiveNote(param.getReceiveNote());
+        }else if(status.equals(3)){
+            //拒绝退货
+            returnApply.setId(id);
+            returnApply.setStatus(3);
+            returnApply.setHandleMan(param.getHandleMan());
+            returnApply.setHandleNote(param.getHandleNote());
+        }else{
+            return 0;
+        }
+        return omsOrderReturnApplyMapper.updateStatusById(id, param);
+    }
+}
+```
+
+```java
+// OmsOrderReturnApplyController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.OmsOrderReturnApplyService;
+import com.example.entity.UpdateReturnApplyStatusParam;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.UpdateReturnApplyStatusParam;
+import com.example.service.OmsOrderReturnApplyService;
+import org.springframework.web.bind.annotation.*;
+
+import javax.annotation.Resource;
+
+@RestController
+@RequestMapping("/returnApply")
+public class OmsOrderReturnApplyController {
+
+    @Resource
+    private OmsOrderReturnApplyService omsOrderReturnApplyService;
+
+    @PostMapping("/update/status/{id}")
+    public ApiResponse<Integer> updateStatusById(@PathVariable Long id, @RequestBody UpdateReturnApplyStatusParam param) {
+        int count = omsOrderReturnApplyService.updateStatusById(id, param);
+        return new ApiResponse<>(200, "Success", count);
+    }
+}
+```
+
+```java
+// OmsOrderReturnApplyMapper.java
+package com.example.mapper;
+import com.example.entity.UpdateReturnApplyStatusParam;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface OmsOrderReturnApplyMapper {
+    int updateStatusById(@Param("id") Long id, @Param("param") UpdateReturnApplyStatusParam param);
+}
+```
+
+```xml
+<!-- OmsOrderReturnApplyMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.OmsOrderReturnApplyMapper">
+    <resultMap id="BaseResultMap" type="com.example.entity.OmsOrderReturnApply">
+        <id column="id" jdbcType="BIGINT" property="id" />
+        <result column="order_id" jdbcType="BIGINT" property="orderId" />
+        <result column="company_address_id" jdbcType="BIGINT" property="companyAddressId" />
+        <result column="product_id" jdbcType="BIGINT" property="productId" />
+        <result column="order_sn" jdbcType="VARCHAR" property="orderSn" />
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+        <result column="member_username" jdbcType="VARCHAR" property="memberUsername" />
+        <result column="return_amount" jdbcType="DECIMAL" property="returnAmount" />
+        <result column="return_name" jdbcType="VARCHAR" property="returnName" />
+        <result column="return_phone" jdbcType="VARCHAR" property="returnPhone" />
+        <result column="status" jdbcType="INTEGER" property="status" />
+        <result column="handle_time" jdbcType="TIMESTAMP" property="handleTime" />
+        <result column="product_pic" jdbcType="VARCHAR" property="productPic" />
+        <result column="product_name" jdbcType="VARCHAR" property="productName" />
+        <result column="product_brand" jdbcType="VARCHAR" property="productBrand" />
+        <result column="product_attr" jdbcType="VARCHAR" property="productAttr" />
+        <result column="product_count" jdbcType="INTEGER" property="productCount" />
+        <result column="product_price" jdbcType="DECIMAL" property="productPrice" />
+        <result column="product_real_price" jdbcType="DECIMAL" property="productRealPrice" />
+        <result column="reason" jdbcType="VARCHAR" property="reason" />
+        <result column="description" jdbcType="VARCHAR" property="description" />
+        <result column="proof_pics" jdbcType="VARCHAR" property="proofPics" />
+        <result column="handle_note" jdbcType="VARCHAR" property="handleNote" />
+        <result column="handle_man" jdbcType="VARCHAR" property="handleMan" />
+        <result column="receive_man" jdbcType="VARCHAR" property="receiveMan" />
+        <result column="receive_time" jdbcType="TIMESTAMP" property="receiveTime" />
+        <result column="receive_note" jdbcType="VARCHAR" property="receiveNote" />
+    </resultMap>
+    <update id="updateStatusById" parameterType="com.example.entity.UpdateReturnApplyStatusParam">
+        UPDATE oms_order_return_apply
+        SET status = #{param.status},
+        company_address_id = #{param.companyAddressId},
+        return_amount = #{param.returnAmount},
+        handle_note = #{param.handleNote},
+        handle_man = #{param.handleMan},
+        receive_note = #{param.receiveNote},
+        receive_man = #{param.receiveMan}
+        WHERE id = #{id}
+    </update>
+
+</mapper>
+
+```
+

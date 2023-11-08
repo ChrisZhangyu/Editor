@@ -1,0 +1,288 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Post.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_post")
+public class Post {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "title")
+    private String title;
+
+    @Column(name = "content", columnDefinition = "longtext")
+    private String content;
+
+    @Column(name = "user_id", length = 20)
+    private String userId;
+
+    @Column(name = "comments")
+    private int comments;
+
+    @Column(name = "collects")
+    private int collects;
+
+    @Column(name = "view")
+    private int view;
+
+    @Column(name = "top")
+    private boolean top;
+
+    @Column(name = "essence")
+    private boolean essence;
+
+    @Column(name = "section_id")
+    private String sectionId;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    private String id;
+    private String username;
+    private String alias;
+    private String password;
+    private String avatar;
+    private String email;
+    private String mobile;
+    private int score;
+    private String token;
+    private String bio;
+    private boolean active;
+    private boolean status;
+    private String roleId;
+    private Date createTime;
+    private Date modifyTime;
+}
+```
+
+```java
+// PostService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Post;
+
+public interface PostService {
+    ApiResponse deletePost(String id, String userName);
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.UmsUser;
+
+public interface UserService {
+    UmsUser getUserByUsername(String username);
+}
+```
+
+```java
+// PostServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Post;
+import com.example.entity.UmsUser;
+import com.example.mapper.PostMapper;
+import com.example.mapper.UserMapper;
+import com.example.service.PostService;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class PostServiceImpl implements PostService {
+
+    private final PostMapper postMapper;
+
+    private final UserService userService;
+
+    @Autowired
+    public PostServiceImpl(PostMapper postMapper, UserService userService) {
+        this.postMapper = postMapper;
+        this.userService = userService;
+    }
+
+    @Override
+    public ApiResponse deletePost(String id, String userName) {
+        UmsUser user = userService.getUserByUsername(userName);
+        if (user == null) {
+            return new ApiResponse(404, "用户不存在", null);
+        }
+
+        Post post = postMapper.getPostById(id);
+        if (post == null) {
+            return new ApiResponse(404, "来晚一步，话题已不存在", null);
+        }
+        if (!post.getUserId().equals(user.getId())) {
+            return new ApiResponse(403, "你为什么可以删除别人的话题？？？", null);
+        }
+        postMapper.deletePost(id);
+        return new ApiResponse(200, "删除成功", null);
+    }
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.UmsUser;
+import com.example.mapper.UserMapper;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserMapper userMapper;
+
+    @Autowired
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public UmsUser getUserByUsername(String username) {
+        return userMapper.getUserByUsername(username);
+    }
+}
+```
+
+```java
+// PostController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.PostService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/post")
+public class PostController {
+
+    private final PostService postService;
+
+    @Autowired
+    public PostController(PostService postService) {
+        this.postService = postService;
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ApiResponse deletePost(@PathVariable String id, @RequestHeader("userName") String userName) {
+        return postService.deletePost(id, userName);
+    }
+}
+```
+
+```java
+// PostMapper.java
+package com.example.mapper;
+
+import com.example.entity.Post;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface PostMapper {
+    Post getPostById(@Param("id") String id);
+    void deletePost(@Param("id") String id);
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.UmsUser;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface UserMapper {
+    UmsUser getUserByUsername(@Param("username") String username);
+}
+```
+
+```xml
+<!-- PostMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.PostMapper">
+
+    <select id="getPostById" resultType="com.example.entity.Post">
+        SELECT * FROM bms_post WHERE id = #{id}
+    </select>
+
+    <delete id="deletePost">
+        DELETE FROM bms_post WHERE id = #{id}
+    </delete>
+
+</mapper>
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+
+    <select id="getUserByUsername" resultType="com.example.entity.UmsUser">
+        SELECT * FROM ums_user WHERE username = #{username}
+    </select>
+
+</mapper>
+```

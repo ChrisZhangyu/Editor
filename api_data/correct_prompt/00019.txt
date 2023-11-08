@@ -1,0 +1,183 @@
+﻿业务功能逻辑：
+查询所有部门的名称业务逻辑：该方法获取所有部门的名称列表，如果成功获取名称列表，则返回包含名称列表的 JSON 响应，如{"status": "success","info": {"departmentList": [{"deptId": 1,"deptName": ""},{"deptId": 2,"deptName": ""}]}}，否则返回失败的 JSON 响应。
+
+需要检查的代码：
+
+```java
+// Department.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Department {
+    private int deptId;
+    private String deptName;
+}
+```
+```java
+// Dept.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Dept {
+    private int deptId;
+    private String deptName;
+    private String deptLeader;
+
+    public int getDeptId() {
+        return deptId;
+    }
+
+    public void setDeptId(int deptId) {
+        this.deptId = deptId;
+    }
+
+    public String getDeptName() {
+        return deptName;
+    }
+
+    public void setDeptName(String deptName) {
+        this.deptName = deptName;
+    }
+
+    public String getDeptLeader() {
+        return deptLeader;
+    }
+
+    public void setDeptLeader(String deptLeader) {
+        this.deptLeader = deptLeader;
+    }
+}```
+
+```java
+// DepartmentService.java
+
+package com.example.service;
+
+import com.example.entity.Department;
+
+import java.util.List;
+
+public interface DepartmentService {
+    List<Department> getAllDepartments();
+}
+```
+
+```java
+// DepartmentServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.service.DepartmentService;
+import com.example.mapper.DepartmentMapper;
+import com.example.entity.Department;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class DepartmentServiceImpl implements DepartmentService {
+
+    private final DepartmentMapper departmentMapper;
+
+    @Autowired
+    public DepartmentServiceImpl(DepartmentMapper departmentMapper) {
+        this.departmentMapper = departmentMapper;
+    }
+
+    @Override
+    public List<Department> getAllDepartments() {
+        return departmentMapper.getAllDepartments();
+    }
+}
+```
+
+```java
+// DepartmentController.java
+
+package com.example.controller;
+
+import com.example.service.DepartmentService;
+import com.example.entity.ApiResponse;
+import com.example.entity.Department;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/hrms/dept")
+public class DepartmentController {
+
+    private final DepartmentService departmentService;
+
+    @Autowired
+    public DepartmentController(DepartmentService departmentService) {
+        this.departmentService = departmentService;
+    }
+
+    @GetMapping("/getDeptName")
+    public ApiResponse<List<Department>> getDepartmentNames() {
+        List<Department> departmentList = departmentService.getAllDepartments();
+        return new ApiResponse<>("success", new ApiResponse.Info<>(departmentList));
+    }
+}
+```
+
+```java
+// DepartmentMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.Department;
+
+import java.util.List;
+
+public interface DepartmentMapper {
+    List<Department> getAllDepartments();
+}
+```
+
+```xml
+<!-- DepartmentMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.DepartmentMapper">
+    <select id="getAllDepartments" resultMap="DeptResult">
+        SELECT dept_id, dept_name FROM dept
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```语法错误
+DepartmentMapper.xml缺少数据映射：
+<resultMap type="com.example.entity.Department" id="DeptResult">
+        <result property="deptId" column="dept_id"/>
+        <result property="deptName" column="dept_name"/>
+    </resultMap>
+```
+```依赖错误
+epartmentController.java:5:26
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 程序包 com.example.entity
+```

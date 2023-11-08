@@ -1,0 +1,205 @@
+﻿业务功能逻辑：
+任务分页接口：根据传入的请求参数在表t_task_exam中检索任务分页信息。返回{"code": 1,"message": "成功","response": {"total": "","list": [{"id": 64,  "title": "", "gradeLevel": 1,  "createUserName": "",  "createTime": "", "deleted": false  }]}}。
+需要检查的代码：
+```java
+// TaskExam.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskExam {
+    private Integer id;
+    private String title;
+    private Integer gradeLevel;
+    private Integer frameTextContentId;
+    private Integer createUser;
+    private Date createTime;
+    private Boolean deleted;
+    private String createUserName;
+}
+```
+```java
+// TaskPageRequest.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskPageRequest {
+    private Integer gradeLevel;
+    private Integer pageIndex;
+    private Integer pageSize;
+}
+```
+```java
+// TaskPageResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TaskPageResponse {
+    private Integer code;
+    private String message;
+    private TaskPageData response;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TaskPageData {
+        private Integer total;
+        private List<TaskExam> list;
+    }
+}
+```
+
+```java
+// TaskService.java
+package com.example.service;
+
+import com.example.entity.TaskPageResponse;
+import com.example.entity.TaskPageRequest;
+
+public interface TaskService {
+    TaskPageResponse getTaskPage(TaskPageRequest request);
+}
+```
+
+```java
+// TaskServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.TaskPageResponse;
+import com.example.entity.TaskPageRequest;
+import com.example.mapper.TaskExamMapper;
+import com.example.service.TaskService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class TaskServiceImpl implements TaskService {
+
+    private final TaskExamMapper taskExamMapper;
+
+    @Autowired
+    public TaskServiceImpl(TaskExamMapper taskExamMapper) {
+        this.taskExamMapper = taskExamMapper;
+    }
+
+    @Override
+    public TaskPageResponse getTaskPage(TaskPageRequest request) {
+        TaskPageResponse response = new TaskPageResponse();
+        response.setCode(1);
+        response.setMessage("成功");
+        TaskPageResponse.TaskPageData data = new TaskPageResponse.TaskPageData();
+        data.setTotal(taskExamMapper.getTaskCount(request.getGradeLevel()));
+        data.setList(taskExamMapper.getTaskPage(request));
+        response.setResponse(data);
+        return response;
+    }
+}
+```
+
+```java
+// TaskController.java
+package com.example.controller;
+
+import com.example.entity.TaskPageResponse;
+import com.example.entity.TaskPageRequest;
+import com.example.service.TaskService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/task")
+public class TaskController {
+
+    private final TaskService taskService;
+
+    @Autowired
+    public TaskController(TaskService taskService) {
+        this.taskService = taskService;
+    }
+
+    @PostMapping("/page")
+    public TaskPageResponse getTaskPage(@RequestBody TaskPageRequest request) {
+        return taskService.getTaskPage(request);
+    }
+}
+```
+
+```java
+// TaskExamMapper.java
+package com.example.mapper;
+
+import com.example.entity.TaskPageRequest;
+import com.example.entity.TaskExam;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface TaskExamMapper {
+    Integer getTaskCount(@Param("gradeLevel") Integer gradeLevel);
+    List<TaskExam> getTaskPage(TaskPageRequest request);
+}
+```
+
+```xml
+<!-- TaskExamMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.TaskExamMapper">
+    <select id="getTaskCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM t_task_exam
+        <where>
+            <if test="gradeLevel != null">
+                AND grade_level = #{gradeLevel}
+            </if>
+        </where>
+    </select>
+
+    <select id="getTaskPage" resultType="com.example.entity.TaskExam">
+        SELECT * FROM t_task_exam
+        <where>
+            <if test="gradeLevel != null">
+                AND grade_level = #{gradeLevel}
+            </if>
+        </where>
+        LIMIT #{pageIndex}, #{pageSize}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```语法错误
+在TaskExamMapper.xml文件中缺少TaskExam实体类属性与t_task_exam表字段间的映射语句。
+```

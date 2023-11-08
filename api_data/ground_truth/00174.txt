@@ -1,0 +1,410 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Order.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_order")
+public class Order {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "order_id")
+    private Long orderId;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "address_id")
+    private Integer addressId;
+
+    @Column(name = "amount")
+    private Double amount;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "remarks")
+    private String remarks;
+
+    @Column(name = "status")
+    private Integer status;
+}
+```
+
+```java
+// OrderDetail.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_order_detail")
+public class OrderDetail {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "order_detail_id")
+    private Long orderDetailId;
+
+    @Column(name = "order_id")
+    private Long orderId;
+
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "count")
+    private Integer count;
+}
+```
+
+```java
+// TbAddress.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_address")
+public class TbAddress {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "address_id")
+    private Integer addressId;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    private String consignee;
+
+    private Long phone;
+
+    private String city;
+
+    private String address;
+
+    @Column(name = "street_number")
+    private String streetNumber;
+
+    @Column(name = "is_default")
+    private Boolean isDefault;
+}
+```
+
+```java
+// TbUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_user")
+public class TbUser {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "user_name", length = 30)
+    private String userName;
+
+    @Column(name = "pass_word", length = 30)
+    private String passWord;
+
+    private Long phone;
+
+    @Column(length = 6)
+    private String sex;
+
+    private String avatar;
+
+    @Column(name = "nick_name", length = 10)
+    private String nickName;
+}
+```
+
+```java
+// OrderService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Order;
+
+import java.util.Date;
+import java.util.List;
+
+public interface OrderService {
+    ApiResponse getOrderList(int page, int rows, String orderBy, Order order, String start, String end, String userName);
+}
+```
+
+```java
+// OrderServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.*;
+import com.example.service.OrderService;
+import com.example.mapper.OrderDetailMapper;
+import com.example.mapper.OrderMapper;
+import com.example.mapper.AddressMapper;
+import com.example.mapper.UserMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+@Service
+public class OrderServiceImpl implements OrderService {
+
+    private final OrderMapper orderMapper;
+    private final UserMapper userMapper;
+    private final AddressMapper addressMapper;
+    private final OrderDetailMapper orderDetailMapper;
+
+    @Autowired
+    public OrderServiceImpl(OrderMapper orderMapper, UserMapper userMapper, AddressMapper addressMapper, OrderDetailMapper orderDetailMapper) {
+        this.orderMapper = orderMapper;
+        this.userMapper = userMapper;
+        this.addressMapper = addressMapper;
+        this.orderDetailMapper = orderDetailMapper;
+    }
+
+    @Override
+    public ApiResponse getOrderList(int page, int rows, String orderBy, Order order, String start, String end, String userName) {
+        // 查询tb_user表中的记录
+        List<TbUser> userList = userMapper.getUserByUserName(userName);
+        if (!userList.isEmpty()) {
+            TbUser user = userList.get(0);
+
+            //将start和end转换为Date类型
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            Date startTime;
+            Date endTime;
+            try {
+                startTime = sdf.parse(start);
+                endTime = sdf.parse(end);
+            } catch (ParseException e) {
+                startTime = null;
+                endTime = null;
+                throw new RuntimeException(e);
+            }
+
+            // 根据查询条件分页查询tb_order表的记录
+            int pageStart = (page - 1) * rows;
+            List<Order> orderList = orderMapper.getOrderList(pageStart, rows, orderBy, order, startTime, endTime, user.getUserId());
+            List<Map<String, Object>> responseList = new ArrayList<>();
+            for (Order o : orderList) {
+                // 根据tb_order表中的address_id查询tb_address表的记录
+                TbAddress address = addressMapper.getAddressById(o.getAddressId());
+                // 根据tb_order表中的order_id查询tb_order_detail表的记录
+                List<OrderDetail> orderDetailList = orderDetailMapper.getOrderDetailListByOrderId(o.getOrderId());
+                Map<String, Object> response = new HashMap<>();
+                response.put("orderId", o.getOrderId());
+                response.put("userId", o.getUserId());
+                response.put("addressId", o.getAddressId());
+                response.put("createTime", o.getCreateTime());
+                response.put("remarks", o.getRemarks());
+                response.put("status", o.getStatus());
+                response.put("orderDetails", orderDetailList);
+                response.put("address", address);
+                responseList.add(response);
+            }
+            return new ApiResponse(100, "成功", responseList);
+        } else {
+            return new ApiResponse(200, "用户不存在", null);
+        }
+    }
+}
+```
+
+```java
+// OrderController.java
+package com.example.controller;
+
+import com.example.entity.Order;
+import com.example.service.OrderService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/admin/v1/order")
+public class OrderController {
+
+    private final OrderService orderService;
+
+    @Autowired
+    public OrderController(OrderService orderService) {
+        this.orderService = orderService;
+    }
+
+    @GetMapping
+    public ApiResponse getOrderList(@RequestParam int page, @RequestParam int rows, @RequestParam String orderBy,
+                                    @RequestBody Order order, @RequestParam String start,
+                                    @RequestParam String end, @RequestParam String userName) {
+        return orderService.getOrderList(page, rows, orderBy, order, start, end, userName);
+    }
+}
+```
+
+```java
+// AddressMapper.java
+package com.example.mapper;
+
+import com.example.entity.TbAddress;
+
+public interface AddressMapper {
+    TbAddress getAddressById(int addressId);
+}
+```
+
+```java
+// OrderDetailMapper.java
+package com.example.mapper;
+
+import com.example.entity.OrderDetail;
+
+import java.util.List;
+
+public interface OrderDetailMapper {
+    List<OrderDetail> getOrderDetailListByOrderId(long orderId);
+}
+```
+
+```java
+// OrderMapper.java
+package com.example.mapper;
+
+import com.example.entity.Order;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.Date;
+import java.util.List;
+
+public interface OrderMapper {
+    List<Order> getOrderList(@Param("page") int page, @Param("rows") int rows, @Param("orderBy") String orderBy,
+                             @Param("order") Order order, @Param("start") Date start, @Param("end") Date end,
+                             @Param("userId") int userId);
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.TbUser;
+
+import java.util.List;
+
+public interface UserMapper {
+    List<TbUser> getUserByUserName(String userName);
+}
+```
+
+```xml
+<!-- AddressMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.AddressMapper">
+    <select id="getAddressById" parameterType="int" resultType="com.example.entity.TbAddress">
+        SELECT * FROM tb_address WHERE address_id = #{addressId}
+    </select>
+</mapper>
+```
+
+```xml
+<!-- OrderDetailMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.OrderDetailMapper">
+    <select id="getOrderDetailListByOrderId" parameterType="long" resultType="com.example.entity.OrderDetail">
+        SELECT * FROM tb_order_detail WHERE order_id = #{orderId}
+    </select>
+</mapper>
+```
+
+```xml
+<!-- OrderMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.OrderMapper">
+    <select id="getOrderList" resultType="com.example.entity.Order">
+        SELECT *
+        FROM tb_order
+        WHERE user_id = #{userId}
+        <if test="order != null and order.orderId != null">
+            AND order_id = #{order.orderId}
+        </if>
+        <if test="order != null and order.status != null">
+            AND status = #{order.status}
+        </if>
+        <if test="start != null and end != null">
+            AND create_time BETWEEN #{start} AND #{end}
+        </if>
+        <if test="orderBy != null and orderBy != ''">
+            ORDER BY ${orderBy}
+        </if>
+        LIMIT #{page}, #{rows}
+    </select>
+</mapper>
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="getUserByUserName" resultType="com.example.entity.TbUser">
+        SELECT * FROM tb_user WHERE user_name = #{userName}
+    </select>
+</mapper>
+```

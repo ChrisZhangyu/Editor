@@ -1,0 +1,190 @@
+业务功能逻辑：
+1. 管理员创建: POST /admin/v1/admins; x-www-form-urlencoded; (userName="",passWord="",nickName="",phone=0,superLevel=false); ApiResponse{"code": 100,"message": "成功","data": {}}.
+2. 判断输入参数passWord、nickName、phone是否为空，如果为空返回(-1004, "字段不能为空",null)；在tb_administrator表中查询管理员列表，查询条件是user_name等于userName，如果存在返回(-1005, "用户名已存在",null)；在tb_administrator表中插入记录，字段属性为输入参数，如果superLevel为空则设置为false，返回data设置为{tb_administrator记录}.
+
+需要检查的代码：
+```java
+// Administrator.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_administrator")
+public class Administrator {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "administrator_id")
+    private Integer administratorId;
+
+    @Column(name = "user_name", length = 30)
+    private String userName;
+
+    @Column(name = "pass_word", length = 30)
+    private String passWord;
+
+    @Column(name = "nick_name", length = 30)
+    private String nickName;
+
+    @Column(name = "super_level")
+    private Boolean superLevel;
+
+    @Column(name = "phone")
+    private Long phone;
+}```
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// AdminService.java
+package com.example.service;
+
+import com.example.entity.Administrator;
+import com.example.entity.ApiResponse;
+
+public interface AdminService {
+    ApiResponse createAdmin(Administrator administrator);
+}
+```
+
+```java
+// AdminServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Administrator;
+import com.example.entity.ApiResponse;
+import com.example.mapper.AdminMapper;
+import com.example.service.AdminService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class AdminServiceImpl implements AdminService {
+
+    private final AdminMapper adminMapper;
+
+    @Autowired
+    public AdminServiceImpl(AdminMapper adminMapper) {
+        this.adminMapper = adminMapper;
+    }
+
+    @Override
+    public ApiResponse createAdmin(Administrator administrator) {
+        // 判断输入参数是否为空
+        if (administrator.getPassWord() == null || administrator.getNickName() == null || administrator.getPhone() == null) {
+            return new ApiResponse(-1004, "字段不能为空", null);
+        }
+
+        // 判断用户名是否已存在
+        Administrator existingAdmin = adminMapper.getAdminByUserName(administrator.getUserName());
+        if (existingAdmin != null) {
+            return new ApiResponse(-1005, "用户名已存在", null);
+        }
+
+        // 设置superLevel默认值为false
+        if (administrator.getSuperLevel() == null) {
+            administrator.setSuperLevel(false);
+        }
+
+        // 插入管理员记录
+        adminMapper.createAdmin(administrator);
+
+        return new ApiResponse(100, "成功", administrator);
+    }
+}
+```
+
+```java
+// AdminController.java
+package com.example.controller;
+
+import com.example.entity.Administrator;
+import com.example.entity.ApiResponse;
+import com.example.service.AdminService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/admin/v1/admins")
+public class AdminController {
+
+    private final AdminService adminService;
+
+    @Autowired
+    public AdminController(AdminService adminService) {
+        this.adminService = adminService;
+    }
+
+    @PostMapping
+    public ApiResponse createAdmin(@RequestBody Administrator administrator) {
+        return adminService.createAdmin(administrator);
+    }
+}
+```
+
+```java
+// AdminMapper.java
+package com.example.mapper;
+
+import com.example.entity.Administrator;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface AdminMapper {
+    Administrator getAdminByUserName(@Param("userName") String userName);
+
+    void createAdmin(Administrator administrator);
+}
+```
+
+```xml
+<!-- AdminMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.AdminMapper">
+    <select id="getAdminByUserName" resultType="com.example.entity.Administrator">
+        SELECT * FROM tb_administrator WHERE user_name = #{userName}
+    </select>
+
+    <insert id="createAdmin">
+        INSERT INTO tb_administrator (user_name, pass_word, nick_name, super_level, phone)
+        VALUES (#{userName}, #{passWord}, #{nickName}, #{superLevel}, #{phone})
+    </insert>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+```
+
+```功能错误
+AdminController.java模块中的接口createAdmin输入参数错误,不是x-www-form-urlencoded请求格式
+```

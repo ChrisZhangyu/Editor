@@ -1,0 +1,210 @@
+业务功能逻辑：
+如果参数articleTitle、articleContent不空、articleContent的长度小于50000、ssm_article表中记录少于90条则对表进行插入更新操作，并返回response为true，否则等于false；插入操作：参数id为空将输入对象的属性值插入到表中所需的字段中，更新操作：参数id不为空，查找匹配id的记录，更新article_title、article_content和add_name属性.
+
+需要检查的代码：
+```java
+// Article.java
+package com.example.entity;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Article {
+    private int id;
+    private String articleTitle;
+    private String articleCreateDate;
+    private String articleContent;
+    private int isTop;
+    private String addName;
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// ArticleRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ArticleRequest {
+    private String id;
+    private String articleTitle;
+    private String articleCreateDate;
+    private String articleContent;
+    private Integer articleClassID;
+    private Integer isTop;
+    private String addName;
+}
+```
+
+```java
+// ArticleService.java
+package com.example.service;
+
+import com.example.entity.Article;
+import com.example.entity.ArticleRequest;
+
+public interface ArticleService {
+    boolean saveArticle(ArticleRequest articleRequest);
+}
+```
+
+```java
+// ArticleServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Article;
+import com.example.entity.ArticleRequest;
+import com.example.mapper.ArticleMapper;
+import com.example.service.ArticleService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ArticleServiceImpl implements ArticleService {
+
+    private final ArticleMapper articleMapper;
+
+    @Autowired
+    public ArticleServiceImpl(ArticleMapper articleMapper) {
+        this.articleMapper = articleMapper;
+    }
+
+    @Override
+    public boolean saveArticle(ArticleRequest articleRequest) {
+        if (articleRequest.getArticleTitle() != null && !articleRequest.getArticleTitle().isEmpty()
+                && articleRequest.getArticleContent() != null && !articleRequest.getArticleContent().isEmpty()
+                && articleRequest.getArticleContent().length() < 50000
+                && articleMapper.getArticleCount() < 90) {
+            Article article = new Article();
+            article.setArticleTitle(articleRequest.getArticleTitle());
+            article.setArticleCreateDate(articleRequest.getArticleCreateDate());
+            article.setArticleContent(articleRequest.getArticleContent());
+            article.setArticleClassID(articleRequest.getArticleClassID());
+            article.setIsTop(articleRequest.getIsTop());
+            article.setAddName(articleRequest.getAddName());
+
+            if (articleRequest.getId() == null || articleRequest.getId().isEmpty()) {
+                articleMapper.insertArticle(article);
+            } else {
+                article.setId(Integer.parseInt(articleRequest.getId()));
+                articleMapper.updateArticle(article);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+}
+```
+
+```java
+// ArticleController.java
+package com.example.controller;
+
+import com.example.entity.ArticleRequest;
+import com.example.entity.ApiResponse;
+import com.example.service.ArticleService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/article")
+public class ArticleController {
+
+    private final ArticleService articleService;
+
+    @Autowired
+    public ArticleController(ArticleService articleService) {
+        this.articleService = articleService;
+    }
+
+    @PostMapping("/save")
+    public ApiResponse saveArticle(@RequestBody ArticleRequest articleRequest) {
+        boolean result = articleService.saveArticle(articleRequest);
+        if (result) {
+            return new ApiResponse(1, "成功", null);
+        } else {
+            return new ApiResponse(0, "失败", null);
+        }
+    }
+}
+```
+
+```java
+// ArticleMapper.java
+package com.example.mapper;
+
+import com.example.entity.Article;
+
+public interface ArticleMapper {
+    void insertArticle(Article article);
+    void updateArticle(Article article);
+    int getArticleCount();
+}
+```
+
+```xml
+<!-- ArticleMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ArticleMapper">
+    <insert id="insertArticle" parameterType="com.example.entity.Article">
+        INSERT INTO ssm_article (article_title, article_create_date, article_content, article_class_id, is_top, add_name)
+        VALUES (#{articleTitle}, #{articleCreateDate}, #{articleContent}, #{articleClassID}, #{isTop}, #{addName})
+    </insert>
+
+    <update id="updateArticle" parameterType="com.example.entity.Article">
+        UPDATE ssm_article
+        SET article_title = #{articleTitle}, article_content = #{articleContent}, add_name = #{addName}
+        WHERE id = #{id}
+    </update>
+
+    <select id="getArticleCount" resultType="int">
+        SELECT COUNT(*) FROM ssm_article
+    </select>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+ArticleServiceImpl.java: [30,20]
+java: 找不到符号
+  符号:   方法 setArticleClassID(java.lang.Integer)
+  位置: 类型为com.example.entity.Article的变量 article
+ArticleMapper.xml:
+  org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'articleClassID' in 'class com.example.entity.Article'
+```
+
+```功能错误
+插入操作时ssm_article表中的article_create_date属性为空.
+```

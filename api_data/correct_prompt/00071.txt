@@ -1,0 +1,204 @@
+业务功能逻辑：实现获取分页查询退货申请相关的信息并遍历当前页的数据。返回{"pageNum","pageSize","totalPage","total"}.
+
+需要检查的代码：
+```java
+// OmsOrderReturnApply.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderReturnApply {
+    private Long id;
+    private Long orderId;
+    private Long companyAddressId;
+    private Long productId;
+    private String orderSn;
+    private Timestamp createTime;
+    private String memberUsername;
+    private BigDecimal returnAmount;
+    private String returnName;
+    private String returnPhone;
+    private Integer status;
+    private Timestamp handleTime;
+    private String productPic;
+    private String productName;
+    private String productBrand;
+    private String productAttr;
+    private Integer productCount;
+    private BigDecimal productPrice;
+    private BigDecimal productRealPrice;
+    private String reason;
+    private String description;
+    private String proofPics;
+    private String handleNote;
+    private String handleMan;
+    private String receiveMan;
+    private Timestamp receiveTime;
+    private String receiveNote;
+}
+
+import lombok.Data;
+
+@Data
+public class ReturnApplyListRequest {
+    private String id;
+    private String receiverKeyword;
+    private Integer status;
+    private String createTime;
+    private String handleMan;
+    private String handleTime;
+    private Integer pageSize;
+    private Integer pageNum;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ReturnApplyListResponse {
+    private Integer pageNum;
+    private Integer pageSize;
+    private Integer totalPage;
+    private Integer total;
+}
+```
+
+```java
+// ReturnApplyService.java
+
+package com.example.service;
+
+import com.example.entity.ReturnApplyListRequest;
+import com.example.entity.ReturnApplyListResponse;
+
+import com.example.demo.ReturnApplyListRequest;
+import com.example.demo.ReturnApplyListResponse;
+
+public interface ReturnApplyService {
+    ReturnApplyListResponse getReturnApplyList(ReturnApplyListRequest request);
+}
+```
+
+```java
+// ReturnApplyServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.entity.ReturnApplyListRequest;
+import com.example.entity.ReturnApplyListResponse;
+import com.example.service.ReturnApplyService;
+
+import com.example.demo.ReturnApplyListRequest;
+import com.example.demo.ReturnApplyListResponse;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ReturnApplyServiceImpl implements ReturnApplyService {
+    @Override
+    public ReturnApplyListResponse getReturnApplyList(ReturnApplyListRequest request) {
+        // 实现获取分页查询退货申请相关的信息并遍历当前页的数据的逻辑
+        // ...
+
+        ReturnApplyListResponse response = new ReturnApplyListResponse();
+        // 设置返回结果
+        response.setPageNum(1);
+        response.setPageSize(5);
+        response.setTotalPage(10);
+        response.setTotal(50);
+
+        return response;
+    }
+}
+```
+
+```java
+// ReturnApplyController.java
+
+package com.example.controller;
+
+import com.example.entity.ReturnApplyListRequest;
+import com.example.entity.ReturnApplyListResponse;
+import com.example.service.ReturnApplyService;
+
+import com.example.demo.ReturnApplyListRequest;
+import com.example.demo.ReturnApplyListResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/returnApply")
+public class ReturnApplyController {
+    @Autowired
+    private ReturnApplyService returnApplyService;
+
+    @GetMapping("/list")
+    public ReturnApplyListResponse getReturnApplyList(ReturnApplyListRequest request) {
+        return returnApplyService.getReturnApplyList(request);
+    }
+}
+```
+
+```java
+// ReturnApplyMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.ReturnApplyListRequest;
+import com.example.entity.ReturnApplyListResponse;
+
+import com.example.demo.ReturnApplyListRequest;
+import com.example.demo.ReturnApplyListResponse;
+
+public interface ReturnApplyMapper {
+    ReturnApplyListResponse getReturnApplyList(ReturnApplyListRequest request);
+}
+```
+
+```xml
+<!-- ReturnApplyMapper.xml -->
+
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.demo.ReturnApplyMapper">
+    <select id="getReturnApplyList" parameterType="com.example.demo.ReturnApplyListRequest" resultType="com.example.demo.ReturnApplyListResponse">
+        <!-- 实现获取分页查询退货申请相关的信息并遍历当前页的数据的 SQL 语句 -->
+        <!-- ... -->
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\order_return_apply_search\src\main\java\com\example\entity\OmsOrderReturnApply.java:45
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_return_apply_search\src\main\java\com\example\entity\OmsOrderReturnApply.java:59
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_return_apply_search\src\main\java\com\example\entity\OmsOrderReturnApply.java:60
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_return_apply_search\src\main\java\com\example\entity\OmsOrderReturnApply.java:61
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_return_apply_search\src\main\java\com\example\controller\ReturnApplyController.java:8:24
+java: 程序包com.example.demo不存在
+java.lang.ClassNotFoundException: Cannot find class: com.example.demo.ReturnApplyListRequest
+
+```
+```功能错误
+返回为空，错误输出
+```

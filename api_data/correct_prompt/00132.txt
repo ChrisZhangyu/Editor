@@ -1,0 +1,304 @@
+业务功能逻辑：
+在tb_cart表中查询购物车记录，查询条件是user_id等于userId，如果为空创建购物车记录，userId设置为userId，amount设置为0.0，插入到tb_cart表中；如果不为空获取列表的第一个购物车记录，在tb_cart_detail表中查询购物车详情列表，查询条件是cart_id等于tb_cart.cart_id；遍历列表，在tb_good表中查询商品，查询条件是good_id等于tb_cart_detail.good_id，返回data设置为{"cartId"=tb_cart.cart_id,"amount"=tb_cart.amount,"good"={tb_good记录}}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Cart.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Cart {
+    private Long cartId;
+    private Integer userId;
+    private Double amount;
+}
+```
+
+```java
+// CartDetail.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CartDetail {
+    private Long cartDetailId;
+    private Long cartId;
+    private Integer goodId;
+    private Integer count;
+}
+```
+
+```java
+// Good.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Good {
+    private Integer goodId;
+    private Integer categorySecondId;
+    private String goodName;
+    private String image;
+    private Double price;
+    private Double originalPrice;
+    private Integer inventory;
+    private Integer soldCount;
+    private String spec;
+    private String origin;
+}
+```
+
+```java
+// CartService.java
+package com.example.service;
+
+public interface CartService {
+    ApiResponse getCartByUserId(Integer userId);
+}
+```
+
+```java
+// CartServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class CartServiceImpl implements CartService {
+
+    private final CartMapper cartMapper;
+    private final CartDetailMapper cartDetailMapper;
+    private final GoodMapper goodMapper;
+
+    @Autowired
+    public CartServiceImpl(CartMapper cartMapper, CartDetailMapper cartDetailMapper, GoodMapper goodMapper) {
+        this.cartMapper = cartMapper;
+        this.cartDetailMapper = cartDetailMapper;
+        this.goodMapper = goodMapper;
+    }
+
+    @Override
+    public ApiResponse getCartByUserId(Integer userId) {
+        Cart cart = cartMapper.selectByUserId(userId);
+        if (cart == null) {
+            cart = new Cart();
+            cart.setUserId(userId);
+            cart.setAmount(0.0);
+            cartMapper.insert(cart);
+        }
+        List<CartDetail> cartDetails = cartDetailMapper.selectByCartId(cart.getCartId());
+        List<Good> goods = new ArrayList<>();
+        for (CartDetail cartDetail : cartDetails) {
+            Good good = goodMapper.selectByGoodId(cartDetail.getGoodId());
+            goods.add(good);
+        }
+        Map<String, Object> data = new HashMap<>();
+        data.put("cartId", cart.getCartId());
+        data.put("amount", cart.getAmount());
+        data.put("goods", goods);
+        return new ApiResponse(100, "成功", data);
+    }
+}
+```
+
+```java
+// CartController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/user/v1/user")
+public class CartController {
+
+    private final CartService cartService;
+
+    @Autowired
+    public CartController(CartService cartService) {
+        this.cartService = cartService;
+    }
+
+    @GetMapping("/{userId}/cart")
+    public ApiResponse getCartByUserId(@PathVariable Integer userId) {
+        return cartService.getCartByUserId(userId);
+    }
+}
+```
+
+```java
+// CartDetailMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface CartDetailMapper {
+    List<CartDetail> selectByCartId(Long cartId);
+    void insert(CartDetail cartDetail);
+}
+```
+
+```java
+// CartMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface CartMapper {
+    Cart selectByUserId(Integer userId);
+    void insert(Cart cart);
+    void updateAmount(Cart cart);
+}
+```
+
+```java
+// GoodMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface GoodMapper {
+    Good selectByGoodId(Integer goodId);
+}
+```
+
+
+代码执行的错误信息：
+```运行错误
+CartController.java:13:19
+java: 找不到符号
+  符号:   类 CartService
+  位置: 类 com.example.controller.CartController
+CartController.java:16:27
+java: 找不到符号
+  符号:   类 CartService
+  位置: 类 com.example.controller.CartController
+CartController.java:21:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.CartController
+CartDetailMapper.java:7:5
+java: 找不到符号
+  符号:   类 List
+  位置: 接口 com.example.mapper.CartDetailMapper
+CartDetailMapper.java:7:10
+java: 找不到符号
+  符号:   类 CartDetail
+  位置: 接口 com.example.mapper.CartDetailMapper
+CartDetailMapper.java:8:17
+java: 找不到符号
+  符号:   类 CartDetail
+  位置: 接口 com.example.mapper.CartDetailMapper
+CartMapper.java:7:5
+java: 找不到符号
+  符号:   类 Cart
+  位置: 接口 com.example.mapper.CartMapper
+CartMapper.java:8:17
+java: 找不到符号
+  符号:   类 Cart
+  位置: 接口 com.example.mapper.CartMapper
+CartMapper.java:9:23
+java: 找不到符号
+  符号:   类 Cart
+  位置: 接口 com.example.mapper.CartMapper
+GoodMapper.java:7:5
+java: 找不到符号
+  符号:   类 Good
+  位置: 接口 com.example.mapper.GoodMapper
+CartService.java:4:5
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.CartService
+CartServiceImpl.java:7:41
+java: 找不到符号
+  符号: 类 CartService
+CartServiceImpl.java:9:19
+java: 找不到符号
+  符号:   类 CartMapper
+  位置: 类 com.example.service.impl.CartServiceImpl
+CartServiceImpl.java:10:19
+java: 找不到符号
+  符号:   类 CartDetailMapper
+  位置: 类 com.example.service.impl.CartServiceImpl
+CartServiceImpl.java:11:19
+java: 找不到符号
+  符号:   类 GoodMapper
+  位置: 类 com.example.service.impl.CartServiceImpl
+CartServiceImpl.java:14:28
+java: 找不到符号
+  符号:   类 CartMapper
+  位置: 类 com.example.service.impl.CartServiceImpl
+CartServiceImpl.java:14:51
+java: 找不到符号
+  符号:   类 CartDetailMapper
+  位置: 类 com.example.service.impl.CartServiceImpl
+CartServiceImpl.java:14:86
+java: 找不到符号
+  符号:   类 GoodMapper
+  位置: 类 com.example.service.impl.CartServiceImpl
+CartServiceImpl.java:21:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.CartServiceImpl
+CartServiceImpl.java:40:32
+java: 找不到符号
+  符号:   类 ArrayList
+  位置: 类 com.example.service.impl.CartServiceImpl
+CartServiceImpl.java:45:9
+java: 找不到符号
+  符号:   类 Map
+  位置: 类 com.example.service.impl.CartServiceImpl
+CartServiceImpl.java:45:40
+java: 找不到符号
+  符号:   类 HashMap
+  位置: 类 com.example.service.impl.CartServiceImpl
+org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.example.mapper.CartMapper.selectByUserId
+```
+
+```功能错误
+没有创建tb_cart表中查询和插入购物车记录的Mapper.xml文件.
+没有创建tb_cart_detail表中查询和插入购物车详情记录的Mapper.xm文件.
+没有创建tb_good表中查询商品记录的Mapper.xml文件.
+如果tb_cart查找的记录不为空时获取列表的第一个购物车记录的功能没有实现.
+```

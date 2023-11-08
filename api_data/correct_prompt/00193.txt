@@ -1,0 +1,312 @@
+业务功能逻辑：
+在t_user表中查询用户，查询条件是user_name等于userName，如果不存在返回(2,"未注册",null)；在t_task_exam表中查询任务，查询条件是grade_level等于t_user.user_level，如果我为空返回(2,"成功",[])；遍历任务列表，在t_task_exam_customer_answer表中查询任务答案，查询条件是create_user等于t_user.id，task_exam_id等于t_task_exam.id；返回response设置为[{"id"=t_task_exam.id,"title"=t_task_exam.title,"paperItems"=[{t_task_exam_customer_answer记录}]}].
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// ExamPaper.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper")
+public class ExamPaper {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "subject_id")
+    private Integer subjectId;
+
+    @Column(name = "paper_type")
+    private String paperType;
+
+    @Column(name = "grade_level")
+    private Integer gradeLevel;
+
+    @Column(name = "score")
+    private Double score;
+
+    @Column(name = "question_count")
+    private Integer questionCount;
+
+    @Column(name = "suggest_time")
+    private Integer suggestTime;
+
+    @Column(name = "limit_start_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date limitStartTime;
+
+    @Column(name = "limit_end_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date limitEndTime;
+
+    @Column(name = "frame_text_content_id")
+    private Integer frameTextContentId;
+
+    @Column(name = "create_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createTime;
+
+    @Column(name = "deleted")
+    private Boolean deleted;
+
+    @Column(name = "task_exam_id")
+    private Integer taskExamId;
+
+}
+```
+
+```java
+// User.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_user")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "user_uuid")
+    private String userUuid;
+
+    @Column(name = "user_name")
+    private String userName;
+
+    @Column(name = "password")
+    private String password;
+
+    @Column(name = "real_name")
+    private String realName;
+
+    @Column(name = "age")
+    private int age;
+
+    @Column(name = "sex")
+    private int sex;
+
+    @Column(name = "birth_day")
+    private Date birthDay;
+
+    @Column(name = "user_level")
+    private int userLevel;
+
+    @Column(name = "phone")
+    private String phone;
+
+    @Column(name = "role")
+    private int role;
+
+    @Column(name = "status")
+    private int status;
+
+    @Column(name = "image_path")
+    private String imagePath;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+
+    @Column(name = "last_active_time")
+    private Date lastActiveTime;
+
+    @Column(name = "deleted")
+    private boolean deleted;
+
+    @Column(name = "wx_open_id")
+    private String wxOpenId;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.User;
+
+public interface UserService {
+    User getUserByUserName(String userName);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.User;
+import com.example.mapper.UserMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserMapper userMapper;
+
+    @Autowired
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public User getUserByUserName(String userName) {
+        return userMapper.getUserByUserName(userName);
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.entity.User;
+import com.example.entity.ExamPaper;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class UserController {
+
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/api/student/dashboard/index")
+    public ApiResponse getDashboardIndex(@RequestParam("userName") String userName) {
+        User user = userService.getUserByUserName(userName);
+        if (user == null) {
+            return new ApiResponse(2, "未注册", null);
+        }
+
+        // 查询fixedPaper试卷记录
+        List<ExamPaper> fixedPaperList = examPaperService.getFixedPapers(user.getUserLevel(), paperType);
+
+        // 查询timeLimitPaper试卷记录
+        List<ExamPaper> timeLimitPaperList = examPaperService.getTimeLimitPapers(user.getUserLevel(), paperType);
+
+        Map<String, List<ExamPaper>> response = new HashMap<>();
+        response.put("fixedPaper", fixedPaperList);
+        response.put("timeLimitPaper", timeLimitPaperList);
+
+        return new ApiResponse(1, "成功", response);
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface UserMapper {
+    User getUserByUserName(@Param("userName") String userName);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="getUserByUserName" resultType="com.example.entity.User">
+        SELECT * FROM t_user WHERE user_name = #{userName}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+UserController.java:21:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.UserController
+UserServiceImpl.java:9:41
+java: 找不到符号
+  符号: 类 UserService
+UserController.java:31:9
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.controller.UserController
+UserController.java:31:42
+java: 找不到符号
+  符号:   变量 examPaperService
+  位置: 类 com.example.controller.UserController
+UserController.java:34:9
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.controller.UserController
+UserController.java:34:46
+java: 找不到符号
+  符号:   变量 examPaperService
+  位置: 类 com.example.controller.UserController
+UserController.java:36:9
+java: 找不到符号
+  符号:   类 Map
+  位置: 类 com.example.controller.UserController
+UserController.java:36:21
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.controller.UserController
+UserController.java:36:53
+java: 找不到符号
+  符号:   类 HashMap
+  位置: 类 com.example.controller.UserController
+```
+
+```功能错误
+没有实现examPaperService的相关功能逻辑,包括没有生成ExamPaperMapper模块和ExamPaperMapper.xml文件.
+```

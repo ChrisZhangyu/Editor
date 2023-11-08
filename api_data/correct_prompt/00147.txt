@@ -1,0 +1,244 @@
+业务功能逻辑：
+根据good的goodId、goodName、categorySecondId属性在tb_good表中分页查询商品列表，其中goodStatus为false时tb_good.inventory需要等于0，goodStatus为true时tb_good.inventory需要大于0；遍历tb_good列表，在tb_category_second表中查询记录，查询条件是tb_category_second.category_second_id等于tb_good.category_second_id；返回data设置为{["categorySecond"={tb_category_second记录},"image"=tb_good.image, "good"={tb_good记录}]}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Good.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_good")
+public class Good {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "good_name", length = 20)
+    private String goodName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+    @Column(name = "price", precision = 10, scale = 2)
+    private Double price;
+
+    @Column(name = "original_price", precision = 10, scale = 2)
+    private Double originalPrice;
+
+    @Column(name = "inventory")
+    private Integer inventory;
+
+    @Column(name = "sold_count")
+    private Integer soldCount;
+
+    @Column(name = "spec", length = 20)
+    private String spec;
+
+    @Column(name = "origin", length = 10)
+    private String origin;
+}
+```
+
+```java
+// GoodService.java
+package com.example.service;
+
+import java.util.List;
+
+public interface GoodService {
+    List<Good> getGoods(int page, int rows, Good good, boolean goodStatus);
+}
+```
+
+```java
+// GoodServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import java.util.List;
+
+@Service
+public class GoodServiceImpl implements GoodService {
+
+    private final GoodMapper goodMapper;
+
+    @Autowired
+    public GoodServiceImpl(GoodMapper goodMapper) {
+        this.goodMapper = goodMapper;
+    }
+
+    @Override
+    public List<Good> getGoods(int page, int rows, Good good, boolean goodStatus) {
+        int start = (page - 1) * rows;
+        return goodMapper.getGoodsByParams(good, goodStatus, start, rows);
+    }
+}
+```
+
+```java
+// GoodController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import java.util.List;
+
+@RestController
+@RequestMapping("/admin/v1")
+public class GoodController {
+
+    private final GoodService goodService;
+
+    @Autowired
+    public GoodController(GoodService goodService) {
+        this.goodService = goodService;
+    }
+
+    @GetMapping("/goods")
+    public ApiResponse getGoods(@RequestParam int page, @RequestParam int rows, @RequestParam Good good, @RequestParam boolean goodStatus) {
+        List<Good> goods = goodService.getGoods(page, rows, good, goodStatus);
+        // 查询tb_category_second表中的记录
+        // 设置data为{["categorySecond"={tb_category_second记录},"image"=tb_good.image, "good"={tb_good记录}]}
+        return new ApiResponse(100, "成功", goods);
+    }
+}
+```
+
+```java
+// GoodMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import java.util.List;
+
+@Mapper
+public interface GoodMapper {
+    List<Good> getGoodsByParams(@Param("good") Good good, @Param("goodStatus") boolean goodStatus, @Param("start") int start, @Param("rows") int rows);
+}
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.GoodMapper">
+    <select id="getGoodsByParams" resultType="com.example.entity.Good">
+        SELECT *
+        FROM tb_good
+        WHERE
+        (goodStatus = false AND inventory = 0)
+        OR (goodStatus = true AND inventory > 0)
+        AND
+        <if test="good.goodId != null">
+            good_id = #{good.goodId}
+        </if>
+        <if test="good.goodName != null">
+            good_name = #{good.goodName}
+        </if>
+        <if test="good.categorySecondId != null">
+            category_second_id = #{good.categorySecondId}
+        </if>
+        LIMIT #{start}, #{rows}
+    </select>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+GoodController.java:14:19
+java: 找不到符号
+  符号:   类 GoodService
+  位置: 类 com.example.controller.GoodController
+GoodController.java:17:27
+java: 找不到符号
+  符号:   类 GoodService
+  位置: 类 com.example.controller.GoodController
+GoodController.java:22:95
+java: 找不到符号
+  符号:   类 Good
+  位置: 类 com.example.controller.GoodController
+GoodController.java:22:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.GoodController
+GoodMapper.java:9:48
+java: 找不到符号
+  符号:   类 Good
+  位置: 接口 com.example.mapper.GoodMapper
+GoodMapper.java:9:10
+java: 找不到符号
+  符号:   类 Good
+  位置: 接口 com.example.mapper.GoodMapper
+GoodService.java:6:45
+java: 找不到符号
+  符号:   类 Good
+  位置: 接口 com.example.service.GoodService
+GoodService.java:6:10
+java: 找不到符号
+  符号:   类 Good
+  位置: 接口 com.example.service.GoodService
+GoodServiceImpl.java:8:41
+java: 找不到符号
+  符号: 类 GoodService
+GoodServiceImpl.java:10:19
+java: 找不到符号
+  符号:   类 GoodMapper
+  位置: 类 com.example.service.impl.GoodServiceImpl
+GoodServiceImpl.java:13:28
+java: 找不到符号
+  符号:   类 GoodMapper
+  位置: 类 com.example.service.impl.GoodServiceImpl
+GoodServiceImpl.java:18:52
+java: 找不到符号
+  符号:   类 Good
+  位置: 类 com.example.service.impl.GoodServiceImpl
+GoodServiceImpl.java:18:17
+java: 找不到符号
+  符号:   类 Good
+  位置: 类 com.example.service.impl.GoodServiceImpl
+GoodServiceImpl.java:23:17
+java: 找不到符号
+  符号:   方法 setStock(int)
+  位置: 类型为com.example.entity.Good的变量 good
+```
+
+```功能错误
+GoodController.java模块中getGoods(@RequestParam int page, @RequestParam int rows, @RequestParam Good good, @RequestParam boolean goodStatus)函数的good参数类型应改成RequestBody.
+没有实现在tb_category_second表中的查询功能.
+没有实现设置data为{["categorySecond"={tb_category_second记录},"image"=tb_good.image, "good"={tb_good记录}]}.
+```

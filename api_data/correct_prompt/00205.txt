@@ -1,0 +1,193 @@
+业务功能逻辑：根据输入参数在表pms_brand中添加品牌信息。如果成功添加品牌信息则返回参数{"count"}并显示成功,如果失败则返回失败.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int count;
+}
+```
+```java
+// CreateBrandRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int count;
+}
+import com.example.entity.PmsBrand;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CreateBrandRequest {
+    private PmsBrand brand;
+}
+```
+```java
+// PmsBrand.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int count;
+}
+import com.example.entity.PmsBrand;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CreateBrandRequest {
+    private PmsBrand brand;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PmsBrand {
+    private Long id;
+    private String name;
+    private String firstLetter;
+    private Integer sort;
+    private Integer factoryStatus;
+    private Integer showStatus;
+    private Integer productCount;
+    private Integer productCommentCount;
+    private String logo;
+    private String bigPic;
+}
+```
+
+```java
+// BrandService.java
+package com.example.service;
+
+import com.example.entity.CreateBrandRequest;
+import com.example.mapper.BrandMapper;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class BrandService {
+    private final BrandMapper brandMapper;
+
+    @Autowired
+    public BrandService(BrandMapper brandMapper) {
+        this.brandMapper = brandMapper;
+    }
+
+    public ApiResponse createBrand(CreateBrandRequest request) {
+        int count = brandMapper.insertBrand(request.getBrand());
+        return new ApiResponse(count);
+    }
+}
+```
+
+
+```java
+// BrandController.java
+package com.example.controller;
+
+import com.example.entity.CreateBrandRequest;
+import com.example.service.BrandService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/brand")
+public class BrandController {
+    private final BrandService brandService;
+
+    @Autowired
+    public BrandController(BrandService brandService) {
+        this.brandService = brandService;
+    }
+
+    @PostMapping("/create")
+    public ApiResponse createBrand(@RequestBody CreateBrandRequest request) {
+        return brandService.createBrand(request);
+    }
+}
+```
+
+```java
+// BrandMapper.java
+package com.example.mapper;
+
+import com.example.entity.PmsBrand;
+
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface BrandMapper {
+    @Insert("INSERT INTO pms_brand (id, name, first_letter, sort, factory_status, show_status, product_count, product_comment_count, logo, big_pic) " +
+            "VALUES (#{id}, #{name}, #{firstLetter}, #{sort}, #{factoryStatus}, #{showStatus}, #{productCount}, #{productCommentCount}, #{logo}, #{bigPic})")
+    int insertBrand(PmsBrand brand);
+}
+```
+
+```xml
+<!-- BrandMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.BrandMapper">
+    <insert id="insertBrand" parameterType="com.example.entity.PmsBrand">
+        INSERT INTO pms_brand (id, name, first_letter, sort, factory_status, show_status, product_count, product_comment_count, logo, big_pic)
+        VALUES (#{id}, #{name}, #{firstLetter}, #{sort}, #{factoryStatus}, #{showStatus}, #{productCount}, #{productCommentCount}, #{logo}, #{bigPic})
+    </insert>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+Mapped Statements collection already contains value for com.example.mapper.BrandMapper.insertBrand. please check file [D:\迅雷下载\xzs-project_test\order_brand_create_system\target\classes\mapper\BrandMapper.xml] and com/example/mapper/BrandMapper.java (best guess)
+```
+```功能错误
+
+```

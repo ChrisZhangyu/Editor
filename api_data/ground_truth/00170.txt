@@ -1,0 +1,293 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// MessagePageRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class MessagePageRequest {
+    private int userId;
+    private int pageIndex;
+    private int pageSize;
+}
+```
+```java
+// MessagepageResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class MessagepageResponse {
+    private int id;
+    private String title;
+    private int messageId;
+    private String content;
+    private boolean readed;
+    private String createTime;
+    private String sendUserName;
+}
+```
+```java
+// TMessage.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TMessage {
+    private int id;
+    private String title;
+    private String content;
+    private Date createTime;
+    private int sendUserId;
+    private String sendUserName;
+    private String sendRealName;
+    private int receiveUserCount;
+    private int readCount;
+}
+```
+```java
+// TMessageUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TMessageUser {
+    private int id;
+    private int messageId;
+    private int receiveUserId;
+    private String receiveUserName;
+    private String receiveRealName;
+    private boolean readed;
+    private Date createTime;
+    private Date readTime;
+}
+```
+```java
+// TotalResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TotalResponse <T> {
+    int total;
+    private T messagepageResponse;
+}
+```
+
+```java
+// MessageService.java
+package com.example.service;
+
+import com.example.entity.*;
+
+import java.util.List;
+
+public interface MessageService {
+    ApiResponse<TotalResponse<MessagepageResponse>> getMessagePage(MessagePageRequest request);
+}
+```
+
+```java
+// MessageServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.*;
+import com.example.mapper.MessageMapper;
+import com.example.mapper.MessageUserMapper;
+import com.example.service.MessageService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class MessageServiceImpl implements MessageService {
+
+    private final MessageMapper messageMapper;
+    private final MessageUserMapper messageUserMapper;
+
+    @Autowired
+    public MessageServiceImpl(MessageMapper messageMapper, MessageUserMapper messageUserMapper) {
+        this.messageMapper = messageMapper;
+        this.messageUserMapper = messageUserMapper;
+    }
+
+    @Override
+    public ApiResponse<TotalResponse<MessagepageResponse>> getMessagePage(MessagePageRequest request) {
+        // 获取当前用户id
+        int currentUserId = request.getUserId();
+
+        // 判断用户id是否存在于表t_message中
+        List<Integer> messageIdList = messageUserMapper.getMessageIdListByUserId(currentUserId);
+
+        if (messageIdList.isEmpty())
+            return new ApiResponse<>(0, "该用户不存在于表t_message中", null);
+
+        // 在t_message_user表中查询id为当前用户id的数据页
+        TMessageUser messageUserList = messageUserMapper.getMessageUserPage(currentUserId, request.getPageIndex() - 1, request.getPageSize());
+
+
+
+        // 如果存在则将输入参数和用户id一起输出到页面中
+        TMessage messageList = messageMapper.getMessagePage(request.getPageIndex() - 1, request.getPageSize(), messageIdList);
+
+        TotalResponse totalResponse = new TotalResponse();
+
+        totalResponse.setTotal(messageMapper.getCountMessage());
+
+        MessagepageResponse messagepageResponse = new MessagepageResponse();
+        messagepageResponse.setId(messageList.getId());
+        messagepageResponse.setTitle(messageList.getTitle());
+        messagepageResponse.setMessageId(messageUserList.getMessageId());
+        messagepageResponse.setContent(messageList.getContent());
+        messagepageResponse.setCreateTime(messageList.getCreateTime().toString());
+        messagepageResponse.setSendUserName(messageList.getSendUserName());
+        totalResponse.setMessagepageResponse(messagepageResponse);
+        // 返回结果
+        return new ApiResponse<>(1, "成功", totalResponse);
+    }
+}
+```
+
+```java
+// MessageController.java
+package com.example.controller;
+
+import com.example.entity.*;
+import com.example.service.MessageService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/wx/student/user/message")
+public class MessageController {
+
+    private final MessageService messageService;
+
+    @Autowired
+    public MessageController(MessageService messageService) {
+        this.messageService = messageService;
+    }
+
+    @PostMapping("/page")
+    public ApiResponse<TotalResponse<MessagepageResponse>> getMessagePage(@RequestBody MessagePageRequest request) {
+        return messageService.getMessagePage(request);
+    }
+}
+```
+
+```java
+// MessageMapper.java
+package com.example.mapper;
+
+import com.example.entity.TMessage;
+
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+public interface MessageMapper {
+    TMessage getMessagePage(@Param("pageIndex") int pageIndex, @Param("pageSize") int pageSize, @Param("messageIdList") List<Integer> messageIdList);
+
+    int getCountMessage();
+}
+```
+```java
+// MessageUserMapper.java
+package com.example.mapper;
+import com.example.entity.TMessageUser;
+import org.apache.ibatis.annotations.Param;
+import java.util.List;
+
+public interface MessageUserMapper {
+    TMessageUser getMessageUserPage(@Param("userId") int userId, @Param("pageIndex") int pageIndex, @Param("pageSize") int pageSize);
+
+    List<Integer> getMessageIdListByUserId(@Param("userId") int userId);
+}
+```
+
+```xml
+<!-- MessageUserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.MessageUserMapper">
+    <resultMap id="TMessageUserResultMap" type="com.example.entity.TMessageUser">
+        <id property="id" column="id"/>
+        <result property="messageId" column="message_id"/>
+        <result property="receiveUserId" column="receive_user_id"/>
+        <result property="receiveUserName" column="receive_user_name"/>
+        <result property="receiveRealName" column="receive_real_name"/>
+        <result property="readed" column="readed"/>
+        <result property="createTime" column="create_time"/>
+        <result property="readTime" column="read_time"/>
+    </resultMap>
+    <select id="getMessageUserPage" resultMap="TMessageUserResultMap">
+        SELECT * FROM t_message_user
+        WHERE receive_user_id = #{userId}
+        LIMIT #{pageIndex}, #{pageSize}
+    </select>
+
+    <select id="getMessageIdListByUserId" resultType="java.lang.Integer">
+        SELECT message_id FROM t_message_user
+        WHERE receive_user_id = #{userId}
+    </select>
+</mapper>
+
+```
+

@@ -1,0 +1,290 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer pageNum;
+    private Integer pageSize;
+    private Integer totalPage;
+    private OmsOrder total;
+}
+```
+```java
+// OmsOrder.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrder {
+    private Long id;
+    private Long memberId;
+    private Long couponId;
+    private String orderSn;
+    private Timestamp createTime;
+    private String memberUsername;
+    private BigDecimal totalAmount;
+    private BigDecimal payAmount;
+    private BigDecimal freightAmount;
+    private BigDecimal promotionAmount;
+    private BigDecimal integrationAmount;
+    private BigDecimal couponAmount;
+    private BigDecimal discountAmount;
+    private Integer payType;
+    private Integer sourceType;
+    private Integer status;
+    private Integer orderType;
+    private String deliveryCompany;
+    private String deliverySn;
+    private Integer autoConfirmDay;
+    private Integer integration;
+    private Integer growth;
+    private String promotionInfo;
+    private Integer billType;
+    private String billHeader;
+    private String billContent;
+    private String billReceiverPhone;
+    private String billReceiverEmail;
+    private String receiverName;
+    private String receiverPhone;
+    private String receiverPostCode;
+    private String receiverProvince;
+    private String receiverCity;
+    private String receiverRegion;
+    private String receiverDetailAddress;
+    private String note;
+    private Integer confirmStatus;
+    private Integer deleteStatus;
+    private Integer useIntegration;
+    private Timestamp paymentTime;
+    private Timestamp deliveryTime;
+    private Timestamp receiveTime;
+    private Timestamp commentTime;
+    private Timestamp modifyTime;
+}
+```
+```java
+// OrderListRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OrderListRequest {
+    private String orderSn;
+    private String receiverKeyword;
+    private Integer status;
+    private Integer orderType;
+    private Integer sourceType;
+    private String createTime;
+}
+```
+
+```java
+// OrderService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.OrderListRequest;
+import com.example.entity.OmsOrder;
+
+import java.util.List;
+
+public interface OrderService {
+    ApiResponse getOrderList(OrderListRequest request, Integer pageNum, Integer pageSize);
+}
+```
+
+```java
+// OrderServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.OmsOrder;
+import com.example.entity.OrderListRequest;
+import com.example.mapper.OrderMapper;
+import com.example.service.OrderService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class OrderServiceImpl implements OrderService {
+
+    private final OrderMapper orderMapper;
+
+    @Autowired
+    public OrderServiceImpl(OrderMapper orderMapper) {
+        this.orderMapper = orderMapper;
+    }
+
+    @Override
+    public ApiResponse getOrderList(OrderListRequest request, Integer pageNum, Integer pageSize) {
+        // 根据请求参数查询订单列表
+        // 使用 orderMapper 调用数据库查询方法
+        // 返回查询结果
+        ApiResponse apiResponse = new ApiResponse();
+        apiResponse.setPageSize(pageSize);
+        apiResponse.setPageNum(pageNum);
+        apiResponse.setTotal(orderMapper.selectOrderList(request, pageNum, pageSize));
+        apiResponse.setTotalPage(orderMapper.getCountList(request));
+        return apiResponse;
+    }
+}
+```
+
+```java
+// OrderController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.OmsOrder;
+import com.example.entity.OrderListRequest;
+import com.example.service.OrderService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/order")
+public class OrderController {
+
+    private final OrderService orderService;
+
+    @Autowired
+    public OrderController(OrderService orderService) {
+        this.orderService = orderService;
+    }
+
+    @GetMapping("/list")
+    public ApiResponse getOrderList(OrderListRequest request, Integer pageNum, Integer pageSize) {
+        ApiResponse apiResponse = orderService.getOrderList(request, pageNum, pageSize);
+        // 构造 ApiResponse 对象并返回
+        return apiResponse;
+    }
+}
+```
+
+```java
+// OrderMapper.java
+package com.example.mapper;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.OmsOrder;
+import com.example.entity.OrderListRequest;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface OrderMapper {
+    OmsOrder selectOrderList(@Param("request") OrderListRequest request,@Param("pageNum") Integer pageNum,@Param("pageSize") Integer pageSize);
+    Integer getCountList(@Param("request") OrderListRequest request);
+}
+```
+
+```xml
+<!-- OrderMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.OrderMapper">
+        <resultMap id="BaseResultMap" type="com.example.entity.OmsOrder">
+            <id column="id" property="id" jdbcType="BIGINT"/>
+            <result column="memberId" property="memberId" jdbcType="BIGINT"/>
+            <result column="couponId" property="couponId" jdbcType="BIGINT"/>
+            <result column="orderSn" property="orderSn" jdbcType="VARCHAR"/>
+            <result column="createTime" property="createTime" jdbcType="TIMESTAMP"/>
+            <result column="memberUsername" property="memberUsername" jdbcType="VARCHAR"/>
+            <result column="totalAmount" property="totalAmount" jdbcType="DECIMAL"/>
+            <result column="payAmount" property="payAmount" jdbcType="DECIMAL"/>
+            <result column="freightAmount" property="freightAmount" jdbcType="DECIMAL"/>
+            <result column="promotionAmount" property="promotionAmount" jdbcType="DECIMAL"/>
+            <result column="integrationAmount" property="integrationAmount" jdbcType="DECIMAL"/>
+            <result column="couponAmount" property="couponAmount" jdbcType="DECIMAL"/>
+            <result column="discountAmount" property="discountAmount" jdbcType="DECIMAL"/>
+            <result column="payType" property="payType" jdbcType="INTEGER"/>
+            <result column="sourceType" property="sourceType" jdbcType="INTEGER"/>
+            <result column="status" property="status" jdbcType="INTEGER"/>
+            <result column="orderType" property="orderType" jdbcType="INTEGER"/>
+            <result column="deliveryCompany" property="deliveryCompany" jdbcType="VARCHAR"/>
+            <result column="deliverySn" property="deliverySn" jdbcType="VARCHAR"/>
+            <result column="autoConfirmDay" property="autoConfirmDay" jdbcType="INTEGER"/>
+            <result column="integration" property="integration" jdbcType="INTEGER"/>
+            <result column="growth" property="growth" jdbcType="INTEGER"/>
+            <result column="promotionInfo" property="promotionInfo" jdbcType="VARCHAR"/>
+            <result column="billType" property="billType" jdbcType="INTEGER"/>
+            <result column="billHeader" property="billHeader" jdbcType="VARCHAR"/>
+            <result column="billContent" property="billContent" jdbcType="VARCHAR"/>
+            <result column="billReceiverPhone" property="billReceiverPhone" jdbcType="VARCHAR"/>
+            <result column="billReceiverEmail" property="billReceiverEmail" jdbcType="VARCHAR"/>
+            <result column="receiverName" property="receiverName" jdbcType="VARCHAR"/>
+            <result column="receiverPhone" property="receiverPhone" jdbcType="VARCHAR"/>
+            <result column="receiverPostCode" property="receiverPostCode" jdbcType="VARCHAR"/>
+            <result column="receiverProvince" property="receiverProvince" jdbcType="VARCHAR"/>
+            <result column="receiverCity" property="receiverCity" jdbcType="VARCHAR"/>
+            <result column="receiverRegion" property="receiverRegion" jdbcType="VARCHAR"/>
+            <result column="receiverDetailAddress" property="receiverDetailAddress" jdbcType="VARCHAR"/>
+            <result column="note" property="note" jdbcType="VARCHAR"/>
+            <result column="confirmStatus" property="confirmStatus" jdbcType="INTEGER"/>
+            <result column="deleteStatus" property="deleteStatus" jdbcType="INTEGER"/>
+            <result column="useIntegration" property="useIntegration" jdbcType="INTEGER"/>
+            <result column="paymentTime" property="paymentTime" jdbcType="TIMESTAMP"/>
+            <result column="deliveryTime" property="deliveryTime" jdbcType="TIMESTAMP"/>
+            <result column="receiveTime" property="receiveTime" jdbcType="TIMESTAMP"/>
+            <result column="commentTime" property="commentTime" jdbcType="TIMESTAMP"/>
+            <result column="modifyTime" property="modifyTime" jdbcType="TIMESTAMP"/>
+        </resultMap>
+    <select id="selectOrderList" resultMap="BaseResultMap">
+        <!-- 根据请求参数拼接查询条件 -->
+        <!-- 查询语句 -->
+        SELECT *
+        FROM oms_order
+        WHERE orderSn = #{request.orderSn}
+        AND createTime = #{request.createTime}
+        AND status = #{request.status}
+        AND orderType = #{request.orderType}
+        AND sourceType = #{request.sourceType}
+        LIMIT #{pageSize} OFFSET #{pageNum}
+    </select>
+    <select id="getCountList" resultType="int">
+        <!-- 实现获取分页查询退货申请相关的信息并遍历当前页的数据的 SQL 语句 -->
+        SELECT IFNULL(COUNT(*), 0)
+        FROM oms_order
+        WHERE orderSn = #{request.orderSn}
+        AND createTime = #{request.createTime}
+        AND status = #{request.status}
+        AND orderType = #{request.orderType}
+        AND sourceType = #{request.sourceType}
+    </select>
+</mapper>
+
+```
+

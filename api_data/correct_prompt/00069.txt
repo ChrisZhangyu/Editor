@@ -1,0 +1,237 @@
+业务功能逻辑：
+在ums_user表中查询用户，查询条件是username等于输入参数；判断ums_user.id是否等于bmsPost.userId，如果不相等，返回data设置为"非本人无权修改"；如果相等，bmsPost.modifyTime设置为当前时间，并更新bms_post表中的记录，返回data设置为{bms_post记录}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Post.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_post")
+public class Post {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "title")
+    private String title;
+
+    @Column(name = "content", columnDefinition = "longtext")
+    private String content;
+
+    @Column(name = "user_id", length = 20)
+    private String userId;
+
+    @Column(name = "comments")
+    private int comments;
+
+    @Column(name = "collects")
+    private int collects;
+
+    @Column(name = "view")
+    private int view;
+
+    @Column(name = "top")
+    private boolean top;
+
+    @Column(name = "essence")
+    private boolean essence;
+
+    @Column(name = "section_id")
+    private String sectionId;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    private String id;
+    private String username;
+    private String alias;
+    private String password;
+    private String avatar;
+    private String email;
+    private String mobile;
+    private int score;
+    private String token;
+    private String bio;
+    private boolean active;
+    private boolean status;
+    private String roleId;
+    private Date createTime;
+    private Date modifyTime;
+}
+```
+
+```java
+// PostService.java
+package com.example.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class PostService {
+    @Autowired
+    private PostMapper postMapper;
+
+    public ApiResponse updatePost(String userName, Post post) {
+        UmsUser user = postMapper.getUserByUsername(userName);
+        if (user == null) {
+            return new ApiResponse(400, "用户不存在", null);
+        }
+        if (!user.getId().equals(post.getUser_id())) {
+            return new ApiResponse(400, "非本人无权修改", null);
+        }
+        post.setModify_time(new Date());
+        postMapper.updatePost(post);
+        return new ApiResponse(200, "操作成功", post);
+    }
+}
+```
+
+```java
+// PostController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/post")
+public class PostController {
+    @Autowired
+    private PostService postService;
+
+    @PostMapping("/update")
+    public ApiResponse updatePost(@RequestHeader("userName") String userName, @RequestBody Post post) {
+        return postService.updatePost(userName, post);
+    }
+}
+```
+
+```java
+// PostMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
+
+@Mapper
+public interface PostMapper {
+    @Select("SELECT * FROM ums_user WHERE username = #{username}")
+    UmsUser getUserByUsername(@Param("username") String username);
+
+    @Update("UPDATE bms_post SET title = #{title}, content = #{content}, modify_time = #{modify_time} WHERE id = #{id}")
+    void updatePost(Post post);
+}
+```
+
+```xml
+<!-- PostMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.PostMapper">
+    <select id="getUserByUsername" parameterType="String" resultType="com.example.entity.UmsUser">
+        SELECT * FROM ums_user WHERE username = #{username}
+    </select>
+
+    <update id="updatePost" parameterType="com.example.entity.Post">
+        UPDATE bms_post SET title = #{title}, content = #{content}, modify_time = #{modify_time} WHERE id = #{id}
+    </update>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+PostController.java:10:13
+java: 找不到符号
+  符号:   类 PostService
+  位置: 类 com.example.controller.PostController
+PostController.java:13:92
+java: 找不到符号
+  符号:   类 Post
+  位置: 类 com.example.controller.PostController
+PostController.java:13:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.PostController
+PostMapper.java:11:5
+java: 找不到符号
+  符号:   类 UmsUser
+  位置: 接口 com.example.mapper.PostMapper
+PostMapper.java:14:21
+java: 找不到符号
+  符号:   类 Post
+  位置: 接口 com.example.mapper.PostMapper
+PostService.java:9:13
+java: 找不到符号
+  符号:   类 PostMapper
+  位置: 类 com.example.service.PostService
+PostService.java:11:52
+java: 找不到符号
+  符号:   类 Post
+  位置: 类 com.example.service.PostService
+PostService.java:11:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.PostService
+PostService.java:20:38
+java: 找不到符号
+  符号:   方法 getUser_id()
+  位置: 类型为com.example.entity.Post的变量 post
+PostService.java:23:33
+java: 找不到符号
+  符号:   类 Date
+  位置: 类 com.example.service.PostService
+Error creating bean with name 'postController': Unsatisfied dependency expressed through field 'postService'; nested exception is org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'postService': Unsatisfied dependency expressed through field 'postMapper'; nested exception is org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'postMapper' defined in file [PostMapper.class]: Unsatisfied dependency expressed through bean property 'sqlSessionFactory'; nested exception is org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'sqlSessionFactory' defined in class path resource [org/mybatis/spring/boot/autoconfigure/MybatisAutoConfiguration.class]: Bean instantiation via factory method failed; nested exception is org.springframework.beans.BeanInstantiationException: Failed to instantiate [org.apache.ibatis.session.SqlSessionFactory]: Factory method 'sqlSessionFactory' threw exception; nested exception is org.springframework.core.NestedIOException: Failed to parse mapping resource: 'file [PostMapper.xml]'; nested exception is java.lang.IllegalArgumentException: Mapped Statements collection already contains value for com.example.mapper.PostMapper.getUserByUsername. please check file [PostMapper.xml] and PostMapper.java (best guess).
+org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'modify_time' in 'class com.example.entity.Post'
+```
+
+```功能错误
+```

@@ -1,0 +1,189 @@
+﻿业务功能逻辑：
+按ID查找商店，根据请求路径中提供的id查找商店,检查id是否存在，如果存在，则从表ssm_store中查询对应的商店信息，返回一个包含商店信息的JSON响应并提示"查询成功"，如果id不存在，则返回一个失败的JSON响应，提示"id不存在，请重新输入！"；如果传入的id为空，则返回"id不能为空!"的JSON响应。
+
+需要检查的代码：
+
+```java
+// SsmStore.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SsmStore {
+    /**
+     * 主键ID
+     */
+    private int id;
+
+    /**
+     * 类别
+     */
+    private String category;
+
+    /**
+     * 编号
+     */
+    private String number;
+
+    /**
+     * 等级
+     */
+    private String level;
+
+    /**
+     * 页面
+     */
+    private String page;
+
+    /**
+     * 状态
+     */
+    private int status;
+}
+```
+```java
+// Store.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Store {
+    private Integer id;
+    private String number;
+    private String page;
+    private Integer status;
+}
+```
+
+```java
+// StoreService.java
+
+package com.example.service;
+
+import com.example.entity.Store;
+
+public interface StoreService {
+    Store findById(Integer id);
+}
+```
+
+```java
+// StoreServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.mapper.StoreMapper;
+import com.example.entity.Store;
+import com.example.service.StoreService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class StoreServiceImpl implements StoreService {
+    private final StoreMapper storeMapper;
+
+    @Autowired
+    public StoreServiceImpl(StoreMapper storeMapper) {
+        this.storeMapper = storeMapper;
+    }
+
+    @Override
+    public Store findById(Integer id) {
+        return storeMapper.findById(id);
+    }
+}
+```
+
+```java
+// StoreController.java
+package com.example.controller;
+
+import com.example.service.StoreService;
+import com.example.entity.Store;
+import com.example.entity.Result;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+@RestController
+public class StoreController {
+    private final StoreService storeService;
+
+    @Autowired
+    public StoreController(StoreService storeService) {
+        this.storeService = storeService;
+    }
+
+    @GetMapping("/store/findById")
+    public ResponseEntity<Result> findById(@RequestParam(required = false) Integer id) {
+
+        Store store = storeService.findById(id);
+        if (store == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Result.failure("id不存在，请重新输入！"));
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(Result.success(store));
+    }
+
+    private boolean isInteger(String str) {
+        try {
+            Integer.parseInt(str);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+}
+```
+
+```java
+// StoreMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.Store;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface StoreMapper {
+    Store findById(@Param("id") Integer id);
+}
+```
+
+```xml
+<!-- StoreMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.StoreMapper">
+    <select id="findById" resultType="com.example.entity.Store">
+        SELECT * FROM ssm_store WHERE id = #{id}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+StoreController.java:5:26
+java: 找不到符号
+  符号:   类 Result
+  位置: 程序包 com.example.entity
+```
+```功能缺失
+StoreController.java未实现id为空时返回的响应
+```

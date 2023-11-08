@@ -1,0 +1,411 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// ClassPaper.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ClassPaper {
+    private int paperId;
+    private String paperName;
+    private String className;
+
+}
+```
+```java
+// DashboardIndexRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class DashboardIndexRequest {
+    private String token;
+}
+```
+```java
+// DashboardIndexResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class DashboardIndexResponse {
+    private List<FixedPaper> fixedPaper;
+    private List<TimeLimitPaper> timeLimitPaper;
+    private List<ClassPaper> classPaper;
+}
+```
+```java
+// ExamPaper.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private int id;
+    private String name;
+    private int subjectId;
+    private int paperType;
+    private int gradeLevel;
+    private int score;
+    private int questionCount;
+    private int suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private int frameTextContentId;
+    private int createUser;
+    private Date createTime;
+    private boolean deleted;
+    private int taskExamId;
+}
+```
+```java
+// FixedPaper.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class FixedPaper {
+    private int id;
+    private String name;
+    private Date limitStartTime;
+    private Date limitEndTime;
+}
+```
+```java
+// TimeLimitPaper.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TimeLimitPaper {
+    private int id;
+    private String name;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private Date startTime;
+    private Date endTime;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+```java
+// UserToken.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserToken {
+    private int id;
+    private String token;
+    private int userId;
+    private String wxOpenId;
+    private Timestamp createTime;
+    private Timestamp endTime;
+    private String userName;
+}
+```
+
+```java
+// DashboardService.java
+package com.example.service;
+
+import com.example.entity.*;
+import com.example.mapper.ExamPaperMapper;
+import com.example.mapper.UserMapper;
+import com.example.mapper.UserTokenMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.List;
+
+@Service
+public class DashboardService {
+    private final UserTokenMapper userTokenMapper;
+    private final UserMapper userMapper;
+    private final ExamPaperMapper examPaperMapper;
+
+    @Autowired
+    public DashboardService(UserTokenMapper userTokenMapper, UserMapper userMapper, ExamPaperMapper examPaperMapper) {
+        this.userTokenMapper = userTokenMapper;
+        this.userMapper = userMapper;
+        this.examPaperMapper = examPaperMapper;
+    }
+
+    public ApiResponse getDashboardIndex(DashboardIndexRequest request) {
+        // 根据输入参数在t_user_token表中查找对应的用户id
+        int userId = userTokenMapper.getUserIdByToken(request.getToken());
+
+        // 根据用户id在t_user表中查找学生年级user_level
+        int userLevel = userMapper.getUserLevelById(userId);
+
+        // 在t_exam_paper表中查询与学生年级对应的grade_level值
+        List<Integer> gradeLevel = examPaperMapper.getGradeLevelByUserLevel(userLevel);
+
+        // 通过grade_level值在t_exam_paper表中查找对应的考试试卷类型paper_type
+        List<Integer> paperType = examPaperMapper.getPaperTypeByGradeLevel(gradeLevel.get(0));
+
+        // 设置限定时间类考试，设置考试日期create_time为当前日期，grade_level和paper_type和上述查找到的值一致
+        ExamPaper examPaper = new ExamPaper();
+        examPaper.setName("限定时间类考试试卷名");
+        examPaper.setLimitStartTime(new Date());
+        examPaper.setLimitEndTime(new Date());
+        examPaper.setGradeLevel(gradeLevel.get(0));
+        examPaper.setPaperType(paperType.get(0));
+
+        // 在表t_exam_paper中插入限定时间类考试试卷
+        examPaperMapper.insertExamPaper(examPaper);
+
+        // 返回结果
+        DashboardIndexResponse response = new DashboardIndexResponse();
+        List<FixedPaper> fixedPaper = examPaperMapper.getFixedPapers(gradeLevel.get(0), paperType.get(0));
+        List<TimeLimitPaper> timeLimitPaper = examPaperMapper.getTimeLimitPapers(gradeLevel.get(0), paperType.get(0));
+        List<ClassPaper> classPaper = examPaperMapper.getClassPapers(gradeLevel.get(0), paperType.get(0));
+
+        response.setFixedPaper(fixedPaper);
+        response.setTimeLimitPaper(timeLimitPaper);
+        response.setClassPaper(classPaper);
+        return new ApiResponse<>(1, "成功", response);
+    }
+}
+```
+
+
+```java
+// DashboardController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.DashboardService;
+import com.example.entity.DashboardIndexRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/wx/student/dashboard")
+public class DashboardController {
+    private final DashboardService dashboardService;
+
+    @Autowired
+    public DashboardController(DashboardService dashboardService) {
+        this.dashboardService = dashboardService;
+    }
+
+    @PostMapping("/index")
+    public ApiResponse getDashboardIndex(@RequestBody DashboardIndexRequest request) {
+        return dashboardService.getDashboardIndex(request);
+    }
+}
+```
+
+```java
+// ExamPaperMapper.java
+package com.example.mapper;
+
+import com.example.entity.*;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
+
+@Mapper
+public interface ExamPaperMapper {
+    List<Integer> getGradeLevelByUserLevel(@Param("userLevel") int userLevel);
+
+    List<Integer> getPaperTypeByGradeLevel(@Param("gradeLevel") int gradeLevel);
+
+    void insertExamPaper(ExamPaper examPaper);
+
+    List<FixedPaper> getFixedPapers(@Param("gradeLevel") int gradeLevel, @Param("paperType") int paperType);
+
+    List<TimeLimitPaper> getTimeLimitPapers(@Param("gradeLevel") int gradeLevel, @Param("paperType") int paperType);
+
+    List<ClassPaper> getClassPapers(@Param("gradeLevel") int gradeLevel, @Param("paperType") int paperType);
+}
+
+```
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+@Mapper
+public interface UserMapper {
+    @Select("SELECT user_level FROM t_user WHERE id = #{userId}")
+    int getUserLevelById(@Param("userId") int userId);
+}
+```
+```java
+// UserTokenMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
+
+@Mapper
+public interface UserTokenMapper {
+    @Select("SELECT user_id FROM t_user_token WHERE token = #{token}")
+    int getUserIdByToken(@Param("token") String token);
+}```
+
+```xml
+<!-- ExamPaperMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ExamPaperMapper">
+    <select id="getFixedPapers" resultType="com.example.entity.FixedPaper">
+        SELECT id, name
+        FROM t_exam_paper WHERE grade_level = #{gradeLevel} AND paper_type = #{paperType}
+    </select>
+    <select id="getTimeLimitPapers" resultType="com.example.entity.TimeLimitPaper">
+        SELECT
+        t_exam_paper.id AS id,
+        t_exam_paper.name AS name,
+        t_exam_paper.limit_start_time AS limitStartTime,
+        t_exam_paper.limit_end_time AS limitEndTime,
+        t_user_token.create_time AS startTime,
+        t_user_token.end_time AS endTime
+        FROM t_exam_paper
+        LEFT JOIN t_user_token ON t_exam_paper.id = t_user_token.id
+        WHERE t_exam_paper.limit_start_time IS NOT NULL
+        AND t_exam_paper.limit_end_time IS NOT NULL
+        AND t_exam_paper.grade_level = #{gradeLevel}
+        AND t_exam_paper.paper_type = #{paperType};
+    </select>
+
+    <select id="getClassPapers" resultType="com.example.entity.ClassPaper">
+        SELECT id AS paperId, name AS paperName, grade_level AS className
+        FROM t_exam_paper WHERE id IS NOT NULL AND name IS NOT NULL AND grade_level IS NOT NULL
+        AND grade_level = #{gradeLevel} AND paper_type = #{paperType}
+    </select>
+
+    <update id="insertExamPaper">
+        UPDATE t_exam_paper SET name = #{name}, limit_start_time = #{limitStartTime},
+        limit_end_time = #{limitEndTime}, grade_level = #{gradeLevel}, paper_type = #{paperType}
+        WHERE grade_level = #{gradeLevel} AND paper_type = #{paperType}
+    </update>
+
+    <select id="getGradeLevelByUserLevel" resultType="int">
+        SELECT grade_level FROM t_exam_paper WHERE grade_level = #{userLevel}
+    </select>
+
+    <select id="getPaperTypeByGradeLevel" resultType="int">
+        SELECT paper_type FROM t_exam_paper WHERE grade_level = #{gradeLevel}
+    </select>
+</mapper>
+
+```
+

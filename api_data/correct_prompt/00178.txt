@@ -1,0 +1,409 @@
+业务功能逻辑：
+按,分割cartDetailIds获取序列，获取第一个cartDetailId，在tb_cart_detail表中查找记录，如果不为空根据tb_cart_detail.card_id在tb_cart表中查找用户购物车，如果为空创建一个新的用户购物车；在tb_order表中插入新的订单，字段user_id、address_id、remarks设置为输入参数，amount设置为0.0，create_time设置为当前时间，status设置为0；遍历cartDetailIds序列，在tb_cart_detail表中查找记录，如果为空在tb_order表中删除已插入的订单，返回(-1002, "购物车不存在",null)；否则根据tb_cart_detail.good_id在tb_good表中查找记录，如果tb_good.inventory小于tb_cart_detail.count，在tb_order表中删除已插入的订单，返回(-1004, "商品库存不足",null)；在tb_good表中更新字段，sold_count等于(tb_good.sold_count+tb_cart_detail.count)，inventory等于(tb_good.inventory-tb_cart_detail.count)；在tb_order_detail表中插入新的记录，字段order_id设置为tb_order.order_id，good_id设置为tb_cart_detail.good_id，count设置为tb_cart_detail.count；tb_order.amount设置为(tb_order.amount+good.price*tb_cart_detail.count)，tb_cart.amount设置为(tb_cart.amount-good.price*tb_cart_detail.count)；根据cartDetailId删除tb_cart_detail表中记录；结束cartDetailIds序列，更新tb_cart表和tb_order表，返回data设置为(100, "成功",null).
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Cart.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_cart")
+public class Cart {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "cart_id")
+    private Integer cartId;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "amount")
+    private Double amount;
+}
+```
+
+```java
+// CartDetail.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_cart_detail")
+public class CartDetail {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "cart_detail_id")
+    private Long cartDetailId;
+
+    @Column(name = "cart_id")
+    private Long cartId;
+
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "count")
+    private Integer count;
+}
+```
+
+```java
+// Good.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_good")
+public class Good {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "good_name", length = 20)
+    private String goodName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+    @Column(name = "price", precision = 10, scale = 2)
+    private Double price;
+
+    @Column(name = "original_price", precision = 10, scale = 2)
+    private Double originalPrice;
+
+    @Column(name = "inventory")
+    private Integer inventory;
+
+    @Column(name = "sold_count")
+    private Integer soldCount;
+
+    @Column(name = "spec", length = 20)
+    private String spec;
+
+    @Column(name = "origin", length = 10)
+    private String origin;
+}
+```
+
+```java
+// Order.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_order")
+public class Order {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "order_id")
+    private Long orderId;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "address_id")
+    private Integer addressId;
+
+    @Column(name = "amount")
+    private Double amount;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "remarks")
+    private String remarks;
+
+    @Column(name = "status")
+    private Integer status;
+}
+```
+
+```java
+// OrderDetail.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_order_detail")
+public class OrderDetail {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "order_detail_id")
+    private Long orderDetailId;
+
+    @Column(name = "order_id")
+    private Long orderId;
+
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "count")
+    private Integer count;
+}
+```
+
+```java
+// OrderService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+import com.example.entity.Order;
+
+public interface OrderService {
+    ApiResponse createOrder(int userId, int addressId, String remarks, String cartDetailIds);
+}
+```
+
+```java
+// OrderServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.*;
+import com.example.mapper.OrderMapper;
+import com.example.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class OrderServiceImpl implements OrderService {
+    private final OrderMapper orderMapper;
+
+    @Autowired
+    public OrderServiceImpl(OrderMapper orderMapper) {
+        this.orderMapper = orderMapper;
+    }
+
+    @Override
+    public ApiResponse createOrder(int userId, int addressId, String remarks, String cartDetailIds) {
+        // 按,分割cartDetailIds获取序列
+        String[] cartDetailIdArray = cartDetailIds.split(",");
+        String firstCartDetailId = cartDetailIdArray[0];
+
+        // 在tb_cart_detail表中查找记录
+        CartDetail cartDetail = orderMapper.selectCartDetailById(firstCartDetailId);
+
+        if (cartDetail == null) {
+            // 如果为空，在tb_order表中删除已插入的订单
+            orderMapper.deleteOrder(order.getOrderId());
+            return new ApiResponse(-1002, "购物车不存在", null);
+        }
+
+        // 在tb_cart表中查找用户购物车
+        Cart cart = orderMapper.selectCartByUserId(userId);
+
+        if (cart == null) {
+            // 如果为空，创建一个新的用户购物车
+            cart = new Cart();
+            cart.setUserId(userId);
+            orderMapper.insertCart(cart);
+        }
+
+        // 在tb_order表中插入新的订单
+        Order order = new Order();
+        order.setUserId(userId);
+        order.setAddressId(addressId);
+        order.setRemarks(remarks);
+        order.setAmount(0.0);
+        order.setCreateTime(new Date());
+        order.setStatus(0);
+        orderMapper.insertOrder(order);
+
+        double totalAmount = 0.0;
+
+        for (String cartDetailId : cartDetailIdArray) {
+            // 在tb_cart_detail表中查找记录
+            CartDetail cartDetail = orderMapper.selectCartDetailById(cartDetailId);
+
+            if (cartDetail == null) {
+                // 在tb_order表中删除已插入的订单
+                orderMapper.deleteOrder(order.getOrderId());
+                return new ApiResponse(-1002, "购物车不存在", null);
+            }
+
+            // 根据tb_cart_detail.good_id在tb_good表中查找记录
+            Good good = orderMapper.selectGoodById(cartDetail.getGoodId());
+
+            if (good == null) {
+                // 在tb_order表中删除已插入的订单
+                orderMapper.deleteOrder(order.getOrderId());
+                return new ApiResponse(-1003, "商品不存在", null);
+            }
+
+            if (good.getInventory() < cartDetail.getCount()) {
+                // 在tb_order表中删除已插入的订单
+                orderMapper.deleteOrder(order.getOrderId());
+                return new ApiResponse(-1004, "商品库存不足", null);
+            }
+
+            // 在tb_good表中更新字段
+            good.setSoldCount(good.getSoldCount() + cartDetail.getCount());
+            good.setInventory(good.getInventory() - cartDetail.getCount());
+            orderMapper.updateGood(good);
+
+            // 在tb_order_detail表中插入新的记录
+            OrderDetail orderDetail = new OrderDetail();
+            orderDetail.setOrderId(order.getOrderId());
+            orderDetail.setGoodId(good.getGoodId());
+            orderDetail.setCount(cartDetail.getCount());
+            orderMapper.insertOrderDetail(orderDetail);
+
+            // 在tb_order表中更新字段
+            totalAmount += good.getPrice() * cartDetail.getCount();
+        }
+
+        order.setAmount(totalAmount);
+        orderMapper.updateOrder(order);
+
+        // 在tb_cart表中更新字段
+        cart.setAmount(cart.getAmount() - totalAmount);
+        orderMapper.updateCart(cart);
+
+        // 根据cartDetailId删除tb_cart_detail表中记录
+        for (String cartDetailId : cartDetailIdArray) {
+            orderMapper.deleteCartDetail(cartDetailId);
+        }
+
+        return new ApiResponse(100, "成功", null);
+    }
+}
+```
+
+```java
+// OrderController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/user/v1/user/{userId}/order")
+public class OrderController {
+    private final OrderService orderService;
+
+    @Autowired
+    public OrderController(OrderService orderService) {
+        this.orderService = orderService;
+    }
+
+    @PostMapping
+    public ApiResponse createOrder(@PathVariable int userId, @RequestParam int addressId, @RequestParam(required = false) String remarks, @RequestParam String cartDetailIds) {
+        return orderService.createOrder(userId, addressId, remarks, cartDetailIds);
+    }
+}
+```
+
+```java
+// OrderMapper.java
+package com.example.mapper;
+
+
+import com.example.entity.Order;
+
+public interface OrderMapper {
+    void insertOrder(Order order);
+    void updateOrder(Order order);
+    void deleteOrder(int orderId);
+    Order selectOrderById(int orderId);
+    // 其他查询方法...
+}
+```
+
+```xml
+<!-- OrderMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.OrderMapper">
+    <insert id="insertOrder" parameterType="com.example.entity.Order">
+        <!-- 插入订单的SQL语句 -->
+    </insert>
+    <update id="updateOrder" parameterType="com.example.entity.Order">
+        <!-- 更新订单的SQL语句 -->
+    </update>
+    <delete id="deleteOrder" parameterType="int">
+        <!-- 删除订单的SQL语句 -->
+    </delete>
+    <select id="selectOrderById" parameterType="int" resultType="com.example.entity.Order">
+        <!-- 根据订单ID查询订单的SQL语句 -->
+    </select>
+    <!-- 其他查询方法的SQL语句... -->
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+```
+
+```功能错误
+没有生成对tb_cart_detail、tb_cart、tb_order、tb_order_detail、tb_good这五个表的操作Mapper模块及Mapper.xml文件.
+按,分割cartDetailIds获取序列后获取第一个cartDetailId在tb_cart_detail表中查找记录实现错误，不应该在tb_cart表中进行了查找.
+根据tb_cart_detail.card_id在tb_cart表中查找用户购物车实现错误，不应该在tb_order表中进行查找.
+根据tb_cart_detail.good_id在tb_good表中查找记录实现错误，不应该在tb_order表中进行查找.
+在tb_good表中更新字段sold_count和inventory实现错误，不应该在tb_order表中更新.
+在tb_order_detail表中插入新的记录实现错误，不应该在tb_order表中插入.
+```

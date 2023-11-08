@@ -1,0 +1,200 @@
+业务功能逻辑：
+对参数empName进行验证，验证条件是：2-5位中文字符或6-16位英文和数字的组合；如果不符合格式，返回信息data设置为{"name_reg_error": "输入姓名为2-5位中文或6-16位英文和数字组合"}；如果符合在tbl_emp表中查询相同empName的对象，如果存在，返回信息data设置为{"name_duplicate_error": "用户名重复"}，如果不存在，返回信息data设置为null.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private String status;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Employee.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Employee {
+    private int empId;
+    private String empName;
+    private String empEmail;
+    private String gender;
+    private int departmentId;
+}
+```
+
+```java
+// EmpService.java
+package com.example.service;
+
+import com.example.entity.Emp;
+
+public interface EmpService {
+    ApiResponse checkEmpExists(String empName);
+}
+```
+
+```java
+// EmpServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Emp;
+import com.example.mapper.EmpMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+
+@Service
+public class EmpServiceImpl implements EmpService {
+
+    private final EmpMapper empMapper;
+
+    @Autowired
+    public EmpServiceImpl(EmpMapper empMapper) {
+        this.empMapper = empMapper;
+    }
+
+    @Override
+    public ApiResponse checkEmpExists(String empName) {
+        ApiResponse response = new ApiResponse();
+        // Validate empName format
+        if (!validateEmpName(empName)) {
+            response.setStatus("error");
+            response.setMessage("操作失败");
+            response.setData(new HashMap<String, String>() {{
+                put("name_reg_error", "输入姓名为2-5位中文或6-16位英文和数字组合");
+            }});
+            return response;
+        }
+        // Check if empName exists in tbl_emp
+        Emp emp = empMapper.findByEmpName(empName);
+        if (emp != null) {
+            response.setStatus("error");
+            response.setMessage("操作失败");
+            response.setData(new HashMap<String, String>() {{
+                put("name_duplicate_error", "用户名重复");
+            }});
+        } else {
+            response.setStatus("success");
+            response.setMessage("操作成功");
+            response.setData(null);
+        }
+        return response;
+    }
+
+    private boolean validateEmpName(String empName) {
+        // Validate empName format
+        // 2-5位中文字符或6-16位英文和数字的组合
+        String regex = "^[\u4e00-\u9fa5]{2,5}$|^[a-zA-Z0-9]{6,16}$";
+        return empName.matches(regex);
+    }
+}
+```
+
+```java
+// EmpController.java
+package com.example.controller;
+
+import com.example.service.EmpService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class EmpController {
+
+    private final EmpService empService;
+
+    @Autowired
+    public EmpController(EmpService empService) {
+        this.empService = empService;
+    }
+
+    @GetMapping("/hrms/emp/checkEmpExists")
+    public ApiResponse checkEmpExists(@RequestParam("empName") String empName) {
+        return empService.checkEmpExists(empName);
+    }
+}
+```
+
+```java
+// EmpMapper.java
+package com.example.mapper;
+
+import com.example.entity.Emp;
+
+public interface EmpMapper {
+    Emp findByEmpName(String empName);
+}
+```
+
+```xml
+<!-- EmpMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.EmpMapper">
+
+    <select id="findByEmpName" resultType="com.example.entity.Employee">
+        SELECT * FROM tbl_emp WHERE empName = #{empName}
+    </select>
+
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+EmpService.java: [3,26]
+java: 找不到符号
+  符号:   类 Emp
+  位置: 程序包 com.example.entity
+EmpService.java: [6,5]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.EmpService
+EmpController.java: [20,12]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.EmpController
+EmpMapper.java: [3,26]
+java: 找不到符号
+  符号:   类 Emp
+  位置: 程序包 com.example.entity
+EmpMapper.java: [6,5]
+java: 找不到符号
+  符号:   类 Emp
+  位置: 接口 com.example.mapper.EmpMapper
+EmpServiceImpl.java: [3,26]
+java: 找不到符号
+  符号:   类 Emp
+  位置: 程序包 com.example.entity
+EmpServiceImpl.java: [11,40]
+java: 找不到符号
+  符号: 类 EmpService
+EmpServiceImpl.java: [21,12]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.EmpServiceImpl
+Error querying database.  Cause: java.sql.SQLSyntaxErrorException: Unknown column 'empName' in 'where clause'
+```
+
+```功能错误
+```

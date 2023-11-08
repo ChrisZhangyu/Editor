@@ -1,0 +1,220 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+```java
+// UnbindRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+
+public class UnbindRequest {
+    private String token;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+```java
+// UserToken.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserToken {
+    private int id;
+    private String token;
+    private int userId;
+    private String wxOpenId;
+    private Timestamp createTime;
+    private Timestamp endTime;
+    private String userName;
+}
+```
+
+```java
+// UserTokenService.java
+package com.example.service;
+
+
+public interface UserTokenService {
+    void unbindAndLogout(String token);
+}
+```
+
+```java
+// UserTokenServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.UserTokenService;
+import com.example.mapper.UserMapper;
+import com.example.mapper.UserTokenMapper;
+import com.example.entity.UserToken;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserTokenServiceImpl implements UserTokenService {
+
+    private final UserTokenMapper userTokenMapper;
+    private final UserMapper userMapper;
+
+    @Autowired
+    public UserTokenServiceImpl(UserTokenMapper userTokenMapper, UserMapper userMapper) {
+        this.userTokenMapper = userTokenMapper;
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public void unbindAndLogout(String token) {
+        UserToken userToken = userTokenMapper.findByToken(token);
+        if (userToken != null) {
+            int userId = userToken.getUserId();
+            userMapper.updateModifyTimeAndWxOpenId(userId);
+            userTokenMapper.deleteByUserId(userId);
+        }
+    }
+}
+```
+
+```java
+// UserTokenController.java
+package com.example.controller;
+
+import com.example.service.UserTokenService;
+import com.example.entity.ApiResponse;
+import com.example.entity.UnbindRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/wx/student/auth")
+public class UserTokenController {
+
+    private final UserTokenService userTokenService;
+
+    @Autowired
+    public UserTokenController(UserTokenService userTokenService) {
+        this.userTokenService = userTokenService;
+    }
+
+    @PostMapping("/unBind")
+    public ApiResponse unbindAndLogout(@RequestBody UnbindRequest request) {
+        if (request.getToken()==null)
+            return new ApiResponse(1, "Token为null", null);
+        userTokenService.unbindAndLogout(request.getToken());
+        return new ApiResponse(1, "成功", null);
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+
+public interface UserMapper {
+    void updateModifyTimeAndWxOpenId(int userId);
+}
+```
+```java
+// UserTokenMapper.java
+package com.example.mapper;
+
+import com.example.entity.UserToken;
+
+public interface UserTokenMapper {
+    UserToken findByToken(String token);
+    void deleteByUserId(int userId);
+}
+```
+
+```xml
+<!-- UserTokenMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserTokenMapper">
+    <resultMap id="UserTokenResultMap" type="com.example.entity.UserToken">
+        <id column="id" property="id" jdbcType="INTEGER"/>
+        <result column="token" property="token" jdbcType="VARCHAR"/>
+        <result column="user_id" property="userId" jdbcType="INTEGER"/>
+        <result column="wx_open_id" property="wxOpenId" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="end_time" property="endTime" jdbcType="TIMESTAMP"/>
+        <result column="user_name" property="userName" jdbcType="VARCHAR"/>
+    </resultMap>
+    <select id="findByToken" resultMap="UserTokenResultMap">
+        SELECT * FROM t_user_token WHERE token = #{token}
+    </select>
+    <delete id="deleteByUserId">
+        DELETE FROM t_user_token WHERE user_id = #{userId}
+    </delete>
+</mapper>
+
+```
+

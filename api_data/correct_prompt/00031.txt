@@ -1,0 +1,174 @@
+业务功能逻辑：
+如果empId大于0，则根据empId对tbl_emp表进行删除操作，删除成功data返回null，删除失败data返回{"emp_del_error": "员工删除异常"}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private String status;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Employee.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Employee {
+    private int empId;
+    private String empName;
+    private String empEmail;
+    private String gender;
+    private int departmentId;
+}
+```
+
+```java
+// EmployeeService.java
+package com.example.service;
+
+public interface EmployeeService {
+    ApiResponse deleteEmployee(int empId);
+}
+```
+
+```java
+// EmployeeServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class EmployeeServiceImpl implements EmployeeService {
+    private final EmployeeMapper employeeMapper;
+
+    @Autowired
+    public EmployeeServiceImpl(EmployeeMapper employeeMapper) {
+        this.employeeMapper = employeeMapper;
+    }
+
+    @Override
+    public ApiResponse deleteEmployee(int empId) {
+        int result = employeeMapper.deleteEmployee(empId);
+        if (result > 0) {
+            return new ApiResponse("success", "操作成功", null);
+        } else {
+            return new ApiResponse("error", "操作失败", new HashMap<String, String>() {{
+                            put("emp_del_error", "员工删除异常");
+                        }});
+        }
+    }
+}
+```
+
+```java
+// EmployeeController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/hrms/emp")
+public class EmployeeController {
+    private final EmployeeService employeeService;
+
+    @Autowired
+    public EmployeeController(EmployeeService employeeService) {
+        this.employeeService = employeeService;
+    }
+
+    @DeleteMapping("/deleteEmp/{empId}")
+    public ApiResponse deleteEmployee(@PathVariable int empId) {
+        return employeeService.deleteEmployee(empId);
+    }
+}
+```
+
+```java
+// EmployeeMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface EmployeeMapper {
+    @Delete("DELETE FROM tbl_emp WHERE emp_id = #{empId}")
+    int deleteEmployee(@Param("empId") int empId);
+}
+```
+
+```xml
+<!-- EmployeeMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.EmployeeMapper">
+    <!-- 定义删除员工的SQL语句 -->
+    <delete id="deleteEmployee" parameterType="int">
+        DELETE FROM tbl_emp WHERE emp_id = #{empId}
+    </delete>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+EmployeeController.java: [12,19]
+java: 找不到符号
+  符号:   类 EmployeeService
+  位置: 类 com.example.controller.EmployeeController
+EmployeeController.java: [15,31]
+java: 找不到符号
+  符号:   类 EmployeeService
+  位置: 类 com.example.controller.EmployeeController
+EmployeeController.java: [20,12]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.EmployeeController
+EmployeeService.java: [4,5]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.EmployeeService
+EmployeeServiceImpl.java: [7,45]
+java: 找不到符号
+  符号: 类 EmployeeService
+EmployeeServiceImpl.java: [8,19]
+java: 找不到符号
+  符号:   类 EmployeeMapper
+  位置: 类 com.example.service.impl.EmployeeServiceImpl
+EmployeeServiceImpl.java: [11,32]
+java: 找不到符号
+  符号:   类 EmployeeMapper
+  位置: 类 com.example.service.impl.EmployeeServiceImpl
+EmployeeServiceImpl.java: [16,12]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.EmployeeServiceImpl
+Mapped Statements collection already contains value for com.example.mapper.EmployeeMapper.deleteEmployee
+```
+
+```功能错误
+```

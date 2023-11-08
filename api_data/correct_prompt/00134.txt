@@ -1,0 +1,417 @@
+业务功能逻辑：
+在tb_good表中查询商品，查询条件是good_id等于goodId，如果不存在返回(-1002, "商品不存在",null)；如果tb_good.inventory小于count，返回(-1004, "商品库存不足", null)；在tb_cart表中查询购物车列表，查询条件是user_id等于userId，如果列表为空，则在表中插入一条记录，字段user_id设置为userId，amount设置为0.0，如果列表不为空获取第一条记录；在tb_cart_detail表中查询详情列表，查询条件是good_id等于goodId，cart_id等于tb_cart.cart_id，如果列表为空，且输入count大于0，则在表中插入一条记录，字段cart_id设置为tb_cart.id，good_id设置为tb_good.id，count设置为输入count，同时更新tb_cart表中的amount字段为(tb_cart.amount+tb_good.price*tb_cart_detail.count)，如果列表不为空则获取列表的第一条记录，并更新tb_cart和tb_cart_detail表如下：如果tb_cart_detail.count+count小于0，tb_cart_detail.count设置为0，tb_cart.amount设置为(tb_cart.amount+tb_good.price*tb_cart_detail.count*(-1))，否则tb_cart_detail.count设置为(tb_cart_detail.count+count)，tb_cart.amount设置为(tb_cart.amount+tb_good.price*count)；在tb_cart_detail表中查找记录，查找条件是tb_cart.cart_id等于tb_cart_detail.cart_id，返回date设置为{"cartId"=tb_cart.cart_id,"userId"=userId,"amount"=tb_cart.amount,"good"=[tb_cart_detail记录]}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Cart.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_cart")
+public class Cart {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "cart_id")
+    private Integer cartId;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "amount")
+    private Double amount;
+}
+```
+
+```java
+// CartDetail.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_cart_detail")
+public class CartDetail {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "cart_detail_id")
+    private Long cartDetailId;
+
+    @Column(name = "cart_id")
+    private Long cartId;
+
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "count")
+    private Integer count;
+}
+```
+
+```java
+// Good.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_good")
+public class Good {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "good_name", length = 20)
+    private String goodName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+    @Column(name = "price", precision = 10, scale = 2)
+    private Double price;
+
+    @Column(name = "original_price", precision = 10, scale = 2)
+    private Double originalPrice;
+
+    @Column(name = "inventory")
+    private Integer inventory;
+
+    @Column(name = "sold_count")
+    private Integer soldCount;
+
+    @Column(name = "spec", length = 20)
+    private String spec;
+
+    @Column(name = "origin", length = 10)
+    private String origin;
+}
+```
+
+```java
+// CartService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Cart;
+
+public interface CartService {
+    ApiResponse addToCart(long userId, long goodId, int count);
+}
+```
+
+```java
+// CartServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Cart;
+import com.example.entity.CartDetail;
+import com.example.entity.Good;
+import com.example.mapper.CartMapper;
+import com.example.mapper.CartDetailMapper;
+import com.example.mapper.GoodMapper;
+import com.example.entity.ApiResponse;
+import com.example.service.CartService;
+
+public class CartServiceImpl implements CartService {
+    private CartMapper cartMapper;
+    private CartDetailMapper cartDetailMapper;
+    private GoodMapper goodMapper;
+
+    @Override
+    public ApiResponse addToCart(long userId, long goodId, int count) {
+        // 查询商品是否存在
+        Good good = goodMapper.getGoodById(goodId);
+        if (good == null) {
+            return new ApiResponse(-1002, "商品不存在", null);
+        }
+
+        // 查询购物车列表
+        Cart cart = cartMapper.getCartByUserId(userId);
+        if (cart == null) {
+            // 购物车为空，插入一条记录
+            cart = new Cart();
+            cart.setUserId(userId);
+            cart.setAmount(0.0);
+            cartMapper.insertCart(cart);
+        }
+
+        // 查询购物车详情列表
+        CartDetail cartDetail = cartDetailMapper.getCartDetailByCartIdAndGoodId(cart.getId(), good.getId());
+        if (cartDetail == null) {
+            // 购物车详情为空，插入一条记录
+            if (count > 0) {
+                cartDetail = new CartDetail();
+                cartDetail.setCartId(cart.getId());
+                cartDetail.setGoodId(good.getId());
+                cartDetail.setCount(count);
+                cartDetailMapper.insertCartDetail(cartDetail);
+                // 更新购物车总金额
+                cart.setAmount(cart.getAmount() + good.getPrice() * count);
+                cartMapper.updateCart(cart);
+            }
+        } else {
+            // 购物车详情不为空，更新记录
+            if (cartDetail.getCount() + count < 0) {
+                cartDetail.setCount(0);
+                cart.setAmount(cart.getAmount() + good.getPrice() * cartDetail.getCount() * (-1));
+            } else {
+                cartDetail.setCount(cartDetail.getCount() + count);
+                cart.setAmount(cart.getAmount() + good.getPrice() * count);
+            }
+            cartDetailMapper.updateCartDetail(cartDetail);
+            cartMapper.updateCart(cart);
+        }
+
+        // 联合查询购物车和购物车详情
+        Map<String, Object> resultMap = new HashMap<>();
+        resultMap.put("cartId", cart.getCartId());
+        resultMap.put("userId", userId);
+        resultMap.put("amount", cart.getAmount());
+        List<CartDetail> cartDetails = cartDetailMapper.getCartDetailByCartId(cart.getCartId());
+        resultMap.put("goods",cartDetails);
+
+        return new ApiResponse(100, "成功", resultMap);
+    }
+}
+```
+
+```java
+// CartController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.CartService;
+
+@RestController
+@RequestMapping("/user/v1/user/{userId}/cart")
+public class CartController {
+    private CartService cartService;
+
+    @PostMapping
+    public ApiResponse addToCart(@PathVariable long userId, @RequestParam long goodId, @RequestParam int count) {
+        return cartService.addToCart(userId, goodId, count);
+    }
+}
+```
+
+```java
+// CartDetailMapper.java
+package com.example.mapper;
+
+import com.example.entity.CartDetail;
+
+public interface CartDetailMapper {
+    CartDetail getCartDetailByCartIdAndGoodId(long cartId, long goodId);
+    List<CartDetail> getCartDetailByCartId(@Param("cartId") long cartId);
+    void insertCartDetail(CartDetail cartDetail);
+    void updateCartDetail(CartDetail cartDetail);
+}
+```
+
+```java
+// CartMapper.java
+package com.example.mapper;
+
+import com.example.entity.Cart;
+
+public interface CartMapper {
+    Cart getCartByUserId(long userId);
+    void insertCart(Cart cart);
+    void updateCart(Cart cart);
+}
+```
+
+```java
+// GoodMapper.java
+package com.example.mapper;
+
+import com.example.entity.Good;
+
+public interface GoodMapper {
+    Good getGoodById(long goodId);
+}
+```
+
+```xml
+<!-- CartDetailMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.CartDetailMapper">
+    <resultMap id="cartDetailResultMap" type="com.example.entity.CartDetail">
+        <id property="cartDetailId" column="cart_detail_id" />
+        <result property="cartId" column="cart_id" />
+        <result property="goodId" column="good_id" />
+        <result property="count" column="count" />
+    </resultMap>
+
+    <select id="getCartDetailByCartIdAndGoodId" resultMap="cartDetailResultMap">
+        SELECT * FROM tb_cart_detail WHERE cart_id = #{cartId} AND good_id = #{goodId}
+    </select>
+
+    <select id="getCartDetailByCartId" resultMap="cartDetailResultMap">
+        SELECT * FROM tb_cart_detail WHERE cart_id = #{cartId}
+    </select>
+
+    <insert id="insertCartDetail" parameterType="com.example.entity.CartDetail">
+        INSERT INTO tb_cart_detail (cart_id, good_id, count) VALUES (#{cartId}, #{goodId}, #{count})
+    </insert>
+
+    <update id="updateCartDetail" parameterType="com.example.entity.CartDetail">
+        UPDATE tb_cart_detail SET count = #{count} WHERE cart_detail_id = #{id}
+    </update>
+</mapper>
+
+```
+
+```xml
+<!-- CartMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.CartMapper">
+    <resultMap id="cartResultMap" type="com.example.entity.Cart">
+        <id property="cartId" column="cart_id" />
+        <result property="userId" column="user_id" />
+        <result property="amount" column="amount" />
+    </resultMap>
+
+    <select id="getCartByUserId" resultMap="cartResultMap">
+        SELECT * FROM tb_cart WHERE user_id = #{userId}
+    </select>
+
+    <insert id="insertCart" parameterType="com.example.entity.Cart">
+        INSERT INTO tb_cart (user_id, amount) VALUES (#{userId}, #{amount})
+    </insert>
+
+    <update id="updateCart" parameterType="com.example.entity.Cart">
+        UPDATE tb_cart SET amount = #{amount} WHERE cart_id = #{id}
+    </update>
+</mapper>
+
+```
+
+```xml
+<!-- GoodMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.GoodMapper">
+    <resultMap id="goodResultMap" type="com.example.entity.Good">
+        <id property="goodId" column="good_id" />
+        <result property="categorySecondId" column="category_second_id" />
+        <result property="goodName" column="good_name" />
+        <result property="image" column="image" />
+        <result property="price" column="price" />
+        <result property="originalPrice" column="original_price" />
+        <result property="inventory" column="inventory" />
+        <result property="soldCount" column="sold_count" />
+        <result property="spec" column="spec" />
+        <result property="origin" column="origin" />
+    </resultMap>
+
+    <select id="getGoodById" resultMap="goodResultMap">
+        SELECT * FROM tb_good WHERE good_id = #{goodId}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+CartController.java:6:2
+java: 找不到符号
+  符号: 类 RestController
+CartController.java:7:2
+java: 找不到符号
+  符号: 类 RequestMapping
+CartController.java:12:35
+java: 找不到符号
+  符号:   类 PathVariable
+  位置: 类 com.example.controller.CartController
+CartController.java:12:62
+java: 找不到符号
+  符号:   类 RequestParam
+  位置: 类 com.example.controller.CartController
+CartController.java:12:89
+java: 找不到符号
+  符号:   类 RequestParam
+  位置: 类 com.example.controller.CartController
+CartController.java:11:6
+java: 找不到符号
+  符号:   类 PostMapping
+  位置: 类 com.example.controller.CartController
+CartMapper.java:9:5
+java: 找不到符号
+  符号:   类 List
+  位置: 接口 com.example.mapper.CartMapper
+CartServiceImpl.java:30:28
+java: 不兼容的类型: long无法转换为java.lang.Integer
+CartServiceImpl.java:36:85
+java: 找不到符号
+  符号:   方法 getId()
+  位置: 类型为com.example.entity.Cart的变量 cart
+CartServiceImpl.java:36:99
+java: 找不到符号
+  符号:   方法 getId()
+  位置: 类型为com.example.entity.Good的变量 good
+CartServiceImpl.java:41:42
+java: 找不到符号
+  符号:   方法 getId()
+  位置: 类型为com.example.entity.Cart的变量 cart
+CartServiceImpl.java:42:42
+java: 找不到符号
+  符号:   方法 getId()
+  位置: 类型为com.example.entity.Good的变量 good
+CartServiceImpl.java:63:9
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.service.impl.CartServiceImpl
+```
+
+```功能错误
+没有实现功能：如果tb_good.inventory小于count，返回(-1004, "商品库存不足", null).
+没有实现功能：在tb_cart表中查询购物车列表，如果列表不为空获取第一条记录.
+没有实现功能：在tb_cart_detail表中查询详情列表，如果列表不为空获取第一条记录.
+```

@@ -1,0 +1,255 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    /**
+     * 响应状态码
+     */
+    private int code;
+
+    /**
+     * 响应消息
+     */
+    private String message;
+
+    /**
+     * 响应数据
+     */
+    private T data;
+}
+```
+
+```java
+// BmsPostTag.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class BmsPostTag {
+    private int id;
+    private String tagId;
+    private String topicId;
+}
+```
+
+```java
+// BmsTag.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class BmsTag {
+    private String id;
+    private String name;
+    private int topicCount;
+}
+```
+
+```java
+// PostVO.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
+import java.util.Date;
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PostVO implements Serializable {
+    private String id;
+    private String userId;
+    private String avatar;
+    private String alias;
+    private String username;
+    private String title;
+    private Integer comments;
+    private Boolean top;
+    private Boolean essence;
+    private Integer collects;
+    private List<BmsTag> tags;
+    private Integer view;
+    private Date createTime;
+    private Date modifyTime;
+}
+```
+
+```java
+// PostService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.BmsTag;
+import com.example.entity.PostVO;
+import com.example.mapper.PostTagMapper;
+import com.example.mapper.TagMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class PostService {
+    private final PostTagMapper postTagMapper;
+    private final TagMapper tagMapper;
+
+    @Autowired
+    public PostService(PostTagMapper postTagMapper, TagMapper tagMapper) {
+        this.postTagMapper = postTagMapper;
+        this.tagMapper = tagMapper;
+    }
+
+    public ApiResponse<List<PostVO>> getPostListWithTag(List<PostVO> postList) {
+        for (PostVO postVO : postList) {
+            List<String> tagIds = postTagMapper.getTagIdsByTopicId(postVO.getId());
+            List<BmsTag> tags = tagMapper.getTagsByIds(tagIds);
+            postVO.setTags(tags);
+        }
+        return new ApiResponse<>(200, "操作成功", postList);
+    }
+}
+```
+
+```java
+// PostController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.PostVO;
+import com.example.service.PostService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/post")
+public class PostController {
+    private final PostService postService;
+
+    @Autowired
+    public PostController(PostService postService) {
+        this.postService = postService;
+    }
+
+    @GetMapping("/tag/list")
+    public ApiResponse<List<PostVO>> getPostListWithTag(List<PostVO> postList) {
+        return postService.getPostListWithTag(postList);
+    }
+}
+```
+
+```java
+// PostMapper.java
+package com.example.mapper;
+
+import com.example.entity.PostVO;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface PostMapper {
+    List<PostVO> getPostList();
+}
+```
+
+```java
+// PostTagMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface PostTagMapper {
+    List<String> getTagIdsByTopicId(@Param("topicId") String topicId);
+}
+```
+
+```java
+// TagMapper.java
+package com.example.mapper;
+
+import com.example.entity.BmsTag;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+@Mapper
+public interface TagMapper {
+    List<BmsTag> getTagsByIds(@Param("tagIds") List<String> tagIds);
+}
+```
+
+```xml
+<!-- PostMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!-- PostMapper.xml -->
+<mapper namespace="com.example.mapper.PostMapper">
+    <select id="getPostList" resultType="com.example.entity.PostVO">
+        SELECT * FROM bms_post
+    </select>
+</mapper>
+```
+
+```xml
+<!-- PostTagMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!-- PostTagMapper.xml -->
+<mapper namespace="com.example.mapper.PostTagMapper">
+    <select id="getTagIdsByTopicId" resultType="java.lang.String">
+        SELECT tag_id FROM bms_post_tag WHERE topic_id = #{topicId}
+    </select>
+</mapper>
+```
+
+```xml
+<!-- TagMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!-- TagMapper.xml -->
+<mapper namespace="com.example.mapper.TagMapper">
+    <resultMap type="com.example.entity.BmsTag" id="ArticleResult">
+        <result property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="topicCount" column="topic_count"/>
+    </resultMap>
+
+    <select id="getTagsByIds" resultMap="ArticleResult">
+        SELECT * FROM bms_tag WHERE id IN
+        <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+            #{tagId}
+        </foreach>
+    </select>
+</mapper>
+```

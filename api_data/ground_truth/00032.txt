@@ -1,0 +1,148 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private String status;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Employee.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Employee {
+    private int empId;
+    private String empName;
+    private String empEmail;
+    private String gender;
+    private int departmentId;
+}
+```
+
+```java
+// EmployeeService.java
+package com.example.service;
+
+import com.example.entity.Employee;
+
+public interface EmployeeService {
+    void updateEmployee(Integer empId, Employee employee);
+}
+```
+
+```java
+// EmployeeServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.EmployeeMapper;
+import com.example.entity.Employee;
+import com.example.service.EmployeeService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class EmployeeServiceImpl implements EmployeeService {
+
+    private final EmployeeMapper employeeMapper;
+
+    @Autowired
+    public EmployeeServiceImpl(EmployeeMapper employeeMapper) {
+        this.employeeMapper = employeeMapper;
+    }
+
+    @Override
+    public void updateEmployee(Integer empId, Employee employee) {
+        try {
+            employee.setEmpId(empId);
+            employeeMapper.updateEmployee(employee);
+        } catch (Exception e) {
+            throw new RuntimeException("更改异常");
+        }
+    }
+}
+```
+
+```java
+// EmployeeController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Employee;
+import com.example.service.EmployeeService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+
+@RestController
+@RequestMapping("/hrms/emp")
+public class EmployeeController {
+
+    private final EmployeeService employeeService;
+
+    @Autowired
+    public EmployeeController(EmployeeService employeeService) {
+        this.employeeService = employeeService;
+    }
+
+    @PutMapping("/updateEmp/{empId}")
+    public ApiResponse updateEmployee(@PathVariable Integer empId, @RequestBody Employee employee) {
+        try {
+            employeeService.updateEmployee(empId, employee);
+            return new ApiResponse("success", "操作成功", null);
+
+        } catch (Exception e) {
+            return new ApiResponse("error", "操作失败", new HashMap<String, String>() {{put("emp_del_error", "员工删除异常");}});
+        }
+    }
+}
+```
+
+```java
+// EmployeeMapper.java
+package com.example.mapper;
+
+import com.example.entity.Employee;
+
+public interface EmployeeMapper {
+    void updateEmployee(Employee employee);
+}
+```
+
+```xml
+<!-- EmployeeMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.EmployeeMapper">
+    <update id="updateEmployee" parameterType="com.example.entity.Employee">
+        UPDATE tbl_emp
+        SET
+        emp_email = #{empEmail, jdbcType = VARCHAR},
+        gender = #{gender, jdbcType = VARCHAR},
+        department_id = #{departmentId, jdbcType = INTEGER}
+        WHERE
+        emp_id = #{empId, jdbcType = INTEGER}
+    </update>
+
+</mapper>
+```

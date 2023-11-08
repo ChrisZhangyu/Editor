@@ -1,0 +1,172 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Good.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_good")
+public class Good {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "good_name", length = 20)
+    private String goodName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+    @Column(name = "price", precision = 10, scale = 2)
+    private Double price;
+
+    @Column(name = "original_price", precision = 10, scale = 2)
+    private Double originalPrice;
+
+    @Column(name = "inventory")
+    private Integer inventory;
+
+    @Column(name = "sold_count")
+    private Integer soldCount;
+
+    @Column(name = "spec", length = 20)
+    private String spec;
+
+    @Column(name = "origin", length = 10)
+    private String origin;
+}
+```
+
+```java
+// GoodsService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface GoodsService {
+    ApiResponse increaseInventory(int goodId, int inventory);
+}
+```
+
+```java
+// GoodsServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Good;
+import com.example.mapper.GoodsMapper;
+import com.example.service.GoodsService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class GoodsServiceImpl implements GoodsService {
+
+    private final GoodsMapper goodsMapper;
+
+    @Autowired
+    public GoodsServiceImpl(GoodsMapper goodsMapper) {
+        this.goodsMapper = goodsMapper;
+    }
+
+    @Override
+    public ApiResponse increaseInventory(int goodId, int inventory) {
+        Good goods = goodsMapper.selectGoodsById(goodId);
+        if (goods == null) {
+            return new ApiResponse(-1002, "商品不存在", null);
+        }
+        if (inventory < 0 && goods.getInventory() < Math.abs(inventory)) {
+            return new ApiResponse(-1004, "商品库存不足", null);
+        }
+        goodsMapper.updateGoodsInventory(goodId, goods.getInventory() + inventory);
+        goods = goodsMapper.selectGoodsById(goodId);
+        return new ApiResponse(100, "成功", goods);
+    }
+}
+```
+
+```java
+// GoodsController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.GoodsService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/admin/v1/goods")
+public class GoodsController {
+
+    private final GoodsService goodsService;
+
+    @Autowired
+    public GoodsController(GoodsService goodsService) {
+        this.goodsService = goodsService;
+    }
+
+    @PatchMapping("/{goodId}/inventory")
+    public ApiResponse increaseInventory(@PathVariable int goodId, @RequestParam int inventory) {
+        return goodsService.increaseInventory(goodId, inventory);
+    }
+}
+```
+
+```java
+// GoodsMapper.java
+package com.example.mapper;
+
+import com.example.entity.Good;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface GoodsMapper {
+    Good selectGoodsById(@Param("goodId") int goodId);
+    void updateGoodsInventory(@Param("goodId") int goodId, @Param("inventory") int inventory);
+}
+```
+
+```xml
+<!-- GoodsMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.GoodsMapper">
+    <select id="selectGoodsById" parameterType="int" resultType="com.example.entity.Good">
+        SELECT * FROM tb_good WHERE good_id = #{goodId}
+    </select>
+
+    <update id="updateGoodsInventory" parameterType="map">
+        UPDATE tb_good SET inventory = #{inventory} WHERE good_id = #{goodId}
+    </update>
+</mapper>
+
+```

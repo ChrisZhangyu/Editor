@@ -1,0 +1,329 @@
+业务功能逻辑：
+根据pageIndex和pageSize分页查询t_exam_paper_question_customer_answer表中记录，查询条件do_right等于0；遍历记录列表，在t_subject表中查询记录，查询条件是id等于t_exam_paper_question_customer_answer.subject_id；返回response设置为[{"examPaperId"=t_exam_paper_question_customer_answer.exam_paper_id,"questionId"=t_exam_paper_question_customer_answer.question_id,"questionType"=t_exam_paper_question_customer_answer.question_type,"subjectName"=t_subject.name}].
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// ExamPaperQuestionCustomerAnswer.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper_question_customer_answer")
+public class ExamPaperQuestionCustomerAnswer {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+
+    @Column(name = "question_id")
+    private Long questionId;
+
+    @Column(name = "exam_paper_id")
+    private Long examPaperId;
+
+    @Column(name = "exam_paper_answer_id")
+    private Long examPaperAnswerId;
+
+    @Column(name = "question_type")
+    private Integer questionType;
+
+    @Column(name = "subject_id")
+    private Integer subjectId;
+
+    @Column(name = "customer_score")
+    private Integer customerScore;
+
+    @Column(name = "question_score")
+    private Integer questionScore;
+
+    @Column(name = "question_text_content_id")
+    private Long questionTextContentId;
+
+    @Column(name = "answer", columnDefinition = "TEXT")
+    private String answer;
+
+    @Column(name = "text_content_id")
+    private Long textContentId;
+
+    @Column(name = "do_right")
+    private Boolean doRight;
+
+    @Column(name = "create_user")
+    private Integer createUser;
+
+    @Column(name = "create_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createTime;
+
+    @Column(name = "item_order")
+    private Integer itemOrder;
+
+    // 省略 Getter 和 Setter 方法
+}
+```
+
+```java
+// QuestionAnswerEntity.java
+package com.example.entity;
+
+
+import lombok.Data;
+
+@Data
+public class QuestionAnswerEntity {
+    private int examPaperId;
+    private int questionId;
+    private int questionType;
+    private int subjectId;
+}
+```
+
+```java
+// Subject.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_subject")
+public class Subject {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "level")
+    private int level;
+
+    @Column(name = "level_name")
+    private String levelName;
+
+    @Column(name = "item_order")
+    private int itemOrder;
+
+    @Column(name = "deleted")
+    private boolean deleted;
+}
+```
+
+```java
+// SubjectEntity.java
+package com.example.entity;
+
+
+import lombok.Data;
+
+@Data
+public class SubjectEntity {
+    private int id;
+    private String name;
+}
+```
+
+```java
+// QuestionAnswerService.java
+package com.example.service;
+
+
+import java.util.List;
+
+public interface QuestionAnswerService {
+    List<QuestionAnswerResponse> getQuestionAnswers(int pageIndex, int pageSize);
+}
+```
+
+```java
+// QuestionAnswerServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.SubjectEntity;
+import com.example.mapper.SubjectMapper;
+import com.example.service.QuestionAnswerService;
+import com.example.entity.QuestionAnswerEntity;
+import com.example.mapper.QuestionAnswerMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class QuestionAnswerServiceImpl implements QuestionAnswerService {
+
+    private final QuestionAnswerMapper questionAnswerMapper;
+    private final SubjectMapper subjectMapper;
+
+    @Autowired
+    public QuestionAnswerServiceImpl(QuestionAnswerMapper questionAnswerMapper, SubjectMapper subjectMapper) {
+        this.questionAnswerMapper = questionAnswerMapper;
+        this.subjectMapper = subjectMapper;
+    }
+
+    @Override
+    public List<QuestionAnswerResponse> getQuestionAnswers(int pageIndex, int pageSize) {
+        List<QuestionAnswerEntity> questionAnswerEntities = questionAnswerMapper.getQuestionAnswers(pageIndex, pageSize);
+        List<QuestionAnswerResponse> questionAnswerResponses = new ArrayList<>();
+
+        for (QuestionAnswerEntity questionAnswerEntity : questionAnswerEntities) {
+            SubjectEntity subjectEntity = subjectMapper.getSubjectById(questionAnswerEntity.getSubjectId());
+            QuestionAnswerResponse questionAnswerResponse = new QuestionAnswerResponse(
+                    questionAnswerEntity.getExamPaperId(),
+                    questionAnswerEntity.getQuestionId(),
+                    questionAnswerEntity.getQuestionType(),
+                    subjectEntity.getName()
+            );
+            questionAnswerResponses.add(questionAnswerResponse);
+        }
+
+        return questionAnswerResponses;
+    }
+}
+```
+
+```java
+// QuestionAnswerController.java
+package com.example.controller;
+
+import com.example.service.QuestionAnswerService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class QuestionAnswerController {
+
+    private final QuestionAnswerService questionAnswerService;
+
+    @Autowired
+    public QuestionAnswerController(QuestionAnswerService questionAnswerService) {
+        this.questionAnswerService = questionAnswerService;
+    }
+
+    @PostMapping("/api/student/question/answer/page")
+    public ApiResponse getQuestionAnswers(@RequestBody PageRequest pageRequest) {
+        int pageIndex = pageRequest.getPageIndex();
+        int pageSize = pageRequest.getPageSize();
+
+        List<QuestionAnswerResponse> questionAnswerResponses = questionAnswerService.getQuestionAnswers(pageIndex, pageSize);
+
+        return new ApiResponse(1, "成功", questionAnswerResponses);
+    }
+}
+```
+
+```java
+// QuestionAnswerMapper.java
+package com.example.mapper;
+
+import com.example.entity.QuestionAnswerEntity;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface QuestionAnswerMapper {
+    List<QuestionAnswerEntity> getQuestionAnswers(@Param("pageIndex") int pageIndex, @Param("pageSize") int pageSize);
+}
+```
+
+```java
+// SubjectMapper.java
+package com.example.mapper;
+
+import com.example.entity.SubjectEntity;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface SubjectMapper {
+    SubjectEntity getSubjectById(@Param("id") int id);
+}
+```
+
+```xml
+<!-- QuestionAnswerMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.QuestionAnswerMapper">
+    <select id="getQuestionAnswers" resultType="com.example.entity.QuestionAnswerEntity">
+        SELECT * FROM t_exam_paper_question_customer_answer
+        WHERE do_right = 0
+        LIMIT #{pageIndex}, #{pageSize}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+QuestionAnswerController.java:22:56
+java: 找不到符号
+  符号:   类 PageRequest
+  位置: 类 com.example.controller.QuestionAnswerController
+QuestionAnswerService.java:7:10
+java: 找不到符号
+  符号:   类 QuestionAnswerResponse
+  位置: 接口 com.example.service.QuestionAnswerService
+QuestionAnswerServiceImpl.java:25:12
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.service.impl.QuestionAnswerServiceImpl
+QuestionAnswerServiceImpl.java:25:17
+java: 找不到符号
+  符号:   类 QuestionAnswerResponse
+  位置: 类 com.example.service.impl.QuestionAnswerServiceImpl
+QuestionAnswerServiceImpl.java:35:59
+java: 无法将类 com.example.entity.QuestionAnswerEntity中的构造器 QuestionAnswerEntity应用到给定类型;
+  需要: 没有参数
+  找到: java.lang.Long,java.lang.Long,java.lang.Integer,java.lang.String
+  原因: 实际参数列表和形式参数列表长度不同
+```
+
+```功能错误
+生成的接口函数输入格式错误,在QuestionAnswerController.java模块中,getQuestionAnswers函数参数的输入格式应该是RequestParam.
+分页查询中的LIMIT计算错误，没有从结果集的第(pageIndex-1)*pageSize行开始返回.
+没有生成SubjectMapper.java模块对应的.xml文件.
+生成多余的SubjectEntity.java模块.
+实现错误QuestionAnswerEntity.java模块,应该包含熟悉(examPaperId,questionId,questionType,subjectName).
+```

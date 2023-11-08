@@ -1,0 +1,245 @@
+业务功能逻辑：
+根据dto.name、dto.page、dto.count在lin_log表中进行分页查询，其中查询的记录lin_log.is_deleted必须为0，lin_log.create_time必须在dto.start和dto.end范围内，获取的结果按lin_log.create_time降序排列，返回data设置为{lin_log记录}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private String status;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// LinLog.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "lin_log")
+public class LinLog {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
+
+    @Column(name = "message")
+    private String message;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "username")
+    private String username;
+
+    @Column(name = "status_code")
+    private Integer statusCode;
+
+    @Column(name = "method")
+    private String method;
+
+    @Column(name = "path")
+    private String path;
+
+    @Column(name = "permission")
+    private String permission;
+
+    @Column(name = "create_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createTime;
+
+    @Column(name = "update_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date updateTime;
+
+    @Column(name = "delete_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date deleteTime;
+
+    @Column(name = "is_deleted")
+    private Boolean isDeleted;
+}
+```
+
+```java
+// LogService.java
+package com.example.service;
+
+import java.util.Date;
+import java.util.List;
+
+public interface LogService {
+    List<LinLog> queryLogs(String name, Date start, Date end, Integer page, Integer count);
+}
+```
+
+```java
+// LogServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.List;
+
+@Service
+public class LogServiceImpl implements LogService {
+
+    private final LogMapper logMapper;
+
+    @Autowired
+    public LogServiceImpl(LogMapper logMapper) {
+        this.logMapper = logMapper;
+    }
+
+    @Override
+    public List<LinLog> queryLogs(String name, Date start, Date end, Integer page, Integer count) {
+        // 根据dto.name、dto.page、dto.count在lin_log表中进行分页查询
+        // 查询的记录lin_log.is_deleted必须为0，lin_log.create_time必须在dto.start和dto.end范围内
+        // 获取的结果按lin_log.create_time降序排列
+        return logMapper.queryLogs(name, start, end, page, count);
+    }
+}
+```
+
+```java
+// LogController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Date;
+import java.util.List;
+
+@RestController
+@RequestMapping("/cms/log")
+public class LogController {
+
+    private final LogService logService;
+
+    @Autowired
+    public LogController(LogService logService) {
+        this.logService = logService;
+    }
+
+    @GetMapping
+    public ApiResponse queryLogs(@RequestParam(required = false) String name,
+                                 @RequestParam(required = false) Date start,
+                                 @RequestParam(required = false) Date end,
+                                 @RequestParam(required = false, defaultValue = "1") Integer page,
+                                 @RequestParam(required = false, defaultValue = "10") Integer count) {
+        List<LinLog> logs = logService.queryLogs(name, start, end, page, count);
+        return new ApiResponse("success", "操作成功", logs);
+    }
+}
+```
+
+```java
+// LogMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.Date;
+import java.util.List;
+
+@Mapper
+public interface LogMapper {
+    List<LinLog> queryLogs(@Param("name") String name, @Param("start") Date start, @Param("end") Date end, @Param("page") Integer page, @Param("count") Integer count);
+}
+```
+
+```xml
+<!-- LogMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.LogMapper">
+
+    <select id="queryLogs" resultType="com.example.entity.LinLog">
+        SELECT * FROM lin_log
+        WHERE lin_log.is_deleted = 0
+        AND lin_log.create_time BETWEEN #{start} AND #{end}
+        <if test="name != null and name != ''">
+            AND lin_log.name = #{name}
+        </if>
+        ORDER BY lin_log.create_time DESC
+        LIMIT #{page}, #{count}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+LogController.java:16:19
+java: 找不到符号
+  符号:   类 LogService
+  位置: 类 com.example.controller.LogController
+LogController.java:19:26
+java: 找不到符号
+  符号:   类 LogService
+  位置: 类 com.example.controller.LogController
+LogController.java:24:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.LogController
+LogMapper.java:11:10
+java: 找不到符号
+  符号:   类 LinLog
+  位置: 接口 com.example.mapper.LogMapper
+LogServiceImpl.java:10:40
+java: 找不到符号
+  符号: 类 LogService
+LogServiceImpl.java:12:19
+java: 找不到符号
+  符号:   类 LogMapper
+  位置: 类 com.example.service.impl.LogServiceImpl
+LogServiceImpl.java:15:27
+java: 找不到符号
+  符号:   类 LogMapper
+  位置: 类 com.example.service.impl.LogServiceImpl
+LogServiceImpl.java:20:17
+java: 找不到符号
+  符号:   类 LinLog
+  位置: 类 com.example.service.impl.LogServiceImpl
+LogService.java:7:10
+java: 找不到符号
+  符号:   类 LinLog
+  位置: 接口 com.example.service.LogService
+LogController.java:31:14
+java: 找不到符号
+  符号:   类 LinLog
+  位置: 类 com.example.controller.LogController
+### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: Unknown column 'lin_log.name' in 'where clause'
+### The error may exist in file [LogMapper.xml]
+```
+
+```功能错误
+在LogController.java模块中queryLogs接口函数的参数输入格式与功能描述dto=QueryLogDTO{count,page,start=Date,end=Date,name,keyword}不符，应该使用@RequsetBody类型.
+分页查询中的LIMIT计算错误，没有从结果集的第(page-1)*count行开始返回.
+```

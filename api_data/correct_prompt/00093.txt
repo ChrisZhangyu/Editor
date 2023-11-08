@@ -1,0 +1,190 @@
+﻿业务功能逻辑：
+学科分页：获取分页的学科信息。根据传入的参数id、level返回与指定id和指定level匹配的学科，默认情况下，返回第一页，每页显示10个学科。如果返回成功，提示"成功"，状态码为1，且响应对象中包含符合筛选条件的学科总数 total 和学科列表组成的JSON响应对象，否则返回失败的响应，提示"获取失败"。
+需要检查的代码：
+```java
+// Subject.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Subject {
+    private int id;
+    private String name;
+    private int level;
+    private String levelName;
+    private int itemOrder;
+    private boolean deleted;
+
+}
+```
+```java
+// SubjectPageRequest.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SubjectPageRequest {
+    private Integer id;
+    private Integer level;
+    private int pageIndex;
+    private int pageSize;
+}
+```
+
+
+```java
+// SubjectService.java
+package com.example.service;
+
+import com.example.entity.SubjectPageRequest;
+import com.example.entity.SubjectPageResponse;
+
+public interface SubjectService {
+    SubjectPageResponse getSubjectPage(SubjectPageRequest request);
+}
+```
+
+```java
+// SubjectServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.SubjectService;
+import com.example.entity.SubjectPageRequest;
+import com.example.entity.Subject;
+import com.example.mapper.SubjectMapper;
+import com.example.entity.SubjectPageResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class SubjectServiceImpl implements SubjectService {
+
+    private final SubjectMapper subjectMapper;
+
+    @Autowired
+    public SubjectServiceImpl(SubjectMapper subjectMapper) {
+        this.subjectMapper = subjectMapper;
+    }
+
+    @Override
+    public SubjectPageResponse getSubjectPage(SubjectPageRequest request) {
+        int total = subjectMapper.countSubjects(request.getId(), request.getLevel());
+        List<Subject> subjects = subjectMapper.getSubjectPage(request.getId(), request.getLevel(), request.getPageIndex(), request.getPageSize());
+        SubjectPageResponse.SubjectPageData data = new SubjectPageResponse.SubjectPageData(total, subjects);
+        return new SubjectPageResponse(1, "成功", data);
+    }
+}
+```
+
+```java
+// SubjectController.java
+package com.example.controller;
+
+import com.example.entity.SubjectPageRequest;
+import com.example.service.SubjectService;
+import com.example.entity.SubjectPageResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/education/subject")
+public class SubjectController {
+
+    private final SubjectService subjectService;
+
+    @Autowired
+    public SubjectController(SubjectService subjectService) {
+        this.subjectService = subjectService;
+    }
+
+    @PostMapping("/page")
+    public SubjectPageResponse getSubjectPage(@RequestBody SubjectPageRequest request) {
+        return subjectService.getSubjectPage(request);
+    }
+}
+```
+
+```java
+// SubjectMapper.java
+package com.example.mapper;
+
+import com.example.entity.Subject;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface SubjectMapper {
+    int countSubjects(@Param("id") Integer id, @Param("level") Integer level);
+
+    List<Subject> getSubjectPage(@Param("id") Integer id, @Param("level") Integer level, @Param("pageIndex") int pageIndex, @Param("pageSize") int pageSize);
+}
+```
+
+```xml
+<!-- SubjectMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.SubjectMapper">
+
+    <select id="countSubjects" resultType="int">
+        SELECT COUNT(*) FROM t_subject
+        <where>
+            <if test="id != null">
+                AND id = #{id}
+            </if>
+            <if test="level != null">
+                AND level = #{level}
+            </if>
+        </where>
+    </select>
+
+    <select id="getSubjectPage" resultType="com.example.entity.Subject">
+        SELECT * FROM t_subject
+        <where>
+            <if test="id != null">
+                AND id = #{id}
+            </if>
+            <if test="level != null">
+                AND level = #{level}
+            </if>
+        </where>
+        LIMIT #{pageIndex}, #{pageSize}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```语法错误
+在SubjectMapper.xml中缺少Subject实体类属性与表t_subject字段之间的映射语句。
+```
+```依赖错误
+SubjectController.java:5:26
+java: 找不到符号
+  符号:   类 SubjectPageResponse
+  位置: 程序包 com.example.entity
+```

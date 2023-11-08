@@ -1,0 +1,237 @@
+```java
+// OmsOrderReturnApply.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderReturnApply {
+    private Long id;
+    private Long orderId;
+    private Long companyAddressId;
+    private Long productId;
+    private String orderSn;
+    private Timestamp createTime;
+    private String memberUsername;
+    private BigDecimal returnAmount;
+    private String returnName;
+    private String returnPhone;
+    private Integer status;
+    private Timestamp handleTime;
+    private String productPic;
+    private String productName;
+    private String productBrand;
+    private String productAttr;
+    private Integer productCount;
+    private BigDecimal productPrice;
+    private BigDecimal productRealPrice;
+    private String reason;
+    private String description;
+    private String proofPics;
+    private String handleNote;
+    private String handleMan;
+    private String receiveMan;
+    private Timestamp receiveTime;
+    private String receiveNote;
+}```
+```java
+// ReturnApplyListRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ReturnApplyListRequest {
+    private String orderId;
+    private String receiverKeyword;
+    private Integer status;
+    private String createTime;
+    private String handleMan;
+    private String handleTime;
+    private Integer pageSize;
+    private Integer pageNum;
+}
+```
+```java
+// ReturnApplyListResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ReturnApplyListResponse {
+    private Integer pageNum;
+    private Integer pageSize;
+    private Integer totalPage;
+    private List<OmsOrderReturnApply> total;
+}
+```
+
+```java
+// ReturnApplyService.java
+
+package com.example.service;
+
+import com.example.entity.ReturnApplyListRequest;
+import com.example.entity.ReturnApplyListResponse;
+
+
+public interface ReturnApplyService {
+    ReturnApplyListResponse getReturnApplyList(ReturnApplyListRequest request);
+}
+```
+
+```java
+// ReturnApplyServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.entity.ReturnApplyListRequest;
+import com.example.entity.ReturnApplyListResponse;
+import com.example.mapper.ReturnApplyMapper;
+import com.example.service.ReturnApplyService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ReturnApplyServiceImpl implements ReturnApplyService {
+    @Autowired
+    private ReturnApplyMapper returnApplyMapper;
+    @Override
+    public ReturnApplyListResponse getReturnApplyList(ReturnApplyListRequest request) {
+        // 实现获取分页查询退货申请相关的信息并遍历当前页的数据的逻辑
+        // 设置返回结果
+        ReturnApplyListResponse response = new ReturnApplyListResponse();
+        response.setTotal(returnApplyMapper.getReturnApplyList(request));
+        response.setTotalPage(returnApplyMapper.getReturnApplyCount(request));
+        response.setPageNum(request.getPageNum());
+        response.setPageSize(request.getPageSize());
+        return response;
+    }
+}
+```
+
+```java
+// ReturnApplyController.java
+
+package com.example.controller;
+
+import com.example.entity.ReturnApplyListRequest;
+import com.example.entity.ReturnApplyListResponse;
+import com.example.service.ReturnApplyService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/returnApply")
+public class ReturnApplyController {
+    @Autowired
+    private ReturnApplyService returnApplyService;
+
+    @GetMapping("/list")
+    public ReturnApplyListResponse getReturnApplyList(ReturnApplyListRequest request) {
+        return returnApplyService.getReturnApplyList(request);
+    }
+}
+```
+
+```java
+// ReturnApplyMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.OmsOrderReturnApply;
+import com.example.entity.ReturnApplyListRequest;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+public interface ReturnApplyMapper {
+    List<OmsOrderReturnApply> getReturnApplyList(@Param("request") ReturnApplyListRequest request);
+    int getReturnApplyCount(@Param("request") ReturnApplyListRequest request);
+}
+```
+
+```xml
+<!-- ReturnApplyMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.ReturnApplyMapper">
+    <resultMap id="BaseResultMap" type="com.example.entity.OmsOrderReturnApply">
+        <id column="id" jdbcType="BIGINT" property="id" />
+        <result column="order_id" jdbcType="BIGINT" property="orderId" />
+        <result column="company_address_id" jdbcType="BIGINT" property="companyAddressId" />
+        <result column="product_id" jdbcType="BIGINT" property="productId" />
+        <result column="order_sn" jdbcType="VARCHAR" property="orderSn" />
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+        <result column="member_username" jdbcType="VARCHAR" property="memberUsername" />
+        <result column="return_amount" jdbcType="DECIMAL" property="returnAmount" />
+        <result column="return_name" jdbcType="VARCHAR" property="returnName" />
+        <result column="return_phone" jdbcType="VARCHAR" property="returnPhone" />
+        <result column="status" jdbcType="INTEGER" property="status" />
+        <result column="handle_time" jdbcType="TIMESTAMP" property="handleTime" />
+        <result column="product_pic" jdbcType="VARCHAR" property="productPic" />
+        <result column="product_name" jdbcType="VARCHAR" property="productName" />
+        <result column="product_brand" jdbcType="VARCHAR" property="productBrand" />
+        <result column="product_attr" jdbcType="VARCHAR" property="productAttr" />
+        <result column="product_count" jdbcType="INTEGER" property="productCount" />
+        <result column="product_price" jdbcType="DECIMAL" property="productPrice" />
+        <result column="product_real_price" jdbcType="DECIMAL" property="productRealPrice" />
+        <result column="reason" jdbcType="VARCHAR" property="reason" />
+        <result column="description" jdbcType="VARCHAR" property="description" />
+        <result column="proof_pics" jdbcType="VARCHAR" property="proofPics" />
+        <result column="handle_note" jdbcType="VARCHAR" property="handleNote" />
+        <result column="handle_man" jdbcType="VARCHAR" property="handleMan" />
+        <result column="receive_man" jdbcType="VARCHAR" property="receiveMan" />
+        <result column="receive_time" jdbcType="TIMESTAMP" property="receiveTime" />
+        <result column="receive_note" jdbcType="VARCHAR" property="receiveNote" />
+    </resultMap>
+    <select id="getReturnApplyList" resultMap="BaseResultMap">
+        <!-- 实现获取分页查询退货申请相关的信息并遍历当前页的数据的 SQL 语句 -->
+        SELECT *
+        FROM oms_order_return_apply
+        WHERE order_id = #{request.orderId}
+        AND status = #{request.status}
+        AND create_time = #{request.createTime}
+        AND handle_man = #{request.handleMan}
+        AND handle_time = #{request.handleTime}
+        LIMIT #{request.pageSize} OFFSET #{request.pageNum}
+    </select>
+    <select id="getReturnApplyCount" resultType="int">
+        <!-- 实现获取分页查询退货申请相关的信息并遍历当前页的数据的 SQL 语句 -->
+        SELECT IFNULL(COUNT(*), 0)
+        FROM oms_order_return_apply
+        WHERE order_id = #{request.orderId}
+        AND status = #{request.status}
+        AND create_time = #{request.createTime}
+        AND handle_man = #{request.handleMan}
+        AND handle_time = #{request.handleTime}
+        LIMIT #{request.pageSize} OFFSET #{request.pageNum}
+    </select>
+</mapper>
+
+```
+

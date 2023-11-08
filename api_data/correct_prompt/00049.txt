@@ -1,0 +1,356 @@
+业务功能逻辑：
+在ums_user表中查询用户，查询条件是username等于输入Header参数；在bms_post表中查询帖子，查询条件是：bms_post.title等于输入参数title，如果已存在，则返回信息data设置为"话题已存在，请修改"，如果不存在，则将ums_user.user_id、title、content插入到bms_post表中，主键id使用长度19且只包含数字的字符串，使用create_time设置为当前时间；更新ums_user表中用户对象的积分加1；返回信息data设置为{bms_post的记录}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// CreateTopicDTO.java
+package com.example.entity;
+
+import lombok.Data;
+
+import java.util.List;
+
+@Data
+public class CreateTopicDTO {
+    private String title;
+    private String content;
+    private List<String> tags;
+}
+```
+
+```java
+// Post.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_post")
+public class Post {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "title")
+    private String title;
+
+    @Column(name = "content", columnDefinition = "longtext")
+    private String content;
+
+    @Column(name = "user_id", length = 20)
+    private String userId;
+
+    @Column(name = "comments")
+    private int comments;
+
+    @Column(name = "collects")
+    private int collects;
+
+    @Column(name = "view")
+    private int view;
+
+    @Column(name = "top")
+    private boolean top;
+
+    @Column(name = "essence")
+    private boolean essence;
+
+    @Column(name = "section_id")
+    private String sectionId;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    /**
+     * 用户ID
+     */
+    private String id;
+
+    /**
+     * 用户名
+     */
+    private String username;
+
+    /**
+     * 别名
+     */
+    private String alias;
+
+    /**
+     * 密码
+     */
+    private String password;
+
+    /**
+     * 头像
+     */
+    private String avatar;
+
+    /**
+     * 邮箱
+     */
+    private String email;
+
+    /**
+     * 手机号码
+     */
+    private String mobile;
+
+    /**
+     * 积分
+     */
+    private int score;
+
+    /**
+     * 令牌
+     */
+    private String token;
+
+    /**
+     * 个人简介
+     */
+    private String bio;
+
+    /**
+     * 是否激活
+     */
+    private boolean active;
+
+    /**
+     * 状态
+     */
+    private boolean status;
+
+    /**
+     * 角色ID
+     */
+    private String roleId;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 修改时间
+     */
+    private Date modifyTime;
+}
+```
+
+```java
+// PostService.java
+package com.example.service;
+
+import com.example.entity.Post;
+import com.example.entity.UmsUser;
+
+public interface PostService {
+    UmsUser getUserByUsername(String username);
+    Post getPostByTitle(String title);
+    void createPost(UmsUser user, String title, String content);
+    void updateUserPoints(UmsUser user);
+}
+```
+
+```java
+// PostServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.UmsUser;
+import com.example.entity.Post;
+import com.example.mapper.UserMapper;
+import com.example.mapper.PostMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class PostServiceImpl implements PostService {
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private PostMapper postMapper;
+
+    @Override
+    public UmsUser getUserByUsername(String username) {
+        return userMapper.getUserByUsername(username);
+    }
+
+    @Override
+    public Post getPostByTitle(String title) {
+        return postMapper.getPostByTitle(title);
+    }
+
+    @Override
+    public void createPost(UmsUser user, String title, String content) {
+        Post post = new Post();
+        post.setId(generateId());
+        post.setUserId(user.getId());
+        post.setTitle(title);
+        post.setContent(content);
+        post.setCreateTime(new Date());
+
+        postMapper.createPost(post);
+    }
+
+    @Override
+    public void updateUserPoints(UmsUser user) {
+        user.setScore(user.getScore() + 1);
+        userMapper.updateUser(user);
+    }
+
+    private String generateId() {
+        // 生成长度为19且只包含数字的字符串
+        // 实现略
+    }
+}
+```
+
+```java
+// PostController.java
+package com.example.controller;
+
+import com.example.entity.CreateTopicDTO;
+import com.example.entity.UmsUser;
+import com.example.entity.Post;
+import com.example.service.PostService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/post")
+public class PostController {
+
+    @Autowired
+    private PostService postService;
+
+    @PostMapping("/create")
+    public ApiResponse createPost(@RequestHeader("userName") String userName, @RequestBody CreateTopicDTO createTopicDTO) {
+        UmsUser user = postService.getUserByUsername(userName);
+        if (user == null) {
+            return new ApiResponse(400, "用户不存在", null);
+        }
+
+        String title = createTopicDTO.getTitle();
+        Post existingPost = postService.getPostByTitle(title);
+        if (existingPost != null) {
+            return new ApiResponse(400, "话题已存在，请修改", null);
+        }
+
+        String content = createTopicDTO.getContent();
+        postService.createPost(user, title, content);
+        postService.updateUserPoints(user);
+
+        Post newPost = postService.getPostByTitle(title);
+        return new ApiResponse(200, "操作成功", newPost);
+    }
+}
+```
+
+```java
+// PostMapper.java
+package com.example.mapper;
+
+import com.example.entity.Post;
+
+public interface PostMapper {
+    Post getPostByTitle(String title);
+    void createPost(Post post);
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+
+public interface UserMapper {
+    User getUserByUsername(String username);
+    void updateUser(User user);
+}
+```
+
+```xml
+<!-- PostMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.PostMapper">
+    <select id="getPostByTitle" resultType="com.example.entity.Post">
+        SELECT * FROM bms_post WHERE title = #{title}
+    </select>
+
+    <insert id="createPost">
+        INSERT INTO bms_post (id, user_id, title, content, create_time)
+        VALUES (#{id}, #{userId}, #{title}, #{content}, #{createTime})
+    </insert>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+PostServiceImpl.java:12:41
+java: 找不到符号
+  符号: 类 PostService
+PostServiceImpl.java:38:32
+java: 找不到符号
+  符号:   类 Date
+  位置: 类 com.example.service.impl.PostServiceImpl
+PostServiceImpl.java:54:5
+java: 缺少返回语句
+org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.example.mapper.UserMapper.getUserByUsername.
+```
+
+```功能错误
+bms_post表中主键id使用长度19且只包含数字的字符串没有实现.
+```

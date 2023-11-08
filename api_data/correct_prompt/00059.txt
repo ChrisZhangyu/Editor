@@ -1,0 +1,306 @@
+﻿业务功能逻辑：
+清空书籍库存，根据请求路径中传入的ids从数据库表ssm_storebook中清空对应的库存书籍信息列表，对于每个库存书籍对象列表，还要从表ssm_book中删除关联的图书列表,当多个ids时，以逗号分隔，对每个库存书籍和其关联的图书列表执行删除操作，然后更新相关的库存书籍信息列表和图书列表,删除后，两个表都需要相应的更新number的数量。操作成功后，返回响应{"success": true,"message":"清除成功"}。
+
+需要检查的代码：
+```java
+// Book.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Book {
+    /**
+     * 主键ID
+     */
+    private int id;
+
+    /**
+     * ISBN
+     */
+    private String isbn;
+
+    /**
+     * 图书路径
+     */
+    private String path;
+
+    /**
+     * 标题
+     */
+    private String title;
+
+    /**
+     * 副标题
+     */
+    private String subtitle;
+
+    /**
+     * 原标题
+     */
+    private String originalTitle;
+
+    /**
+     * 市场价格
+     */
+    private BigDecimal marketPrice;
+
+    /**
+     * 简介
+     */
+    private String intro;
+
+    /**
+     * 装帧方式
+     */
+    private String binding;
+
+    /**
+     * 页数
+     */
+    private int pages;
+
+    /**
+     * 作者
+     */
+    private String author;
+
+    /**
+     * 出版社
+     */
+    private String publisher;
+
+    /**
+     * 目录
+     */
+    private String catalog;
+
+    /**
+     * 供应量
+     */
+    private int supply;
+
+    /**
+     * 状态
+     */
+    private String status;
+
+    /**
+     * 热度
+     */
+    private int hot;
+
+    /**
+     * 入库日期
+     */
+    private String indate;
+
+}```
+```java
+// EmptyWarehouseRequest.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class EmptyWarehouseRequest {
+    private String ids;
+}
+
+
+
+
+
+```
+```java
+// EmptyWarehouseResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class EmptyWarehouseResponse {
+    private boolean success;
+}```
+```java
+// StoreBook.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class StoreBook {
+    /**
+     * 主键ID
+     */
+    private int id;
+
+    /**
+     * ISBN
+     */
+    private String isbn;
+
+    /**
+     * 书店ID
+     */
+    private int storeId;
+
+    /**
+     * 数量
+     */
+    private int number;
+
+    /**
+     * 入库日期
+     */
+    private Date inDate;
+
+}
+```
+
+```java
+// StoreBookService.java
+
+package com.example.service;
+
+
+public interface StoreBookService {
+    void emptyWarehouse(String ids);
+}
+```
+
+```java
+// StoreBookServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.mapper.BookMapper;
+import com.example.mapper.StoreBookMapper;
+import com.example.service.StoreBookService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class StoreBookServiceImpl implements StoreBookService {
+    
+    @Autowired
+    private StoreBookMapper storeBookMapper;
+    
+    @Autowired
+    private BookMapper bookMapper;
+    
+    @Override
+    @Transactional
+    public void emptyWarehouse(String ids) {
+        String[] idArray = ids.split(",");
+        for (String id : idArray) {
+            // 删除关联的图书列表
+            bookMapper.deleteByStoreBookId(Integer.parseInt(id));
+            // 删除库存书籍对象
+            storeBookMapper.deleteById(Integer.parseInt(id));
+        }
+    }
+}
+```
+
+```java
+// StoreBookController.java
+
+package com.example.controller;
+
+import com.example.entity.EmptyWarehouseResponse;
+import com.example.service.StoreBookService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class StoreBookController {
+    
+    @Autowired
+    private StoreBookService storeBookService;
+    
+    @PostMapping("/storeBook/emptyWarehouse")
+    public EmptyWarehouseResponse emptyWarehouse(@RequestParam("ids") String ids) {
+        storeBookService.emptyWarehouse(ids);
+        return new EmptyWarehouseResponse(true);
+    }
+}
+```
+
+```java
+// BookMapper.java
+package com.example.mapper;
+
+public interface BookMapper {
+    void deleteByStoreBookId(int storeBookId);
+}
+```
+```java
+// StoreBookMapper.java
+
+package com.example.mapper;
+
+
+public interface StoreBookMapper {
+    void deleteById(int id);
+}
+
+
+```
+
+```xml
+<!-- StoreBookMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.StoreBookMapper">
+    <delete id="deleteById" parameterType="int">
+        DELETE FROM ssm_storebook WHERE storebook_id = #{id}
+    </delete>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+缺少BookMapper.xml；
+org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.example.mapper.BookMapper.deleteByStoreBookId
+```
+```语法错误
+### Error updating database.  Cause: java.sql.SQLSyntaxErrorException: Unknown column 'storebook_id' in 'where clause'
+### The error may exist in file [D:\Code\LLM\XZS\emptyWarehouse_book\target\classes\mapper\StoreBookMapper.xml]
+### The error may involve com.example.mapper.StoreBookMapper.deleteById-Inline
+### The error occurred while setting parameters
+### SQL: DELETE FROM ssm_storebook WHERE storebook_id = ?
+### Cause: java.sql.SQLSyntaxErrorException: Unknown column 'storebook_id' in 'where clause'
+; bad SQL grammar []; nested exception is java.sql.SQLSyntaxErrorException: Unknown column 'storebook_id' in 'where clause'] with root cause
+```

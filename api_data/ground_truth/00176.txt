@@ -1,0 +1,157 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Order.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_order")
+public class Order {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "order_id")
+    private Long orderId;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "address_id")
+    private Integer addressId;
+
+    @Column(name = "amount")
+    private Double amount;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "remarks")
+    private String remarks;
+
+    @Column(name = "status")
+    private Integer status;
+}
+```
+
+```java
+// OrderService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Order;
+
+public interface OrderService {
+    ApiResponse getOrderById(int orderId);
+}
+```
+
+```java
+// OrderServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.example.entity.Order;
+import com.example.mapper.OrderMapper;
+
+@Service
+public class OrderServiceImpl implements OrderService {
+    private final OrderMapper orderMapper;
+
+    @Autowired
+    public OrderServiceImpl(OrderMapper orderMapper) {
+        this.orderMapper = orderMapper;
+    }
+
+    @Override
+    public ApiResponse getOrderById(int orderId) {
+        Order order = orderMapper.selectOrderById(orderId);
+        if (order == null) {
+            return new ApiResponse(-1002, "订单不存在", null);
+        } else {
+            return new ApiResponse(100, "成功", order);
+        }
+    }
+}
+```
+
+```java
+// OrderController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import com.example.service.OrderService;
+
+@RestController
+@RequestMapping("/user/v1/order")
+public class OrderController {
+    private final OrderService orderService;
+
+    @Autowired
+    public OrderController(OrderService orderService) {
+        this.orderService = orderService;
+    }
+
+    @GetMapping("/{orderId}")
+    public ApiResponse getOrderById(@PathVariable int orderId) {
+        return orderService.getOrderById(orderId);
+    }
+}
+```
+
+```java
+// OrderMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import com.example.entity.Order;
+
+@Mapper
+public interface OrderMapper {
+    Order selectOrderById(@Param("orderId") int orderId);
+}
+```
+
+```xml
+<!-- OrderMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.OrderMapper">
+    <select id="selectOrderById" resultType="com.example.entity.Order">
+        SELECT * FROM tb_order WHERE order_id = #{orderId}
+    </select>
+</mapper>
+
+```

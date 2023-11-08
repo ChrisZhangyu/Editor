@@ -1,0 +1,199 @@
+业务功能逻辑：
+在ums_user表中查询用户，查询条件是username等于输入参数；判断ums_user.id是否等于输入参数，如果不相等，返回data为验证"您脸皮太厚了，怎么可以关注自己呢 😮"；在bms_follow表中查询对象，查询条件是parent_id等于ums_user.id、follower_id等于输入参数，如果对象不为空，返回data为"已关注"；在bms_follow表中插入对象，插入条件是parent_id等于ums_user.id、follower_id等于输入参数，返回data为"关注成功".
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    private String id;
+    private String username;
+    private String alias;
+    private String password;
+    private String avatar;
+    private String email;
+    private String mobile;
+    private int score;
+    private String token;
+    private String bio;
+    private boolean active;
+    private boolean status;
+    private String roleId;
+    private Date createTime;
+    private Date modifyTime;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.UmsUser;
+
+public interface UserService {
+    ApiResponse subscribeUser(String userId, String userName);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.UmsUser;
+import com.example.mapper.UserMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserMapper userMapper;
+
+    @Autowired
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public ApiResponse subscribeUser(String userId, String userName) {
+        UmsUser user = userMapper.getUserByUsername(userName);
+        if (user == null) {
+            return new ApiResponse(400, "用户不存在", null);
+        }
+        if (user.getId().equals(userId)) {
+            return new ApiResponse(400, "您脸皮太厚了，怎么可以关注自己呢 😮", null);
+        }
+        UmsUser follower = userMapper.getFollower(user.getId(), userId);
+        if (follower != null) {
+            return new ApiResponse(200, "已关注", null);
+        }
+        userMapper.insertFollower(user.getId(), userId);
+        return new ApiResponse(200, "关注成功", null);
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/relationship")
+public class UserController {
+
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/subscribe/{userId}")
+    public ApiResponse subscribeUser(@PathVariable String userId, @RequestHeader("userName") String userName) {
+        return userService.subscribeUser(userId, userName);
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.UmsUser;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+@Mapper
+public interface UserMapper {
+
+    @Select("SELECT * FROM ums_user WHERE username = #{username}")
+    UmsUser getUserByUsername(@Param("username") String username);
+
+    @Select("SELECT * FROM bms_follow WHERE parent_id = #{parentId} AND follower_id = #{followerId}")
+    UmsUser getFollower(@Param("parentId") String parentId, @Param("followerId") String followerId);
+
+    @Insert("INSERT INTO bms_follow (parent_id, follower_id) VALUES (#{parentId}, #{followerId})")
+    void insertFollower(@Param("parentId") String parentId, @Param("followerId") String followerId);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.UserMapper">
+
+    <select id="getUserByUsername" parameterType="String" resultType="com.example.entity.UmsUser">
+        SELECT * FROM ums_user WHERE username = #{username}
+    </select>
+
+    <select id="getFollower" parameterType="String" resultType="com.example.entity.UmsUser">
+        SELECT * FROM bms_follow WHERE parent_id = #{parentId} AND follower_id = #{followerId}
+    </select>
+
+    <insert id="insertFollower" parameterType="String">
+        INSERT INTO bms_follow (parent_id, follower_id) VALUES (#{parentId}, #{followerId})
+    </insert>
+
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+UserController.java:23:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.UserController
+UserService.java:6:5
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.UserService
+UserServiceImpl.java:9:41
+java: 找不到符号
+  符号: 类 UserService
+UserServiceImpl.java:19:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.UserServiceImpl
+Error creating bean with name 'userController' defined in file [E:\NBICCProjects\Year-2023\LLM\ums\handle_follow\target\classes\com\example\controller\UserController.class]: Unsatisfied dependency expressed through constructor parameter 0; nested exception is org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'userServiceImpl' defined in file [E:\NBICCProjects\Year-2023\LLM\ums\handle_follow\target\classes\com\example\service\impl\UserServiceImpl.class]: Unsatisfied dependency expressed through constructor parameter 0; nested exception is org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'userMapper' defined in file [E:\NBICCProjects\Year-2023\LLM\ums\handle_follow\target\classes\com\example\mapper\UserMapper.class]: Unsatisfied dependency expressed through bean property 'sqlSessionFactory'; nested exception is org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'sqlSessionFactory' defined in class path resource [org/mybatis/spring/boot/autoconfigure/MybatisAutoConfiguration.class]: Bean instantiation via factory method failed; nested exception is org.springframework.beans.BeanInstantiationException: Failed to instantiate [org.apache.ibatis.session.SqlSessionFactory]: Factory method 'sqlSessionFactory' threw exception; nested exception is org.springframework.core.NestedIOException: Failed to parse mapping resource: 'file [E:\NBICCProjects\Year-2023\LLM\ums\handle_follow\target\classes\mapper\UserMapper.xml]'; nested exception is java.lang.IllegalArgumentException: Mapped Statements collection already contains value for com.example.mapper.UserMapper.getUserByUsername. please check file [UserMapper.xml] and UserMapper.java (best guess)
+```
+
+```功能错误
+```

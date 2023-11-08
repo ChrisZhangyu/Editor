@@ -1,0 +1,183 @@
+业务功能逻辑：
+在tb_adv_swiper表中查询广告，查询条件是adv_swiper_id等于输入参数，如果为空返回(-1002, "广告不存在",null)；否则在tb_adv_swiper表中删除该记录，返回(100, "成功",null).
+
+需要检查的代码：
+```java
+// AdvSwiper.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AdvSwiper {
+    private int advSwiperId;
+    private int categorySecondId;
+    private String categoryName;
+    private String name;
+    private String image;
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// AdvSwiperService.java
+package com.example.service;
+
+public interface AdvSwiperService {
+    ApiResponse deleteAdvSwiper(int advSwiperId);
+}
+```
+
+```java
+// AdvSwiperServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class AdvSwiperServiceImpl implements AdvSwiperService {
+    private final AdvSwiperMapper advSwiperMapper;
+
+    @Autowired
+    public AdvSwiperServiceImpl(AdvSwiperMapper advSwiperMapper) {
+        this.advSwiperMapper = advSwiperMapper;
+    }
+
+    @Override
+    public ApiResponse deleteAdvSwiper(int advSwiperId) {
+        AdvSwiper advSwiper = advSwiperMapper.selectAdvSwiperById(advSwiperId);
+        if (advSwiper == null) {
+            return new ApiResponse(-1002, "广告不存在", null);
+        }
+        advSwiperMapper.deleteAdvSwiper(advSwiperId);
+        return new ApiResponse(100, "成功", null);
+    }
+}
+```
+
+```java
+// AdvSwiperController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/admin/v1/advs")
+public class AdvSwiperController {
+    private final AdvSwiperService advSwiperService;
+
+    @Autowired
+    public AdvSwiperController(AdvSwiperService advSwiperService) {
+        this.advSwiperService = advSwiperService;
+    }
+
+    @DeleteMapping("/{advId}")
+    public ApiResponse deleteAdvSwiper(@PathVariable int advId) {
+        return advSwiperService.deleteAdvSwiper(advId);
+    }
+}
+```
+
+```java
+// AdvSwiperMapper.java
+package com.example.mapper;
+
+import com.example.entity.AdvSwiper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface AdvSwiperMapper {
+    AdvSwiper selectAdvSwiperById(int advSwiperId);
+    void deleteAdvSwiper(int advSwiperId);
+}
+```
+
+```xml
+<!-- AdvSwiperMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.AdvSwiperMapper">
+    <resultMap id="AdvSwiperResultMap" type="com.example.entity.AdvSwiper">
+        <id property="advSwiperId" column="adv_swiper_id" />
+        <result property="categorySecondId" column="category_second_id" />
+        <result property="categoryName" column="category_name" />
+        <result property="name" column="name" />
+        <result property="image" column="image" />
+    </resultMap>
+
+    <select id="selectAdvSwiperById" resultMap="AdvSwiperResultMap">
+        SELECT * FROM tb_adv_swiper WHERE adv_swiper_id = #{advSwiperId}
+    </select>
+
+    <delete id="deleteAdvSwiper">
+        DELETE FROM tb_adv_swiper WHERE adv_swiper_id = #{advSwiperId}
+    </delete>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+AdvSwiperController.java:12:19
+java: 找不到符号
+  符号:   类 AdvSwiperService
+  位置: 类 com.example.controller.AdvSwiperController
+AdvSwiperController.java:15:32
+java: 找不到符号
+  符号:   类 AdvSwiperService
+  位置: 类 com.example.controller.AdvSwiperController
+AdvSwiperController.java:20:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.AdvSwiperController
+AdvSwiperService.java:4:5
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.AdvSwiperService
+AdvSwiperServiceImpl.java:7:46
+java: 找不到符号
+  符号: 类 AdvSwiperService
+AdvSwiperServiceImpl.java:8:19
+java: 找不到符号
+  符号:   类 AdvSwiperMapper
+  位置: 类 com.example.service.impl.AdvSwiperServiceImpl
+AdvSwiperServiceImpl.java:11:33
+java: 找不到符号
+  符号:   类 AdvSwiperMapper
+  位置: 类 com.example.service.impl.AdvSwiperServiceImpl
+AdvSwiperServiceImpl.java:16:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.AdvSwiperServiceImpl
+```
+
+```功能错误
+```

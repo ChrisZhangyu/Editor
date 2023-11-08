@@ -1,0 +1,193 @@
+```java
+// Picture.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Picture {
+    private int id;
+    private String path;
+    private int type;
+    private String time;
+    private String url;
+    private int grade;
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// PictureRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PictureRequest {
+    private String url;
+    private String type;
+    private String grade;
+    private Integer start;
+    private Integer size;
+    private Integer number;
+}
+```
+
+```java
+// PictureService.java
+package com.example.service;
+
+import com.example.entity.Picture;
+
+import java.util.List;
+
+public interface PictureService {
+    List<Picture> getPictureList(String url, String type, String grade, Integer start, Integer size, Integer number);
+}
+```
+
+```java
+// PictureServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Picture;
+import com.example.mapper.PictureMapper;
+import com.example.service.PictureService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class PictureServiceImpl implements PictureService {
+
+    private final PictureMapper pictureMapper;
+
+    @Autowired
+    public PictureServiceImpl(PictureMapper pictureMapper) {
+        this.pictureMapper = pictureMapper;
+    }
+
+    @Override
+    public List<Picture> getPictureList(String url, String type, String grade, Integer start, Integer size, Integer number) {
+        return pictureMapper.getPictureList(url, type, grade, start, size, number);
+    }
+}
+```
+
+```java
+// PictureController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Picture;
+import com.example.entity.PictureRequest;
+import com.example.service.PictureService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/picture")
+public class PictureController {
+
+    private final PictureService pictureService;
+
+    @Autowired
+    public PictureController(PictureService pictureService) {
+        this.pictureService = pictureService;
+    }
+
+    @PostMapping("/list")
+    public ApiResponse getPictureList(@RequestBody PictureRequest request) {
+        if (request!=null){
+            int offset = (request.getStart() - 1) * request.getSize();
+            int row_count = request.getSize();
+            List<Picture> pictureList = pictureService.getPictureList(request.getUrl(), request.getType(), request.getGrade(),
+                    offset, row_count, request.getNumber());
+            return new ApiResponse(1, "成功", pictureList);
+        }
+        else {
+            return new ApiResponse(0, "参数为空", null);
+        }
+    }
+}
+```
+
+```java
+// PictureMapper.java
+package com.example.mapper;
+
+import com.example.entity.Picture;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface PictureMapper {
+    List<Picture> getPictureList(@Param("url") String url, @Param("type") String type, @Param("grade") String grade,
+                                 @Param("start") Integer start, @Param("size") Integer size, @Param("number") Integer number);
+}
+```
+
+```xml
+<!-- PictureMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.PictureMapper">
+
+    <select id="getPictureList" resultType="com.example.entity.Picture">
+        SELECT * FROM ssm_picture
+        <where>
+            <if test="url != null and url != ''">
+                AND url LIKE CONCAT('%', #{url}, '%')
+            </if>
+            <if test="type != null and type != ''">
+                AND type = #{type}
+            </if>
+            <if test="grade != null and grade != ''">
+                AND grade = #{grade}
+            </if>
+        </where>
+        <if test="start != null and size != null">
+            LIMIT #{start}, #{size}
+        </if>
+        <if test="number != null">
+            LIMIT #{number}
+        </if>
+    </select>
+
+</mapper>
+```

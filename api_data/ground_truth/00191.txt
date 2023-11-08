@@ -1,0 +1,336 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// User.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_user")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "user_uuid")
+    private String userUuid;
+
+    @Column(name = "user_name")
+    private String userName;
+
+    @Column(name = "password")
+    private String password;
+
+    @Column(name = "real_name")
+    private String realName;
+
+    @Column(name = "age")
+    private int age;
+
+    @Column(name = "sex")
+    private int sex;
+
+    @Column(name = "birth_day")
+    private Date birthDay;
+
+    @Column(name = "user_level")
+    private int userLevel;
+
+    @Column(name = "phone")
+    private String phone;
+
+    @Column(name = "role")
+    private int role;
+
+    @Column(name = "status")
+    private int status;
+
+    @Column(name = "image_path")
+    private String imagePath;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+
+    @Column(name = "last_active_time")
+    private Date lastActiveTime;
+
+    @Column(name = "deleted")
+    private boolean deleted;
+
+    @Column(name = "wx_open_id")
+    private String wxOpenId;
+}
+```
+
+```java
+// UserEventLog.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_user_event_log")
+public class UserEventLog {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "user_id")
+    private int userId;
+
+    @Column(name = "user_name")
+    private String userName;
+
+    @Column(name = "real_name")
+    private String realName;
+
+    @Column(name = "content")
+    private String content;
+
+    @Column(name = "create_time")
+    private Date createTime;
+}
+```
+
+```java
+// UserRegisterRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class UserRegisterRequest {
+    private String userName;
+    private String password;
+    private int userLevel;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.User;
+
+public interface UserService {
+    ApiResponse registerUser(String userName, String password);
+    User getUserByUserName(String userName);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.User;
+import com.example.entity.UserEventLog;
+import com.example.mapper.UserEventLogMapper;
+import com.example.mapper.UserMapper;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
+import java.util.Date;
+import java.util.UUID;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserMapper userMapper;
+    private final UserEventLogMapper userEventLogMapper;
+
+    @Autowired
+    public UserServiceImpl(UserMapper userMapper, UserEventLogMapper userEventLogMapper) {
+        this.userMapper = userMapper;
+        this.userEventLogMapper = userEventLogMapper;
+    }
+
+    @Override
+    public ApiResponse registerUser(String userName, String password) {
+        User existingUser = getUserByUserName(userName);
+        if (existingUser != null) {
+            return new ApiResponse(2, "用户已存在", null);
+        }
+
+        User user = new User();
+        user.setUserUuid(UUID.randomUUID().toString());
+        user.setUserName(userName);
+        // TODO: 使用哈希算法加密password
+        String hashedPassword;
+        try {
+            hashedPassword = hashPassword(password);
+        } catch (NoSuchAlgorithmException e) {
+            hashedPassword = "";
+            e.printStackTrace();
+        }
+        user.setPassword(hashedPassword);
+        user.setRole(1);
+        user.setStatus(1);
+        user.setLastActiveTime(new Date());
+        user.setCreateTime(new Date());
+        user.setDeleted(false);
+
+        userMapper.insert(user);
+
+        UserEventLog userEventLog = new UserEventLog();
+        userEventLog.setUserId(user.getId());
+        userEventLog.setUserName(user.getUserName());
+        userEventLog.setRealName(user.getRealName());
+        userEventLog.setCreateTime(new Date());
+
+        userEventLogMapper.insert(userEventLog);
+
+        return new ApiResponse(1, "成功", null);
+    }
+
+    public String hashPassword(String password) throws NoSuchAlgorithmException {
+        // 使用哈希算法对password进行加密
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        byte[] hashedBytes = md.digest(password.getBytes());
+        // 将字节数组转换为Base64编码的字符串
+        return Base64.getEncoder().encodeToString(hashedBytes);
+    }
+
+    @Override
+    public User getUserByUserName(String userName) {
+        return userMapper.getUserByUserName(userName);
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.UserRegisterRequest;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/student/user")
+public class UserController {
+
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/register")
+    public ApiResponse registerUser(@RequestBody UserRegisterRequest request) {
+        return userService.registerUser(request.getUserName(), request.getPassword());
+    }
+}
+```
+
+```java
+// UserEventLogMapper.java
+package com.example.mapper;
+
+import com.example.entity.UserEventLog;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface UserEventLogMapper {
+    void insert(UserEventLog userEventLog);
+}
+```
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface UserMapper {
+    void insert(User user);
+    User getUserByUserName(String userName);
+}
+```
+
+```xml
+<!-- UserEventLogMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.UserEventLogMapper">
+    <insert id="insert" parameterType="com.example.entity.UserEventLog">
+        INSERT INTO t_user_event_log (user_id, user_name, real_name, content, create_time)
+        VALUES (#{userId}, #{userName}, #{realName}, #{content}, #{createTime})
+    </insert>
+</mapper>
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.UserMapper">
+    <insert id="insert" parameterType="com.example.entity.User">
+        INSERT INTO t_user (user_uuid, user_name, password, real_name, age, sex, birth_day, user_level, phone,
+        role, status, image_path, create_time, modify_time, last_active_time, deleted, wx_open_id)
+        VALUES (#{userUuid}, #{userName}, #{password}, #{realName}, #{age}, #{sex}, #{birthDay}, #{userLevel}, #{phone},
+        #{role}, #{status}, #{imagePath}, #{createTime}, #{modifyTime}, #{lastActiveTime}, #{deleted}, #{wxOpenId})
+    </insert>
+
+    <select id="getUserByUserName" parameterType="String" resultType="com.example.entity.User">
+        SELECT * FROM t_user WHERE user_name = #{userName}
+    </select>
+</mapper>
+
+```

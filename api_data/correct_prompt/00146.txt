@@ -1,0 +1,222 @@
+业务功能逻辑：
+根据categorySecondId在tb_category_second表中查询记录，如果为空返回(-1002, "该分类不存在", null)；根据categorySecondId统计tb_good表中的商品数量，如果数量大于0返回(-1006, "该分类下有商品存在，不能删除该分类",null)；删除tb_category_second表中的记录，返回(100, "成功",null).
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// CategorySecond.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_second")
+public class CategorySecond {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+}
+
+```
+
+```java
+// Good.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_good")
+public class Good {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "good_name", length = 20)
+    private String goodName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+    @Column(name = "price", precision = 10, scale = 2)
+    private Double price;
+
+    @Column(name = "original_price", precision = 10, scale = 2)
+    private Double originalPrice;
+
+    @Column(name = "inventory")
+    private Integer inventory;
+
+    @Column(name = "sold_count")
+    private Integer soldCount;
+
+    @Column(name = "spec", length = 20)
+    private String spec;
+
+    @Column(name = "origin", length = 10)
+    private String origin;
+}
+```
+
+```java
+// CategorySecondService.java
+package com.example.service;
+
+public interface CategorySecondService {
+    ApiResponse deleteCategorySecond(int categorySecondId);
+}
+```
+
+```java
+// CategorySecondServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.CategorySecondMapper;
+import com.example.entity.ApiResponse;
+import com.example.service.CategorySecondService;
+import com.example.entity.CategorySecond;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class CategorySecondServiceImpl implements CategorySecondService {
+
+    private final CategorySecondMapper categorySecondMapper;
+
+    @Autowired
+    public CategorySecondServiceImpl(CategorySecondMapper categorySecondMapper) {
+        this.categorySecondMapper = categorySecondMapper;
+    }
+
+    @Override
+    public ApiResponse deleteCategorySecond(int categorySecondId) {
+        CategorySecond categorySecond = categorySecondMapper.selectCategorySecondById(categorySecondId);
+        if (categorySecond == null) {
+            return new ApiResponse(-1002, "该分类不存在", null);
+        }
+        int goodsCount = categorySecondMapper.countGoodsByCategorySecondId(categorySecondId);
+        if (goodsCount > 0) {
+            return new ApiResponse(-1006, "该分类下有商品存在，不能删除该分类", null);
+        }
+        categorySecondMapper.deleteCategorySecond(categorySecondId);
+        return new ApiResponse(100, "成功", null);
+    }
+}
+```
+
+```java
+// CategorySecondController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/admin/v1/category/second")
+public class CategorySecondController {
+
+    private final CategorySecondService categorySecondService;
+
+    @Autowired
+    public CategorySecondController(CategorySecondService categorySecondService) {
+        this.categorySecondService = categorySecondService;
+    }
+
+    @DeleteMapping("/{categorySecondId}")
+    public ApiResponse deleteCategorySecond(@PathVariable int categorySecondId) {
+        return categorySecondService.deleteCategorySecond(categorySecondId);
+    }
+}
+```
+
+```java
+// CategorySecondMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface CategorySecondMapper {
+    CategorySecond selectCategorySecondById(int categorySecondId);
+    int countGoodsByCategorySecondId(int categorySecondId);
+    void deleteCategorySecond(int categorySecondId);
+}
+```
+
+代码执行的错误信息：
+```运行错误
+CategorySecondController.java:13:19
+java: 找不到符号
+  符号:   类 CategorySecondService
+  位置: 类 com.example.controller.CategorySecondController
+CategorySecondController.java:16:37
+java: 找不到符号
+  符号:   类 CategorySecondService
+  位置: 类 com.example.controller.CategorySecondController
+CategorySecondController.java:21:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.CategorySecondController
+CategorySecondMapper.java:7:5
+java: 找不到符号
+  符号:   类 CategorySecond
+  位置: 接口 com.example.mapper.CategorySecondMapper
+CategorySecondService.java:4:5
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.CategorySecondService
+```
+
+```功能错误
+在CategorySecondMapper.java模块中生成了不符合功能逻辑的countGoodsByCategorySecondId函数接口，且没有生成对应的CategorySecondMapper.xml.
+根据categorySecondId统计tb_good表中商品数量的功能逻辑没有实现，缺少GoodMapper.java和GoodMapper.xml文件.
+```

@@ -1,0 +1,157 @@
+业务功能逻辑：根据输入参数在t_message_user表中查询所有readed为false的数据数量；返回{"code":1,"message":"成功","response":0}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// UnreadCountRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.Data;
+
+@Data
+public class UnreadCountRequest {
+    private int id;
+}
+```
+
+```java
+// UnreadCountService.java
+package com.example.service;
+
+
+public interface UnreadCountService {
+    int getUnreadCount(int id);
+}
+```
+
+```java
+// UnreadCountServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.MessageUserMapper;
+import com.example.service.UnreadCountService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UnreadCountServiceImpl implements UnreadCountService {
+
+    private final MessageUserMapper messageUserMapper;
+
+    @Autowired
+    public UnreadCountServiceImpl(MessageUserMapper messageUserMapper) {
+        this.messageUserMapper = messageUserMapper;
+    }
+
+    @Override
+    public int getUnreadCount(int id) {
+        return messageUserMapper.countUnreadMessages(id);
+    }
+}
+```
+
+```java
+// UnreadCountController.java
+package com.example.controller;
+
+import com.example.service.UnreadCountService;
+import com.example.entity.ApiResponse;
+import com.example.entity.UnreadCountRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class UnreadCountController {
+
+    private final UnreadCountService unreadCountService;
+
+    @Autowired
+    public UnreadCountController(UnreadCountService unreadCountService) {
+        this.unreadCountService = unreadCountService;
+    }
+
+    @PostMapping("/api/wx/student/user/message/unreadCount")
+    public ApiResponse<Integer> getUnreadCount(@RequestBody UnreadCountRequest request) {
+        int unreadCount = unreadCountService.getUnreadCount(request.getId());
+        return new ApiResponse<>(1, "成功", unreadCount);
+    }
+}
+```
+
+```java
+// MessageUserMapper.java
+package com.example.mapper;
+
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+@Mapper
+public interface MessageUserMapper {
+
+    @Select("SELECT COUNT(*) FROM t_message_user WHERE receive_user_id = #{userId} AND readed = false")
+    int countUnreadMessages(@Param("userId") int userId);
+}
+```
+
+```xml
+<!-- MessageUserMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.MessageUserMapper">
+
+    <select id="countUnreadMessages" resultType="int">
+        SELECT COUNT(*) FROM t_message_user WHERE receive_user_id = #{userId} AND readed = false
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\wx_message_unreadCount_system\src\main\java\com\example\entity\UnreadCountRequest.java:17
+java: 需要class, interface或enum
+Caused by: java.lang.IllegalArgumentException: Mapped Statements collection already contains value for com.example.mapper.MessageUserMapper.countUnreadMessages. please check file [D:\迅雷下载\xzs-project_test\wx_message_unreadCount_system\target\classes\mapper\MessageUserMapper.xml] and com/example/mapper/MessageUserMapper.java (best guess)
+```
+```功能错误
+
+```

@@ -1,0 +1,188 @@
+﻿业务功能逻辑：
+分页查询部门信息:根据传递的页数pageNo和每页记录数pageSize获取对应的部门列表，返回部门列表信息，返回ApiResponse。
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import com.example.entity.Dept;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private int total;
+    private List<Dept> list;
+}
+```
+```java
+// Dept.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Dept {
+    private int deptId;
+    private String deptName;
+    private String deptLeader;
+}
+```
+```java
+// GetDeptListRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class GetDeptListRequest {
+    private int pageNo;
+    private int pageSize;
+}
+```
+
+```java
+// DeptService.java
+package com.example.service;
+
+import com.example.entity.Dept;
+import com.example.entity.ApiResponse;
+
+import com.example.entity.Dept;
+
+import java.util.List;
+
+public interface DeptService {
+    ApiResponse getDeptList(int pageNo, int pageSize);
+}
+```
+
+```java
+// DeptServiceImpl.java
+package com.example.service.impl;
+
+import com.example.mapper.DeptMapper;
+import com.example.entity.Dept;
+import com.example.service.DeptService;
+import com.example.entity.ApiResponse;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Dept;
+import com.example.mapper.DeptMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class DeptServiceImpl implements DeptService {
+
+    private final DeptMapper deptMapper;
+
+    @Autowired
+    public DeptServiceImpl(DeptMapper deptMapper) {
+        this.deptMapper = deptMapper;
+    }
+
+    @Override
+    public ApiResponse getDeptList(int pageNo, int pageSize) {
+        int offset = (pageNo - 1) * pageSize;
+        List<Dept> deptList = deptMapper.getDeptList(offset, pageSize);
+        int total = deptMapper.getDeptCount();
+        return new ApiResponse(1, "成功", total, deptList);
+    }
+}
+```
+
+```java
+// DeptController.java
+package com.example.controller;
+
+import com.example.service.DeptService;
+import com.example.entity.GetDeptListRequest;
+import com.example.entity.ApiResponse;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.GetDeptListRequest;
+import com.example.service.DeptService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/hrms/dept")
+public class DeptController {
+
+    private final DeptService deptService;
+
+    @Autowired
+    public DeptController(DeptService deptService) {
+        this.deptService = deptService;
+    }
+
+    @GetMapping("/getDeptList")
+    public ApiResponse getDeptList(@RequestBody GetDeptListRequest request) {
+        return deptService.getDeptList(request.getPageNo(), request.getPageSize());
+    }
+}
+```
+
+```java
+// DeptMapper.java
+package com.example.mapper;
+
+import com.example.entity.Dept;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface DeptMapper {
+    List<Dept> getDeptList(@Param("offset") int offset, @Param("pageSize") int pageSize);
+    int getDeptCount();
+}
+```
+
+```xml
+<!-- DeptMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.DeptMapper">
+    <select id="getDeptList" resultType="com.example.entity.Dept">
+        SELECT * FROM tbl_dept
+        LIMIT #{offset}, #{pageSize}
+    </select>
+    <select id="getDeptCount" resultType="int">
+        SELECT COUNT(*) FROM tbl_dept
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```语法错误
+在DeptMapper.xml中缺少Dept实体类属性与表tbl_dept字段间的映射语句。
+```
+```功能错误
+返回值不完全response={"code": 1,"message": "成功","total": 6,"list": [null,null,null,null]}。
+```

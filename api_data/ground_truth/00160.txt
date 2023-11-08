@@ -1,0 +1,203 @@
+﻿
+```java
+// StoreBook.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class StoreBook {
+    private int id;
+    private String isbn;
+    private int storeId;
+    private int number;
+    private Date inDate;
+}
+```
+```java
+// StoreBookListRequest.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class StoreBookListRequest {
+    private int storeId;
+    private int page;
+    private int rows;
+}
+```
+```java
+// StoreBookListResponse.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class StoreBookListResponse {
+    private int code;
+    private String message;
+    private StoreBookListData response;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class StoreBookListData {
+        private int total;
+        private List<StoreBook> list;
+    }
+}
+```
+
+```java
+// StoreBookService.java
+package com.example.service;
+
+import com.example.entity.StoreBookListResponse;
+import com.example.entity.StoreBookListRequest;
+
+public interface StoreBookService {
+    StoreBookListResponse getStoreBookList(StoreBookListRequest request);
+}
+```
+
+```java
+// StoreBookServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.StoreBookService;
+import com.example.entity.StoreBookListResponse;
+import com.example.entity.StoreBookListRequest;
+import com.example.entity.StoreBook;
+import com.example.mapper.StoreBookMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class StoreBookServiceImpl implements StoreBookService {
+
+    private final StoreBookMapper storeBookMapper;
+
+    @Autowired
+    public StoreBookServiceImpl(StoreBookMapper storeBookMapper) {
+        this.storeBookMapper = storeBookMapper;
+    }
+
+    @Override
+    public StoreBookListResponse getStoreBookList(StoreBookListRequest request) {
+        StoreBookListResponse response = new StoreBookListResponse();
+        try {
+            int total = storeBookMapper.getStoreBookCount(request.getStoreId());
+            List<StoreBook> list = storeBookMapper.getStoreBookList(request);
+            StoreBookListResponse.StoreBookListData data = new StoreBookListResponse.StoreBookListData(total, list);
+            response.setCode(1);
+            response.setMessage("成功");
+            response.setResponse(data);
+        } catch (Exception e) {
+            response.setCode(0);
+            response.setMessage("失败：" + e.getMessage());
+        }
+        return response;
+    }
+}
+```
+
+```java
+// StoreBookController.java
+package com.example.controller;
+
+import com.example.service.StoreBookService;
+import com.example.entity.StoreBookListResponse;
+import com.example.entity.StoreBookListRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/storeBook")
+public class StoreBookController {
+
+    private final StoreBookService storeBookService;
+
+    @Autowired
+    public StoreBookController(StoreBookService storeBookService) {
+        this.storeBookService = storeBookService;
+    }
+
+    @GetMapping("/list")
+    public StoreBookListResponse getStoreBookList(@RequestBody StoreBookListRequest request) {
+        return storeBookService.getStoreBookList(request);
+    }
+}
+```
+
+```java
+// StoreBookMapper.java
+package com.example.mapper;
+
+import com.example.entity.StoreBookListRequest;
+import com.example.entity.StoreBook;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface StoreBookMapper {
+    int getStoreBookCount(@Param("storeId") int storeId);
+
+    List<StoreBook> getStoreBookList(StoreBookListRequest request);
+}
+```
+
+```xml
+<!-- StoreBookMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.StoreBookMapper">
+    <resultMap id="storeBookResultMap" type="com.example.entity.StoreBook">
+        <id property="id" column="id"/>
+        <result property="isbn" column="isbn"/>
+        <result property="storeId" column="storeId"/>
+        <result property="number" column="number"/>
+        <result property="inDate" column="inDate"/>
+    </resultMap>
+    <select id="getStoreBookCount" resultType="int">
+        SELECT COUNT(*) FROM ssm_storebook WHERE storeId = #{storeId}
+    </select>
+
+    <select id="getStoreBookList" resultType="com.example.entity.StoreBook" resultMap="storeBookResultMap">
+        SELECT * FROM ssm_storebook WHERE storeId = #{storeId} LIMIT #{page}, #{rows}
+    </select>
+
+</mapper>
+
+```

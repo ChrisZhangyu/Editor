@@ -1,0 +1,221 @@
+业务功能逻辑：根据关键字分页获取商品专题信息，传递关键字(keyword)、页码(pageNum)和每页大小(pageSize)作为参数。根据关键字进行分页查询，然后将分页结果封装并返回给前端。返回参数{"id": null,  "categoryId": null,  "title": null,  "pic": "专题主图",  "productCount": "关联产品数量",  "recommendStatus": null,  "createTime": null,  "collectCount": null,  "readCount": null,  "commentCount": null,  "albumPics": "画册图片用逗号分割",  "description": null,  "showStatus": "显示状态：0->不显示；1->显示",  "forwardCount": "转发数",  "categoryName": "专题分类名称",  "content": null}.
+
+需要检查的代码：
+```java
+// CmsSubject.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CmsSubject {
+    private Long id;
+    private Long categoryId;
+    private String title;
+    private String pic;
+    private Integer productCount;
+    private Integer recommendStatus;
+    private Timestamp createTime;
+    private Integer collectCount;
+    private Integer readCount;
+    private Integer commentCount;
+    private String albumPics;
+    private String description;
+    private Integer showStatus;
+    private Integer forwardCount;
+    private String categoryName;
+}
+
+import lombok.Data;
+
+@Data
+public class SubjectListRequest {
+    private String keyword;
+    private Integer pageNum;
+    private Integer pageSize;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SubjectResponse {
+    private Long id;
+    private Long categoryId;
+    private String title;
+    private String pic;
+    private Integer productCount;
+    private Integer recommendStatus;
+    private Date createTime;
+    private Integer collectCount;
+    private Integer readCount;
+    private Integer commentCount;
+    private String albumPics;
+    private String description;
+    private Integer showStatus;
+    private Integer forwardCount;
+    private String categoryName;
+    private String content;
+}
+```
+
+```java
+// SubjectService.java
+
+package com.example.service;
+
+import com.example.entity.SubjectListRequest;
+import com.example.entity.SubjectResponse;
+
+import com.example.demo.SubjectListRequest;
+import com.example.demo.SubjectResponse;
+
+import java.util.List;
+
+public interface SubjectService {
+    List<SubjectResponse> getSubjectList(SubjectListRequest request);
+}
+```
+
+```java
+// SubjectServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.entity.SubjectListRequest;
+import com.example.service.SubjectService;
+import com.example.mapper.SubjectMapper;
+import com.example.entity.SubjectResponse;
+
+import com.example.demo.SubjectListRequest;
+import com.example.demo.SubjectResponse;
+import com.example.demo.SubjectService;
+
+import java.util.List;
+
+@Service
+public class SubjectServiceImpl implements SubjectService {
+    @Autowired
+    private SubjectMapper subjectMapper;
+
+    @Override
+    public List<SubjectResponse> getSubjectList(SubjectListRequest request) {
+        // 根据关键字进行分页查询
+        List<SubjectResponse> subjectList = subjectMapper.getSubjectList(request.getKeyword(), request.getPageNum(), request.getPageSize());
+        return subjectList;
+    }
+}
+```
+
+```java
+// SubjectController.java
+
+package com.example.controller;
+
+import com.example.entity.SubjectListRequest;
+import com.example.service.SubjectService;
+import com.example.entity.SubjectResponse;
+
+import com.example.demo.SubjectListRequest;
+import com.example.demo.SubjectResponse;
+import com.example.demo.SubjectService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/subject")
+public class SubjectController {
+    @Autowired
+    private SubjectService subjectService;
+
+    @GetMapping("/list")
+    public ApiResponse<List<SubjectResponse>> getSubjectList(SubjectListRequest request) {
+        List<SubjectResponse> subjectList = subjectService.getSubjectList(request);
+        return ApiResponse.success(subjectList);
+    }
+}
+```
+
+```java
+// SubjectMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.SubjectResponse;
+
+import com.example.demo.SubjectResponse;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface SubjectMapper {
+    List<SubjectResponse> getSubjectList(@Param("keyword") String keyword, @Param("pageNum") Integer pageNum, @Param("pageSize") Integer pageSize);
+}
+```
+
+```xml
+<!-- SubjectMapper.xml -->
+
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.demo.SubjectMapper">
+    <select id="getSubjectList" resultType="com.example.demo.SubjectResponse">
+        SELECT id, category_id, title, pic, product_count, recommend_status, create_time, collect_count, read_count, comment_count, album_pics, description, show_status, forward_count, category_name, content
+        FROM subject
+        WHERE title LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY create_time DESC
+        LIMIT #{pageNum}, #{pageSize}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+CmsSubject.java:32
+java: 需要class, interface或enum
+CmsSubject.java:41
+java: 需要class, interface或enum
+CmsSubject.java:42
+java: 需要class, interface或enum
+CmsSubject.java:43
+java: 需要class, interface或enum
+SubjectController.java:8:24
+java: 程序包com.example.demo不存在
+SubjectService.java:7:24
+java: 程序包com.example.demo不存在
+SubjectController.java:22:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.SubjectController
+SubjectMapper.java:7:24
+java: 程序包com.example.demo不存在
+SubjectServiceImpl.java:10:24
+java: 程序包com.example.demo不存在
+java.lang.ClassNotFoundException: Cannot find class: com.example.demo.SubjectResponse
+```
+```功能错误
+org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.example.mapper.SubjectMapper.getSubjectList
+org.springframework.jdbc.BadSqlGrammarException: 
+### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: Table 'test.subject' doesn't exist
+输出为空
+```

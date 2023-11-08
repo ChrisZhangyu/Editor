@@ -1,0 +1,152 @@
+业务功能逻辑：
+获取tbl_emp表中员工信息条数，计算总页数为信息条数除以5，如果总条数不能被5整除，总页数加1，返回信息data设置为{"totalPages": 总页数}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private String status;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Employee.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Employee {
+    private int empId;
+    private String empName;
+    private String empEmail;
+    private String gender;
+    private int departmentId;
+}
+```
+
+```java
+// EmployeeService.java
+package com.example.service;
+
+import com.example.entity.Employee;
+
+public interface EmployeeService {
+    int getTotalPages();
+}
+```
+
+```java
+// EmployeeServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Employee;
+import com.example.mapper.EmployeeMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class EmployeeServiceImpl implements EmployeeService {
+
+    private final EmployeeMapper employeeMapper;
+
+    @Autowired
+    public EmployeeServiceImpl(EmployeeMapper employeeMapper) {
+        this.employeeMapper = employeeMapper;
+    }
+
+    @Override
+    public int getTotalPages() {
+        int totalCount = employeeMapper.getEmployeeCount();
+        int totalPages = totalCount / 5;
+        if (totalCount % 5 != 0) {
+            totalPages++;
+        }
+        return totalPages;
+    }
+}
+```
+
+```java
+// EmployeeController.java
+package com.example.controller;
+
+import com.example.service.EmployeeService;
+import com.example.entity.ApiResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/hrms/emp")
+public class EmployeeController {
+
+    private final EmployeeService employeeService;
+
+    @Autowired
+    public EmployeeController(EmployeeService employeeService) {
+        this.employeeService = employeeService;
+    }
+
+    @GetMapping("/getTotalPages")
+    public ApiResponse getTotalPages() {
+        int totalPages = employeeService.getTotalPages();
+        return new ApiResponse("success", "操作成功", totalPages);
+    }
+}
+```
+
+```java
+// EmployeeMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+
+@Mapper
+public interface EmployeeMapper {
+    @Select("SELECT COUNT(*) FROM tbl_emp")
+    int getEmployeeCount();
+}
+```
+
+```xml
+<!-- EmployeeMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.EmployeeMapper">
+    <select id="getEmployeeCount" resultType="int">
+        SELECT COUNT(*) FROM tbl_emp
+    </select>
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+EmployeeServiceImpl.java: [9,45]
+java: 找不到符号
+  符号: 类 EmployeeService
+Mapped Statements collection already contains value for com.example.mapper.EmployeeMapper.getEmployeeCount. please check file [EmployeeMapper.xml] and com/example/mapper/EmployeeMapper.java (best guess)
+```
+
+```功能错误
+返回信息data的内容格式不对.
+```

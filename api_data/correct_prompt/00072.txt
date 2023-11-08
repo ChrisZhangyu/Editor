@@ -1,0 +1,270 @@
+业务功能逻辑：根据商品id号和状态条件，批量删除数据库中符合条件的退货申请记录。返回{"count"}.
+
+需要检查的代码：
+```java
+// OrderReturnApply.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OrderReturnApply {
+    private Integer id;
+    private Integer orderId;
+    private Integer companyAddressId;
+    private Integer productId;
+    private String orderSn;
+    private Date createTime;
+    private String memberUsername;
+    private BigDecimal returnAmount;
+    private String returnName;
+    private String returnPhone;
+    private Integer status;
+    private Date handleTime;
+    private String productPic;
+    private String productName;
+    private String productBrand;
+    private String productAttr;
+    private Integer productCount;
+    private BigDecimal productPrice;
+    private BigDecimal productRealPrice;
+    private String reason;
+    private String description;
+    private String proofPics;
+    private String handleNote;
+    private String handleMan;
+    private String receiveMan;
+    private Date receiveTime;
+    private String receiveNote;
+}
+```
+
+```java
+// OrderReturnApplyService.java
+package com.example.service;
+
+import com.example.entity.OrderReturnApply;
+
+import java.util.List;
+
+public interface OrderReturnApplyService {
+    OrderReturnApply getById(Integer id);
+    List<OrderReturnApply> getAll();
+    int create(OrderReturnApply orderReturnApply);
+    int update(OrderReturnApply orderReturnApply);
+    int delete(Integer id);
+}
+```
+
+```java
+// OrderReturnApplyServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.OrderReturnApplyService;
+import com.example.mapper.OrderReturnApplyMapper;
+import com.example.entity.OrderReturnApply;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class OrderReturnApplyServiceImpl implements OrderReturnApplyService {
+
+    private final OrderReturnApplyMapper orderReturnApplyMapper;
+
+    @Autowired
+    public OrderReturnApplyServiceImpl(OrderReturnApplyMapper orderReturnApplyMapper) {
+        this.orderReturnApplyMapper = orderReturnApplyMapper;
+    }
+
+    @Override
+    public OrderReturnApply getById(Integer id) {
+        return orderReturnApplyMapper.getById(id);
+    }
+
+    @Override
+    public List<OrderReturnApply> getAll() {
+        return orderReturnApplyMapper.getAll();
+    }
+
+    @Override
+    public int create(OrderReturnApply orderReturnApply) {
+        return orderReturnApplyMapper.create(orderReturnApply);
+    }
+
+    @Override
+    public int update(OrderReturnApply orderReturnApply) {
+        return orderReturnApplyMapper.update(orderReturnApply);
+    }
+
+    @Override
+    public int delete(Integer id) {
+        return orderReturnApplyMapper.delete(id);
+    }
+}
+```
+
+```java
+// OrderReturnApplyController.java
+package com.example.controller;
+
+import com.example.service.OrderReturnApplyService;
+import com.example.entity.OrderReturnApply;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/returnApply")
+public class OrderReturnApplyController {
+
+    private final OrderReturnApplyService orderReturnApplyService;
+
+    @Autowired
+    public OrderReturnApplyController(OrderReturnApplyService orderReturnApplyService) {
+        this.orderReturnApplyService = orderReturnApplyService;
+    }
+
+    @GetMapping("/{id}")
+    public OrderReturnApply getById(@PathVariable Integer id) {
+        return orderReturnApplyService.getById(id);
+    }
+
+    @GetMapping("/")
+    public List<OrderReturnApply> getAll() {
+        return orderReturnApplyService.getAll();
+    }
+
+    @PostMapping("/")
+    public int create(@RequestBody OrderReturnApply orderReturnApply) {
+        return orderReturnApplyService.create(orderReturnApply);
+    }
+
+    @PutMapping("/")
+    public int update(@RequestBody OrderReturnApply orderReturnApply) {
+        return orderReturnApplyService.update(orderReturnApply);
+    }
+
+    @DeleteMapping("/{id}")
+    public int delete(@PathVariable Integer id) {
+        return orderReturnApplyService.delete(id);
+    }
+}
+```
+
+```java
+// OrderReturnApplyMapper.java
+package com.example.mapper;
+
+import com.example.entity.OrderReturnApply;
+
+import org.apache.ibatis.annotations.*;
+
+import java.util.List;
+
+@Mapper
+public interface OrderReturnApplyMapper {
+
+    @Select("SELECT * FROM oms_order_return_apply WHERE id = #{id}")
+    OrderReturnApply getById(Integer id);
+
+    @Select("SELECT * FROM oms_order_return_apply")
+    List<OrderReturnApply> getAll();
+
+    @Insert("INSERT INTO oms_order_return_apply (order_id, company_address_id, product_id, order_sn, create_time, member_username, return_amount, return_name, return_phone, status, handle_time, product_pic, product_name, product_brand, product_attr, product_count, product_price, product_real_price, reason, description, proof_pics, handle_note, handle_man, receive_man, receive_time, receive_note) " +
+            "VALUES (#{orderId}, #{companyAddressId}, #{productId}, #{orderSn}, #{createTime}, #{memberUsername}, #{returnAmount}, #{returnName}, #{returnPhone}, #{status}, #{handleTime}, #{productPic}, #{productName}, #{productBrand}, #{productAttr}, #{productCount}, #{productPrice}, #{productRealPrice}, #{reason}, #{description}, #{proofPics}, #{handleNote}, #{handleMan}, #{receiveMan}, #{receiveTime}, #{receiveNote})")
+    @Options(useGeneratedKeys = true, keyProperty = "id", keyColumn = "id")
+    int create(OrderReturnApply orderReturnApply);
+
+    @Update("UPDATE oms_order_return_apply SET order_id = #{orderId}, company_address_id = #{companyAddressId}, product_id = #{productId}, order_sn = #{orderSn}, create_time = #{createTime}, member_username = #{memberUsername}, return_amount = #{returnAmount}, return_name = #{returnName}, return_phone = #{returnPhone}, status = #{status}, handle_time = #{handleTime}, product_pic = #{productPic}, product_name = #{productName}, product_brand = #{productBrand}, product_attr = #{productAttr}, product_count = #{productCount}, product_price = #{productPrice}, product_real_price = #{productRealPrice}, reason = #{reason}, description = #{description}, proof_pics = #{proofPics}, handle_note = #{handleNote}, handle_man = #{handleMan}, receive_man = #{receiveMan}, receive_time = #{receiveTime}, receive_note = #{receiveNote} " +
+            "WHERE id = #{id}")
+    int update(OrderReturnApply orderReturnApply);
+
+    @Delete("DELETE FROM oms_order_return_apply WHERE id = #{id}")
+    int delete(Integer id);
+}
+```
+
+```xml
+<!-- OrderReturnApplyMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.OrderReturnApplyMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.entity.OrderReturnApply">
+        <id column="id" property="id" />
+        <result column="order_id" property="orderId" />
+        <result column="company_address_id" property="companyAddressId" />
+        <result column="product_id" property="productId" />
+        <result column="order_sn" property="orderSn" />
+        <result column="create_time" property="createTime" />
+        <result column="member_username" property="memberUsername" />
+        <result column="return_amount" property="returnAmount" />
+        <result column="return_name" property="returnName" />
+        <result column="return_phone" property="returnPhone" />
+        <result column="status" property="status" />
+        <result column="handle_time" property="handleTime" />
+        <result column="product_pic" property="productPic" />
+        <result column="product_name" property="productName" />
+        <result column="product_brand" property="productBrand" />
+        <result column="product_attr" property="productAttr" />
+        <result column="product_count" property="productCount" />
+        <result column="product_price" property="productPrice" />
+        <result column="product_real_price" property="productRealPrice" />
+        <result column="reason" property="reason" />
+        <result column="description" property="description" />
+        <result column="proof_pics" property="proofPics" />
+        <result column="handle_note" property="handleNote" />
+        <result column="handle_man" property="handleMan" />
+        <result column="receive_man" property="receiveMan" />
+        <result column="receive_time" property="receiveTime" />
+        <result column="receive_note" property="receiveNote" />
+    </resultMap>
+
+    <select id="getById" resultMap="BaseResultMap">
+        SELECT * FROM oms_order_return_apply WHERE id = #{id}
+    </select>
+
+    <select id="getAll" resultMap="BaseResultMap">
+        SELECT * FROM oms_order_return_apply
+    </select>
+
+    <insert id="create" parameterType="com.example.entity.OrderReturnApply" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO oms_order_return_apply (order_id, company_address_id, product_id, order_sn, create_time, member_username, return_amount, return_name, return_phone, status, handle_time, product_pic, product_name, product_brand, product_attr, product_count, product_price, product_real_price, reason, description, proof_pics, handle_note, handle_man, receive_man, receive_time, receive_note)
+        VALUES (#{orderId}, #{companyAddressId}, #{productId}, #{orderSn}, #{createTime}, #{memberUsername}, #{returnAmount}, #{returnName}, #{returnPhone}, #{status}, #{handleTime}, #{productPic}, #{productName}, #{productBrand}, #{productAttr}, #{productCount}, #{productPrice}, #{productRealPrice}, #{reason}, #{description}, #{proofPics}, #{handleNote}, #{handleMan}, #{receiveMan}, #{receiveTime}, #{receiveNote})
+    </insert>
+
+    <update id="update" parameterType="com.example.entity.OrderReturnApply">
+        UPDATE oms_order_return_apply SET order_id = #{orderId}, company_address_id = #{companyAddressId}, product_id = #{productId}, order_sn = #{orderSn}, create_time = #{createTime}, member_username = #{memberUsername}, return_amount = #{returnAmount}, return_name = #{returnName}, return_phone = #{returnPhone}, status = #{status}, handle_time = #{handleTime}, product_pic = #{productPic}, product_name = #{productName}, product_brand = #{productBrand}, product_attr = #{productAttr}, product_count = #{productCount}, product_price = #{productPrice}, product_real_price = #{productRealPrice}, reason = #{reason}, description = #{description}, proof_pics = #{proofPics}, handle_note = #{handleNote}, handle_man = #{handleMan}, receive_man = #{receiveMan}, receive_time = #{receiveTime}, receive_note = #{receiveNote}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="Integer">
+        DELETE FROM oms_order_return_apply WHERE id = #{id}
+    </delete>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+Error starting ApplicationContext. To display the conditions report re-run your application with 'debug' enabled.
+2023-10-17 11:12:31.196 ERROR 21752 --- [           main] o.s.boot.SpringApplication               : Application run failed
+```
+```功能错误
+
+```

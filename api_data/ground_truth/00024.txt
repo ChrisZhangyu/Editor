@@ -1,0 +1,193 @@
+```java
+// ApiResponse.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+
+
+```
+```java
+// CompanyAddress.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CompanyAddress {
+    private Long id;
+    private String addressName;
+    private Integer sendStatus;
+    private Integer receiveStatus;
+    private String name;
+    private String phone;
+    private String province;
+    private String city;
+    private String region;
+    private String detailAddress;
+}
+```
+```java
+// GetCompanyAddressListRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class GetCompanyAddressListRequest {
+    private String distinct;
+    private String refid;
+    private String _parameter;
+    private String orderByClause;
+}
+
+```
+
+```java
+// CompanyAddressService.java
+
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.CompanyAddress;
+import com.example.entity.GetCompanyAddressListRequest;
+
+import java.util.List;
+
+public interface CompanyAddressService {
+    List<CompanyAddress> getCompanyAddressList(GetCompanyAddressListRequest request);
+}
+```
+
+```java
+// CompanyAddressServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.entity.GetCompanyAddressListRequest;
+import com.example.service.CompanyAddressService;
+import com.example.entity.ApiResponse;
+import com.example.entity.CompanyAddress;
+import com.example.mapper.CompanyAddressMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class CompanyAddressServiceImpl implements CompanyAddressService {
+    @Autowired
+    private CompanyAddressMapper companyAddressMapper;
+
+    @Override
+    public List<CompanyAddress> getCompanyAddressList(GetCompanyAddressListRequest request) {
+        if (request.getRefid() == null || request.getOrderByClause() == null || "".equals(request.getRefid()) || "".equals(request.getOrderByClause()))
+            return null;
+        List<CompanyAddress> addressList = companyAddressMapper.getCompanyAddressList(request);
+        return addressList;
+    }
+}
+```
+
+```java
+// CompanyAddressController.java
+
+package com.example.controller;
+
+import com.example.entity.GetCompanyAddressListRequest;
+import com.example.service.CompanyAddressService;
+import com.example.entity.ApiResponse;
+import com.example.entity.CompanyAddress;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/companyAddress")
+public class CompanyAddressController {
+    @Autowired
+    private CompanyAddressService companyAddressService;
+
+    @GetMapping("/list")
+    public List<CompanyAddress> getCompanyAddressList(GetCompanyAddressListRequest request) {
+        return companyAddressService.getCompanyAddressList(request);
+    }
+}
+```
+
+```java
+// CompanyAddressMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.CompanyAddress;
+import com.example.entity.GetCompanyAddressListRequest;
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface CompanyAddressMapper {
+    List<CompanyAddress> getCompanyAddressList(GetCompanyAddressListRequest request);
+}
+```
+
+```xml
+<!-- CompanyAddressMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.CompanyAddressMapper">
+    <resultMap id="BaseResultMap" type="com.example.entity.CompanyAddress">
+        <id column="id" jdbcType="BIGINT" property="id" />
+        <result column="address_name" jdbcType="VARCHAR" property="addressName" />
+        <result column="send_status" jdbcType="INTEGER" property="sendStatus" />
+        <result column="receive_status" jdbcType="INTEGER" property="receiveStatus" />
+        <result column="name" jdbcType="VARCHAR" property="name" />
+        <result column="phone" jdbcType="VARCHAR" property="phone" />
+        <result column="province" jdbcType="VARCHAR" property="province" />
+        <result column="city" jdbcType="VARCHAR" property="city" />
+        <result column="region" jdbcType="VARCHAR" property="region" />
+        <result column="detail_address" jdbcType="VARCHAR" property="detailAddress" />
+    </resultMap>
+    <select id="getCompanyAddressList" resultMap="BaseResultMap">
+        SELECT id, address_name, send_status, receive_status, name, phone, province, city, region, detail_address
+        <if test="distinct != null and distinct != ''">
+            #{distinct}
+        </if>
+        <if test="_parameter != null and _parameter != ''">
+            <if test="refid == 'Base_Column_List'">
+                FROM oms_company_address
+                WHERE 1=1
+            </if>
+        </if>
+        <if test="orderByClause != null and orderByClause != ''">
+            ORDER BY ${orderByClause}
+        </if>
+    </select>
+</mapper>
+
+```
+

@@ -1,0 +1,251 @@
+业务功能逻辑：
+检查输入参数是否为空，如果为空返回(2,"用户名或密码为空",null)；在t_user表中查询用户，查询条件是user_name等于userName，如果不存在返回(2,"未注册",null)；使用哈希算法加密password，如果与t_user.password不相等返回(2,"密码错误",null)；返回(1,"成功",null).
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// User.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_user")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "user_uuid")
+    private String userUuid;
+
+    @Column(name = "user_name")
+    private String userName;
+
+    @Column(name = "password")
+    private String password;
+
+    @Column(name = "real_name")
+    private String realName;
+
+    @Column(name = "age")
+    private int age;
+
+    @Column(name = "sex")
+    private int sex;
+
+    @Column(name = "birth_day")
+    private Date birthDay;
+
+    @Column(name = "user_level")
+    private int userLevel;
+
+    @Column(name = "phone")
+    private String phone;
+
+    @Column(name = "role")
+    private int role;
+
+    @Column(name = "status")
+    private int status;
+
+    @Column(name = "image_path")
+    private String imagePath;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+
+    @Column(name = "last_active_time")
+    private Date lastActiveTime;
+
+    @Column(name = "deleted")
+    private boolean deleted;
+
+    @Column(name = "wx_open_id")
+    private String wxOpenId;
+}
+```
+
+```java
+// UserLoginRequest.java
+package com.example.entity;
+
+import lombok.Data;
+
+@Data
+public class UserLoginRequest {
+    private String userName;
+    private String password;
+    private boolean remember;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.User;
+
+public interface UserService {
+    ApiResponse login(String userName, String password);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.User;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserServiceImpl implements UserService {
+    @Override
+    public ApiResponse login(String userName, String password) {
+        // 检查输入参数是否为空
+        if (userName == null || password == null || userName.isEmpty() || password.isEmpty()) {
+            return new ApiResponse(2, "用户名或密码为空", null);
+        }
+
+        // 在t_user表中查询用户
+        User user = userMapper.findByUserName(userName);
+        if (user == null) {
+            return new ApiResponse(2, "未注册", null);
+        }
+
+        // 使用哈希解密t_user.password
+        String decryptedPassword = decryptPassword(password);
+        if (!user.getPassword().equals(decryptedPassword)) {
+            return new ApiResponse(2, "密码错误", null);
+        }
+
+        return new ApiResponse(1, "成功", null);
+    }
+
+    private String decryptPassword(String encryptedPassword) {
+        // 解密密码的逻辑
+        // ...
+        return decryptedPassword;
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class UserController {
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/api/student/user/login")
+    public ApiResponse login(@RequestBody UserLoginRequest request) {
+        String userName = request.getUserName();
+        String password = request.getPassword();
+
+        return userService.login(userName, password);
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+public interface UserMapper {
+    User findByUserName(String userName);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="findByUserName" resultType="com.example.entity.User">
+        SELECT * FROM t_user WHERE user_name = #{userName}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+UserController.java:10:19
+java: 找不到符号
+  符号:   类 UserService
+  位置: 类 com.example.controller.UserController
+UserController.java:13:27
+java: 找不到符号
+  符号:   类 UserService
+  位置: 类 com.example.controller.UserController
+UserController.java:18:43
+java: 找不到符号
+  符号:   类 UserLoginRequest
+  位置: 类 com.example.controller.UserController
+UserController.java:18:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.UserController
+UserMapper.java:4:5
+java: 找不到符号
+  符号:   类 User
+  位置: 接口 com.example.mapper.UserMapper
+UserServiceImpl.java:7:41
+java: 找不到符号
+  符号: 类 UserService
+UserServiceImpl.java:9:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.UserServiceImpl
+UserServiceImpl.java:18:21
+java: 找不到符号
+  符号:   变量 userMapper
+  位置: 类 com.example.service.impl.UserServiceImpl
+UserService.java:6:5
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.UserService
+```
+
+```功能错误
+没有实现哈希算法加密password的功能逻辑.
+```

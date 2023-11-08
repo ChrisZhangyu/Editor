@@ -1,0 +1,345 @@
+业务功能逻辑：
+在t_exam_paper表中查询试卷，查询条件是id等于id；在t_text_content表中查询文本内容，查询条件是id等于t_exam_paper.frame_text_content_id；在t_question表中查询问题列表，查询条件是t_question.info_text_content_id等于t_text_content.id；返回response设置为{id=t_exam_paper.id,level=t_exam_paper.grade_level,subjectId=t_exam_paper.subject_id,paperType=t_exam_paper.paper_type,name=t_exam_paper.name,suggestTime=t_exam_paper.suggest_time,titleItems={name=t_text_content.content,questionItems=[{t_question记录}]}}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// ExamPaper.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper")
+public class ExamPaper {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "subject_id")
+    private Integer subjectId;
+
+    @Column(name = "paper_type")
+    private String paperType;
+
+    @Column(name = "grade_level")
+    private Integer gradeLevel;
+
+    @Column(name = "score")
+    private Double score;
+
+    @Column(name = "question_count")
+    private Integer questionCount;
+
+    @Column(name = "suggest_time")
+    private Integer suggestTime;
+
+    @Column(name = "limit_start_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date limitStartTime;
+
+    @Column(name = "limit_end_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date limitEndTime;
+
+    @Column(name = "frame_text_content_id")
+    private Integer frameTextContentId;
+
+    @Column(name = "create_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createTime;
+
+    @Column(name = "deleted")
+    private Boolean deleted;
+
+    @Column(name = "task_exam_id")
+    private Integer taskExamId;
+
+}
+```
+
+```java
+// Question.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_question")
+public class Question {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
+
+    @Column(name = "question_type")
+    private String questionType;
+
+    @Column(name = "subject_id")
+    private Integer subjectId;
+
+    @Column(name = "score")
+    private Integer score;
+
+    @Column(name = "grade_level")
+    private Integer gradeLevel;
+
+    @Column(name = "difficult")
+    private Integer difficult;
+
+    @Column(name = "correct")
+    private String correct;
+
+    @Column(name = "info_text_content_id")
+    private Integer infoTextContentId;
+
+    @Column(name = "create_user")
+    private Integer createUser;
+
+    @Column(name = "status")
+    private Integer status;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "deleted")
+    private Boolean deleted;
+}
+```
+
+```java
+// TextContent.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_text_content")
+public class TextContent {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
+
+    @Column(name = "content", columnDefinition = "TEXT")
+    private String content;
+
+    @Column(name = "create_time")
+    private Date createTime;
+}
+```
+
+```java
+// ExamPaperService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface ExamPaperService {
+    ApiResponse getExamPaperById(int id);
+}
+```
+
+```java
+// ExamPaperServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.TextContent;
+import com.example.service.ExamPaperService;
+import com.example.mapper.ExamPaperMapper;
+import com.example.mapper.QuestionMapper;
+import com.example.entity.ExamPaper;
+import com.example.mapper.TextContentMapper;
+import com.example.entity.Question;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ExamPaperServiceImpl implements ExamPaperService {
+
+    private final ExamPaperMapper examPaperMapper;
+    private final TextContentMapper textContentMapper;
+    private final QuestionMapper questionMapper;
+
+    @Autowired
+    public ExamPaperServiceImpl(ExamPaperMapper examPaperMapper, TextContentMapper textContentMapper, QuestionMapper questionMapper) {
+        this.examPaperMapper = examPaperMapper;
+        this.textContentMapper = textContentMapper;
+        this.questionMapper = questionMapper;
+    }
+
+    @Override
+    public ApiResponse getExamPaperById(int id) {
+        ExamPaper examPaper = examPaperMapper.selectExamPaperById(id);
+        if (examPaper == null) {
+            return new ApiResponse(0, "试卷不存在", null);
+        }
+
+        TextContent frameTextContent = textContentMapper.selectTextContentById(examPaper.getFrameTextContentId());
+        if (frameTextContent == null) {
+            return new ApiResponse(0, "试卷内容不存在", null);
+        }
+
+        Question question = questionMapper.selectQuestionById(frameTextContent.getId());
+        if (question == null) {
+            return new ApiResponse(0, "试卷问题不存在", null);
+        }
+
+        // 构建response对象
+        // ...
+
+        return new ApiResponse(1, "成功", response);
+}
+```
+
+```java
+// ExamPaperController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.ExamPaperService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/student/education/subject")
+public class ExamPaperController {
+
+    private final ExamPaperService examPaperService;
+
+    @Autowired
+    public ExamPaperController(ExamPaperService examPaperService) {
+        this.examPaperService = examPaperService;
+    }
+
+    @GetMapping("/select/{id}")
+    public ApiResponse getExamPaperById(@PathVariable int id) {
+        return examPaperService.getExamPaperById(id);
+    }
+}
+```
+
+```java
+// ExamPaperMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface ExamPaperMapper {
+    ExamPaper selectExamPaperById(@Param("id") int id);
+}
+```
+
+```java
+// QuestionMapper.java
+package com.example.mapper;
+
+import com.example.entity.Question;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface QuestionMapper {
+    Question selectQuestionById(@Param("id") int id);
+}
+```
+
+```java
+// TextContentMapper.java
+package com.example.mapper;
+
+import com.example.entity.TextContent;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface TextContentMapper {
+    TextContent selectTextContentById(@Param("id") int id);
+}
+```
+
+```xml
+<!-- ExamPaperMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.ExamPaperMapper">
+
+    <select id="selectExamPaperById" parameterType="int" resultType="com.example.entity.ExamPaper">
+        SELECT * FROM t_exam_paper WHERE id = #{id}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+ExamPaperServiceImpl.java:54:41
+java: 找不到符号
+  符号:   变量 response
+  位置: 类 com.example.service.impl.ExamPaperServiceImpl
+```
+
+```功能错误
+没有实现TextContentMapper.java和QuestionMapper.java对应的xml文件.
+根据描述需要在t_question表中查询问题列表,但questionMapper.selectQuestionById函数返回错误.
+没有实现返回response设置为{id=t_exam_paper.id,level=t_exam_paper.grade_level,subjectId=t_exam_paper.subject_id,paperType=t_exam_paper.paper_type,name=t_exam_paper.name,suggestTime=t_exam_paper.suggest_time,titleItems={name=t_text_content.content,questionItems=[{t_question记录}]}}.
+```

@@ -1,0 +1,169 @@
+业务功能逻辑：
+按","分割输入字符串ids，依次删除ssm_article表中的记录，response为true.
+
+需要检查的代码：
+```java
+// Article.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Article {
+    private int id;
+    private String articleTitle;
+    private String articleCreateDate;
+    private String articleContent;
+    private int isTop;
+    private String addName;
+}
+```
+
+```java
+// ApiResponse.jav
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// ArticleService.java
+package com.example.service;
+
+public interface ArticleService {
+    void deleteArticles(String ids);
+}
+```
+
+```java
+// ArticleServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ArticleServiceImpl implements ArticleService {
+
+    private final ArticleMapper articleMapper;
+
+    @Autowired
+    public ArticleServiceImpl(ArticleMapper articleMapper) {
+        this.articleMapper = articleMapper;
+    }
+
+    @Override
+    public void deleteArticles(String ids) {
+        String[] idArray = ids.split(",");
+        for (String id : idArray) {
+            int articleId = Integer.parseInt(id);
+            articleMapper.deleteArticle(articleId);
+        }
+    }
+}
+```
+
+```java
+// ArticleController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class ArticleController {
+
+    private final ArticleService articleService;
+
+    @Autowired
+    public ArticleController(ArticleService articleService) {
+        this.articleService = articleService;
+    }
+
+    @PostMapping("/article/delete")
+    public ApiResponse deleteArticles(@RequestParam("ids") String ids) {
+        try {
+            articleService.deleteArticles(ids);
+            return new ApiResponse(1, "成功", true);
+        } catch (Exception e) {
+            return new ApiResponse(0, "失败", null);
+        }
+    }
+}
+```
+
+```java
+// ArticleMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface ArticleMapper {
+    void deleteArticle(int id);
+}
+```
+
+```xml
+<!-- ArticleMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.ArticleMapper">
+
+    <delete id="deleteArticle">
+        DELETE FROM ssm_article WHERE id = #{id}
+    </delete>
+
+</mapper>
+```
+
+代码执行的错误信息：
+```运行错误
+ArticleController.java: [11,19]
+java: 找不到符号
+  符号:   类 ArticleService
+  位置: 类 com.example.controller.ArticleController
+ArticleController.java: [14,30]
+java: 找不到符号
+  符号:   类 ArticleService
+  位置: 类 com.example.controller.ArticleController
+ArticleController.java: [19,12]
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.ArticleController
+ArticleServiceImpl.java: [7,44]
+java: 找不到符号
+  符号: 类 ArticleService
+ArticleServiceImpl.java: [9,19]
+java: 找不到符号
+  符号:   类 ArticleMapper
+  位置: 类 com.example.service.impl.ArticleServiceImpl
+ArticleServiceImpl.java: [12,31]
+java: 找不到符号
+  符号:   类 ArticleMapper
+  位置: 类 com.example.service.impl.ArticleServiceImpl
+```
+
+```功能错误
+
+```

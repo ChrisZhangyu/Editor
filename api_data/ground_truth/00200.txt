@@ -1,0 +1,296 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// ExamPaperQuestionCustomerAnswer.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_exam_paper_question_customer_answer")
+public class ExamPaperQuestionCustomerAnswer {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+
+    @Column(name = "question_id")
+    private Long questionId;
+
+    @Column(name = "exam_paper_id")
+    private Long examPaperId;
+
+    @Column(name = "exam_paper_answer_id")
+    private Long examPaperAnswerId;
+
+    @Column(name = "question_type")
+    private Integer questionType;
+
+    @Column(name = "subject_id")
+    private Integer subjectId;
+
+    @Column(name = "customer_score")
+    private Integer customerScore;
+
+    @Column(name = "question_score")
+    private Integer questionScore;
+
+    @Column(name = "question_text_content_id")
+    private Long questionTextContentId;
+
+    @Column(name = "answer", columnDefinition = "TEXT")
+    private String answer;
+
+    @Column(name = "text_content_id")
+    private Long textContentId;
+
+    @Column(name = "do_right")
+    private Boolean doRight;
+
+    @Column(name = "create_user")
+    private Integer createUser;
+
+    @Column(name = "create_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createTime;
+
+    @Column(name = "item_order")
+    private Integer itemOrder;
+
+    // 省略 Getter 和 Setter 方法
+}
+```
+
+```java
+// QuestionAnswerEntity.java
+package com.example.entity;
+
+
+import lombok.Data;
+
+@Data
+public class QuestionAnswerEntity {
+    private int examPaperId;
+    private int questionId;
+    private int questionType;
+    private String subjectName;
+}
+```
+
+```java
+// Subject.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "t_subject")
+public class Subject {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "level")
+    private int level;
+
+    @Column(name = "level_name")
+    private String levelName;
+
+    @Column(name = "item_order")
+    private int itemOrder;
+
+    @Column(name = "deleted")
+    private boolean deleted;
+}
+```
+
+```java
+// QuestionAnswerService.java
+package com.example.service;
+
+import com.example.entity.QuestionAnswerEntity;
+
+import java.util.List;
+
+public interface QuestionAnswerService {
+    List<QuestionAnswerEntity> getQuestionAnswers(int pageIndex, int pageSize);
+}
+```
+
+```java
+// QuestionAnswerServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ExamPaperQuestionCustomerAnswer;
+import com.example.entity.Subject;
+import com.example.mapper.SubjectMapper;
+import com.example.service.QuestionAnswerService;
+import com.example.entity.QuestionAnswerEntity;
+import com.example.mapper.QuestionAnswerMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class QuestionAnswerServiceImpl implements QuestionAnswerService {
+
+    private final QuestionAnswerMapper questionAnswerMapper;
+    private final SubjectMapper subjectMapper;
+
+    @Autowired
+    public QuestionAnswerServiceImpl(QuestionAnswerMapper questionAnswerMapper, SubjectMapper subjectMapper) {
+        this.questionAnswerMapper = questionAnswerMapper;
+        this.subjectMapper = subjectMapper;
+    }
+
+    @Override
+    public List<QuestionAnswerEntity> getQuestionAnswers(int pageIndex, int pageSize) {
+        List<ExamPaperQuestionCustomerAnswer> questionAnswerEntities = questionAnswerMapper.getQuestionAnswers(pageIndex, pageSize);
+        List<QuestionAnswerEntity> questionAnswerResponses = new ArrayList<>();
+
+        for (ExamPaperQuestionCustomerAnswer questionAnswerEntity : questionAnswerEntities) {
+            Subject subjectEntity = subjectMapper.getSubjectById(questionAnswerEntity.getSubjectId());
+            QuestionAnswerEntity questionAnswerResponse = new QuestionAnswerEntity();
+            questionAnswerResponse.setExamPaperId(Math.toIntExact(questionAnswerEntity.getExamPaperId()));
+            questionAnswerResponse.setQuestionId(Math.toIntExact(questionAnswerEntity.getQuestionId()));
+            questionAnswerResponse.setQuestionType(questionAnswerEntity.getQuestionType());
+            questionAnswerResponse.setSubjectName(subjectEntity.getName());
+            questionAnswerResponses.add(questionAnswerResponse);
+        }
+
+        return questionAnswerResponses;
+    }
+}
+```
+
+```java
+// QuestionAnswerController.java
+package com.example.controller;
+
+import com.example.entity.QuestionAnswerEntity;
+import com.example.service.QuestionAnswerService;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+public class QuestionAnswerController {
+
+    private final QuestionAnswerService questionAnswerService;
+
+    @Autowired
+    public QuestionAnswerController(QuestionAnswerService questionAnswerService) {
+        this.questionAnswerService = questionAnswerService;
+    }
+
+    @PostMapping("/api/student/question/answer/page")
+    public ApiResponse getQuestionAnswers(@RequestParam int pageIndex, @RequestParam int pageSize) {
+        int start = (pageIndex - 1) * pageSize;
+        List<QuestionAnswerEntity> questionAnswerResponses = questionAnswerService.getQuestionAnswers(start, pageSize);
+
+        return new ApiResponse(1, "成功", questionAnswerResponses);
+    }
+}
+```
+
+```java
+// QuestionAnswerMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaperQuestionCustomerAnswer;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface QuestionAnswerMapper {
+    List<ExamPaperQuestionCustomerAnswer> getQuestionAnswers(@Param("pageIndex") int pageIndex, @Param("pageSize") int pageSize);
+}
+```
+
+```java
+// SubjectMapper.java
+package com.example.mapper;
+
+import com.example.entity.Subject;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface SubjectMapper {
+    Subject getSubjectById(@Param("id") int id);
+}
+```
+
+```xml
+<!-- QuestionAnswerMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.QuestionAnswerMapper">
+    <select id="getQuestionAnswers" resultType="com.example.entity.ExamPaperQuestionCustomerAnswer">
+        SELECT * FROM t_exam_paper_question_customer_answer
+        WHERE do_right = 0
+        LIMIT #{pageIndex}, #{pageSize}
+    </select>
+</mapper>
+
+```
+
+```xml
+<!-- SubjectMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.SubjectMapper">
+    <select id="getSubjectById" resultType="com.example.entity.Subject">
+        SELECT * FROM t_subject
+        WHERE id = #{id}
+    </select>
+</mapper>
+```

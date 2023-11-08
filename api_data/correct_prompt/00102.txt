@@ -1,0 +1,190 @@
+﻿业务功能逻辑：
+题目查询：从请求路径中提取id，从数据库中获取具有指定id的题目来检索题目信息，若题目存在，将在响应中返回{"code": 1,"message": "成功","response": {"id": 5,  "questionType": 5, "subjectId": 4,  "gradeLevel": "年级", "correct": "答案1",  "score": "5",  "difficult": 5}}，否则返回一个失败的响应，提示"失败"。
+需要检查的代码：
+```java
+// Question.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Question {
+    private int id;
+    private int questionType;
+    private int subjectId;
+    private int score;
+    private int gradeLevel;
+    private int difficult;
+    private String correct;
+    private int infoTextContentId;
+    private int createUser;
+    private int status;
+    private Date createTime;
+    private boolean deleted;
+}
+```
+```java
+// QuestionSelectRequest.java
+package com.example.entity;
+
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class QuestionSelectRequest {
+    private int id;
+}
+```
+```java
+// QuestionSelectResponse.java
+package com.example.entity;
+
+
+
+import com.example.entity.Question;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class QuestionSelectResponse {
+    private int code;
+    private String message;
+    private Question response;
+}
+```
+
+```java
+// QuestionService.java
+package com.example.service;
+
+import com.example.entity.QuestionSelectResponse;
+
+public interface QuestionService {
+    QuestionSelectResponse selectQuestion(int id);
+}
+```
+
+```java
+// QuestionServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.QuestionService;
+import com.example.entity.Question;
+import com.example.mapper.QuestionMapper;
+import com.example.entity.QuestionSelectResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class QuestionServiceImpl implements QuestionService {
+
+    private final QuestionMapper questionMapper;
+
+    @Autowired
+    public QuestionServiceImpl(QuestionMapper questionMapper) {
+        this.questionMapper = questionMapper;
+    }
+
+    @Override
+    public QuestionSelectResponse selectQuestion(int id) {
+        QuestionSelectResponse response = new QuestionSelectResponse();
+        Question question = questionMapper.selectQuestionById(id);
+        if (question != null) {
+            response.setCode(1);
+            response.setMessage("成功");
+            response.setResponse(question);
+        } else {
+            response.setCode(0);
+            response.setMessage("失败");
+        }
+        return response;
+    }
+}
+```
+
+```java
+// QuestionController.java
+package com.example.controller;
+
+import com.example.service.QuestionService;
+import com.example.entity.QuestionSelectResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/admin/question")
+public class QuestionController {
+
+    private final QuestionService questionService;
+
+    @Autowired
+    public QuestionController(QuestionService questionService) {
+        this.questionService = questionService;
+    }
+
+    @PostMapping("/select/{id}")
+    public QuestionSelectResponse selectQuestion(@PathVariable int id) {
+        return questionService.selectQuestion(id);
+    }
+}
+```
+
+```java
+// QuestionMapper.java
+package com.example.mapper;
+
+import com.example.entity.Question;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+@Mapper
+public interface QuestionMapper {
+
+    @Select("SELECT * FROM t_question WHERE id = #{id}")
+    Question selectQuestionById(@Param("id") int id);
+}
+```
+
+```xml
+<!-- QuestionMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.QuestionMapper">
+
+    <select id="selectQuestionById" resultType="com.example.entity.Question">
+        SELECT * FROM t_question WHERE id = #{id}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```语法错误
+QuestionMapper.java中重复定义的映射语句，
+Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'sqlSessionFactory' defined in class path resource [org/mybatis/spring/boot/autoconfigure/MybatisAutoConfiguration.class]: Bean instantiation via factory method failed; nested exception is org.springframework.beans.BeanInstantiationException: Failed to instantiate [org.apache.ibatis.session.SqlSessionFactory]: Factory method 'sqlSessionFactory' threw exception; nested exception is org.springframework.core.NestedIOException: Failed to parse mapping resource: 'file [D:\Code\LLM\XZS\question_select\target\classes\mapper\QuestionMapper.xml]'; nested exception is java.lang.IllegalArgumentException: Mapped Statements collection already contains value for com.example.mapper.QuestionMapper.selectQuestionById. please check file [D:\Code\LLM\XZS\question_select\target\classes\mapper\QuestionMapper.xml] and com/example/mapper/QuestionMapper.java (best guess).
+```
+```语法错误
+在QuestionMapper.xml文件中缺少Question实体类属性与表t_question之间的映射语句。
+```

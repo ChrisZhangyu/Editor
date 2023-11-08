@@ -1,0 +1,206 @@
+业务功能逻辑：在表pms_brand中获取全部品牌列表信息。返回参数{[PmsBrand记录]}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import com.example.entity.PmsBrand;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private List<PmsBrand> brandList;
+}
+```
+```java
+// BrandListRequest.java
+package com.example.entity;
+
+import com.example.entity.PmsBrand;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private List<PmsBrand> brandList;
+}
+
+import lombok.Data;
+
+@Data
+public class BrandListRequest {
+    // 可以根据需要添加其他请求参数
+}
+```
+```java
+// PmsBrand.java
+package com.example.entity;
+
+import com.example.entity.PmsBrand;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private List<PmsBrand> brandList;
+}
+
+import lombok.Data;
+
+@Data
+public class BrandListRequest {
+    // 可以根据需要添加其他请求参数
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PmsBrand {
+    private Long id;
+    private String name;
+    private String firstLetter;
+    private Integer sort;
+    private Integer factoryStatus;
+    private Integer showStatus;
+    private Integer productCount;
+    private Integer productCommentCount;
+    private String logo;
+    private String bigPic;
+}
+```
+
+```java
+// PmsBrandService.java
+package com.example.service;
+
+import com.example.entity.PmsBrand;
+
+import java.util.List;
+
+public interface PmsBrandService {
+    List<PmsBrand> getAllBrands();
+}
+```
+
+```java
+// PmsBrandServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.PmsBrandService;
+import com.example.entity.PmsBrand;
+import com.example.mapper.PmsBrandMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class PmsBrandServiceImpl implements PmsBrandService {
+
+    private final PmsBrandMapper brandMapper;
+
+    @Autowired
+    public PmsBrandServiceImpl(PmsBrandMapper brandMapper) {
+        this.brandMapper = brandMapper;
+    }
+
+    @Override
+    public List<PmsBrand> getAllBrands() {
+        return brandMapper.getAllBrands();
+    }
+}
+```
+
+```java
+// PmsBrandController.java
+package com.example.controller;
+
+import com.example.service.PmsBrandService;
+import com.example.entity.PmsBrand;
+import com.example.entity.ApiResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/brand")
+public class PmsBrandController {
+
+    private final PmsBrandService brandService;
+
+    @Autowired
+    public PmsBrandController(PmsBrandService brandService) {
+        this.brandService = brandService;
+    }
+
+    @GetMapping("/listAll")
+    public ApiResponse getAllBrands() {
+        List<PmsBrand> brandList = brandService.getAllBrands();
+        return new ApiResponse(brandList);
+    }
+}
+```
+
+```java
+// PmsBrandMapper.java
+package com.example.mapper;
+
+import com.example.entity.PmsBrand;
+
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface PmsBrandMapper {
+    List<PmsBrand> getAllBrands();
+}
+```
+
+```xml
+<!-- PmsBrandMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.PmsBrandMapper">
+
+    <select id="getAllBrands" resultType="com.example.entity.PmsBrand">
+        SELECT * FROM pms_brand
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\order_brand_listAll_system\src\main\java\com\example\entity\ApiResponse.java:13:13
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.entity.ApiResponse
+```
+```功能错误
+
+```

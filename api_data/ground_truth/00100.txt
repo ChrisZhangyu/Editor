@@ -1,0 +1,207 @@
+﻿
+```java
+// ExamPaper.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaper {
+    private Integer id;
+    private String name;
+    private Integer subjectId;
+    private Integer paperType;
+    private Integer gradeLevel;
+    private Integer score;
+    private Integer questionCount;
+    private Integer suggestTime;
+    private Date limitStartTime;
+    private Date limitEndTime;
+    private Integer frameTextContentId;
+    private Integer createUser;
+    private Date createTime;
+    private Boolean deleted;
+    private Integer taskExamId;
+}
+```
+```java
+// ExamPaperDeleteRequest.java
+package com.example.entity;
+
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperDeleteRequest {
+    private Integer id;
+}
+```
+```java
+// ExamPaperDeleteResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExamPaperDeleteResponse {
+    private Integer code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// ExamPaperService.java
+package com.example.service;
+
+import com.example.entity.ExamPaperDeleteResponse;
+
+public interface ExamPaperService {
+    ExamPaperDeleteResponse deleteExamPaper(Integer id);
+}
+```
+
+```java
+// ExamPaperServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.ExamPaperService;
+import com.example.mapper.ExamPaperMapper;
+import com.example.entity.ExamPaper;
+import com.example.entity.ExamPaperDeleteResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ExamPaperServiceImpl implements ExamPaperService {
+
+    private final ExamPaperMapper examPaperMapper;
+
+    @Autowired
+    public ExamPaperServiceImpl(ExamPaperMapper examPaperMapper) {
+        this.examPaperMapper = examPaperMapper;
+    }
+
+    @Override
+    public ExamPaperDeleteResponse deleteExamPaper(Integer id) {
+        ExamPaper examPaper = examPaperMapper.selectById(id);
+        if (examPaper != null) {
+            examPaper.setDeleted(true);
+            examPaperMapper.updateById(examPaper);
+        }
+        return new ExamPaperDeleteResponse(1, "成功", null);
+    }
+}
+```
+
+```java
+// ExamPaperController.java
+package com.example.controller;
+
+import com.example.entity.ExamPaperDeleteResponse;
+import com.example.service.ExamPaperService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/admin/exam/paper")
+public class ExamPaperController {
+
+    private final ExamPaperService examPaperService;
+
+    @Autowired
+    public ExamPaperController(ExamPaperService examPaperService) {
+        this.examPaperService = examPaperService;
+    }
+
+    @PostMapping("/delete/{id}")
+    public ExamPaperDeleteResponse deleteExamPaper(@PathVariable Integer id) {
+        return examPaperService.deleteExamPaper(id);
+    }
+}
+```
+
+```java
+// ExamPaperMapper.java
+package com.example.mapper;
+
+import com.example.entity.ExamPaper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface ExamPaperMapper {
+    ExamPaper selectById(@Param("id") Integer id);
+    void updateById(ExamPaper examPaper);
+}
+```
+
+```xml
+<!-- ExamPaperMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ExamPaperMapper">
+    <resultMap id="BaseResultMap" type="com.example.entity.ExamPaper">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="subject_id" property="subjectId" />
+        <result column="paper_type" property="paperType" />
+        <result column="grade_level" property="gradeLevel" />
+        <result column="score" property="score" />
+        <result column="question_count" property="questionCount" />
+        <result column="suggest_time" property="suggestTime" />
+        <result column="limit_start_time" property="limitStartTime" />
+        <result column="limit_end_time" property="limitEndTime" />
+        <result column="frame_text_content_id" property="frameTextContentId" />
+        <result column="create_user" property="createUser" />
+        <result column="create_time" property="createTime" />
+        <result column="deleted" property="deleted" />
+        <result column="task_exam_id" property="taskExamId" />
+    </resultMap>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM t_exam_paper WHERE id = #{id}
+    </select>
+
+    <update id="updateById">
+        UPDATE t_exam_paper
+        SET name = #{name},
+            subject_id = #{subjectId},
+            paper_type = #{paperType},
+            grade_level = #{gradeLevel},
+            score = #{score},
+            question_count = #{questionCount},
+            suggest_time = #{suggestTime},
+            limit_start_time = #{limitStartTime},
+            limit_end_time = #{limitEndTime},
+            frame_text_content_id = #{frameTextContentId},
+            create_user = #{createUser},
+            create_time = #{createTime},
+            deleted = #{deleted},
+            task_exam_id = #{taskExamId}
+        WHERE id = #{id}
+    </update>
+</mapper>
+
+```

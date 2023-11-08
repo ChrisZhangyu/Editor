@@ -1,0 +1,239 @@
+﻿
+```java
+// UserEventLog.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserEventLog {
+    private Integer id;
+    private Integer userId;
+    private String userName;
+    private String realName;
+    private String content;
+    private LocalDateTime createTime;
+}
+```
+```java
+// UserEventLogPage.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserEventLogPage {
+    private Integer total;
+    private List<UserEventLog> list;
+}
+```
+```java
+// UserEventLogRequest.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserEventLogRequest {
+    private Integer userId;
+    private String userName;
+    private Integer pageIndex;
+    private Integer pageSize;
+}
+```
+```java
+// UserEventLogResponse.java
+package com.example.entity;
+
+
+
+
+
+import com.example.entity.UserEventLog;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserEventLogResponse {
+    private Integer code;
+    private String message;
+    private UserEventLogPage response;
+}
+
+
+```
+
+```java
+// UserEventLogService.java
+package com.example.service;
+
+import com.example.entity.UserEventLogRequest;
+import com.example.entity.UserEventLogResponse;
+
+public interface UserEventLogService {
+    UserEventLogResponse getUserEventLogs(UserEventLogRequest request);
+}
+```
+
+```java
+// UserEventLogServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.UserEventLog;
+import com.example.entity.UserEventLogPage;
+import com.example.service.UserEventLogService;
+import com.example.entity.UserEventLogRequest;
+import com.example.entity.UserEventLogResponse;
+import com.example.mapper.UserEventLogMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class UserEventLogServiceImpl implements UserEventLogService {
+
+    private final UserEventLogMapper userEventLogMapper;
+
+    @Autowired
+    public UserEventLogServiceImpl(UserEventLogMapper userEventLogMapper) {
+        this.userEventLogMapper = userEventLogMapper;
+    }
+
+    @Override
+    public UserEventLogResponse getUserEventLogs(UserEventLogRequest request) {
+        try {
+            Integer total = userEventLogMapper.countUserEventLogs(request);
+            List<UserEventLog> logs = userEventLogMapper.getUserEventLogs(request);
+            UserEventLogPage page = new UserEventLogPage(total, logs);
+            return new UserEventLogResponse(1, "成功", page);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new UserEventLogResponse(1, "失败", null);
+        }
+    }
+}
+```
+
+```java
+// UserEventLogController.java
+package com.example.controller;
+
+import com.example.entity.UserEventLogRequest;
+import com.example.service.UserEventLogService;
+import com.example.entity.UserEventLogResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/user/event")
+public class UserEventLogController {
+
+    private final UserEventLogService userEventLogService;
+
+    @Autowired
+    public UserEventLogController(UserEventLogService userEventLogService) {
+        this.userEventLogService = userEventLogService;
+    }
+
+    @PostMapping("/page/list")
+    public UserEventLogResponse getUserEventLogs(@RequestBody UserEventLogRequest request) {
+        return userEventLogService.getUserEventLogs(request);
+    }
+}
+```
+
+```java
+// UserEventLogMapper.java
+package com.example.mapper;
+
+import com.example.entity.UserEventLogRequest;
+import com.example.entity.UserEventLog;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface UserEventLogMapper {
+    Integer countUserEventLogs(UserEventLogRequest request);
+
+    List<UserEventLog> getUserEventLogs(UserEventLogRequest request);
+}
+```
+
+```xml
+<!-- UserEventLogMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserEventLogMapper">
+    <resultMap id="UserResultMap" type="com.example.entity.UserEventLog">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="userName" column="user_name"/>
+        <result property="realName" column="real_name"/>
+        <result property="content" column="content"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <select id="countUserEventLogs" parameterType="com.example.entity.UserEventLogRequest" resultType="java.lang.Integer" >
+        SELECT COUNT(*) FROM t_user_event_log
+        <where>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+            <if test="userName != null and userName != ''">
+                AND user_name = #{userName}
+            </if>
+        </where>
+    </select>
+
+    <select id="getUserEventLogs" parameterType="com.example.entity.UserEventLogRequest" resultMap="UserResultMap">
+        SELECT * FROM t_user_event_log
+        <where>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+            <if test="userName != null and userName != ''">
+                AND user_name = #{userName}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        LIMIT #{pageIndex}, #{pageSize}
+    </select>
+
+</mapper>
+
+```

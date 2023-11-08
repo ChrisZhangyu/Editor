@@ -1,0 +1,146 @@
+```java
+// Picture.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Picture {
+    private int id;
+    private String path;
+    private int type;
+    private String time;
+    private String url;
+    private int grade;
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object response;
+}
+```
+
+```java
+// PictureService.java
+package com.example.service;
+
+import com.example.entity.Picture;
+
+import java.util.List;
+
+public interface PictureService {
+    Picture findById(int id);
+    // 其他方法...
+}
+```
+
+```java
+// PictureServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Picture;
+import com.example.mapper.PictureMapper;
+import com.example.service.PictureService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class PictureServiceImpl implements PictureService {
+
+    private final PictureMapper pictureMapper;
+
+    @Autowired
+    public PictureServiceImpl(PictureMapper pictureMapper) {
+        this.pictureMapper = pictureMapper;
+    }
+
+    @Override
+    public Picture findById(int id) {
+        return pictureMapper.findById(id);
+    }
+
+    // 其他方法...
+}
+```
+
+```java
+// PictureController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.Picture;
+import com.example.service.PictureService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class PictureController {
+
+    private final PictureService pictureService;
+
+    @Autowired
+    public PictureController(PictureService pictureService) {
+        this.pictureService = pictureService;
+    }
+
+    @GetMapping("/picture/findById")
+    public ApiResponse findById(@RequestParam int id) {
+        Picture picture = pictureService.findById(id);
+        return new ApiResponse(1, "成功", picture);
+    }
+
+    // 其他方法...
+}
+```
+
+```java
+// PictureMapper.java
+package com.example.mapper;
+
+import com.example.entity.Picture;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import java.util.List;
+
+@Mapper
+public interface PictureMapper {
+    Picture findById(@Param("id") int id);
+    // 其他方法...
+}
+```
+
+```xml
+<!-- PictureMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.PictureMapper">
+
+    <select id="findById" resultType="com.example.entity.Picture">
+        SELECT * FROM ssm_picture WHERE id = #{id}
+    </select>
+
+    <!-- 其他SQL语句... -->
+
+</mapper>
+```

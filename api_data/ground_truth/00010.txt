@@ -1,0 +1,156 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Billboard.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.*;
+import java.util.Date;
+
+@Entity
+@Table(name = "bms_billboard")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Billboard {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "content")
+    private String content;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "show")
+    private boolean show;
+}
+```
+
+```java
+// BillboardService.java
+package com.example.service;
+
+import com.example.entity.Billboard;
+import java.util.List;
+
+public interface BillboardService {
+    List<Billboard> getBillboards();
+}
+```
+
+```java
+// BillboardServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Billboard;
+import com.example.mapper.BillboardMapper;
+import com.example.service.BillboardService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class BillboardServiceImpl implements BillboardService {
+    private final BillboardMapper billboardMapper;
+
+    @Autowired
+    public BillboardServiceImpl(BillboardMapper billboardMapper) {
+        this.billboardMapper = billboardMapper;
+    }
+
+    @Override
+    public List<Billboard> getBillboards() {
+        return billboardMapper.getBillboards();
+    }
+}
+```
+
+```java
+// BillboardController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import com.example.entity.Billboard;
+import com.example.entity.ApiResponse;
+import com.example.service.BillboardService;
+
+import java.util.List; // 添加import语句
+
+@RestController
+@RequestMapping("/billboard")
+public class BillboardController {
+    private final BillboardService billboardService;
+
+    @Autowired
+    public BillboardController(BillboardService billboardService) {
+        this.billboardService = billboardService;
+    }
+
+    @GetMapping("/show")
+    public ApiResponse getBillboards() {
+        List<Billboard> billboards = billboardService.getBillboards();
+        ApiResponse response = new ApiResponse(200, "操作成功", billboards);
+        return response;
+    }
+}
+```
+
+```java
+// BillboardMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+import com.example.entity.Billboard;
+
+import java.util.List;
+
+@Mapper
+public interface BillboardMapper {
+    List<Billboard> getBillboards();
+}
+```
+
+```xml
+<!-- BillboardMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.BillboardMapper">
+    <resultMap type="com.example.entity.Billboard" id="ArticleResult">
+        <result property="id" column="id"/>
+        <result property="content" column="content"/>
+        <result property="createTime" column="create_time"/>
+        <result property="show" column="show"/>
+    </resultMap>
+
+    <select id="getBillboards" resultMap="ArticleResult">
+        SELECT * FROM bms_billboard WHERE `show` = 1
+    </select>
+</mapper>
+```

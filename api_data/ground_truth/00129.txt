@@ -1,0 +1,218 @@
+```java
+// AdvSwiper.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_adv_swiper")
+public class AdvSwiper {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "adv_swiper_id")
+    private Integer advSwiperId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "name", length = 20)
+    private String name;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// CategorySecond.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_second")
+public class CategorySecond {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+}
+```
+
+```java
+// AdvSwiperService.java
+package com.example.service;
+
+import com.example.entity.AdvSwiper;
+import com.example.entity.ApiResponse;
+
+public interface AdvSwiperService {
+    ApiResponse createAdvSwiper(String name, int categorySecondId, String image);
+}
+```
+
+```java
+// AdvSwiperServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.AdvSwiper;
+import com.example.entity.ApiResponse;
+import com.example.entity.CategorySecond;
+import com.example.mapper.AdvSwiperMapper;
+import com.example.mapper.CategorySecondMapper;
+import com.example.service.AdvSwiperService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class AdvSwiperServiceImpl implements AdvSwiperService {
+
+    @Autowired
+    private AdvSwiperMapper advSwiperMapper;
+
+    @Autowired
+    private CategorySecondMapper categorySecondMapper;
+
+    @Override
+    public ApiResponse createAdvSwiper(String name, int categorySecondId, String image) {
+        if (name == null || image == null) {
+            return new ApiResponse(-1004, "字段不能为空", null);
+        }
+
+        CategorySecond categorySecond = categorySecondMapper.getCategorySecondById(categorySecondId);
+        if (categorySecond == null) {
+            return new ApiResponse(-1002, "该分类不存在", null);
+        }
+
+        AdvSwiper advSwiper = new AdvSwiper();
+        advSwiper.setName(name);
+        advSwiper.setCategorySecondId(categorySecondId);
+        advSwiper.setImage(image);
+        advSwiper.setCategoryName(categorySecond.getCategoryName());
+
+        advSwiperMapper.createAdvSwiper(advSwiper);
+
+        return new ApiResponse(100, "成功", advSwiper);
+    }
+}
+```
+
+```java
+// AdvSwiperController.java
+package com.example.controller;
+
+import com.example.entity.AdvSwiper;
+import com.example.entity.ApiResponse;
+import com.example.service.AdvSwiperService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/admin/v1/advs")
+public class AdvSwiperController {
+
+    @Autowired
+    private AdvSwiperService advSwiperService;
+
+    @PostMapping
+    public ApiResponse createAdvSwiper(@RequestParam String name, @RequestParam int categorySecondId, @RequestParam String image) {
+        return advSwiperService.createAdvSwiper(name, categorySecondId, image);
+    }
+}
+```
+
+```java
+// AdvSwiperMapper.java
+package com.example.mapper;
+
+import com.example.entity.AdvSwiper;
+
+public interface AdvSwiperMapper {
+    void createAdvSwiper(AdvSwiper advSwiper);
+}
+```
+```java
+// CategorySecondMapper.java
+package com.example.mapper;
+
+import com.example.entity.CategorySecond;
+
+public interface CategorySecondMapper {
+    CategorySecond getCategorySecondById(int categorySecondId);
+}
+```
+
+```xml
+<!-- AdvSwiperMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.AdvSwiperMapper">
+    <insert id="createAdvSwiper" parameterType="com.example.entity.AdvSwiper">
+        <selectKey keyProperty="advSwiperId" resultType="int" order="AFTER">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO tb_adv_swiper (name, category_second_id, category_name, image)
+        VALUES (#{name}, #{categorySecondId}, #{categoryName}, #{image})
+    </insert>
+</mapper>
+
+```
+
+```xml
+<!-- CategorySecondMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.CategorySecondMapper">
+    <select id="getCategorySecondById" resultType="com.example.entity.CategorySecond">
+        SELECT * FROM tb_category_second WHERE category_second_id = #{categorySecondId}
+    </select>
+</mapper>
+```

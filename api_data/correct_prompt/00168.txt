@@ -1,0 +1,411 @@
+业务功能逻辑：根据输入参数在t_user表中修改输入信息；在t_user表中将modify_time改为当前日期；根据输入的用户id、user_name、real_name和当前日期类创建一个用户日志对象，设置content为user_name + " 更新了个人资料"，将这个对象更新到t_user_event_log表中；返回{"code":1,"message":"成功","response":{"id":66,"userUuid":"d2d29da2-dcb3-4013-b874-727626236f47","userName":"student","realName":"学生","age":18,"role":1,"sex":1,"birthDay":"2019-09-17 00:00:00","phone":"158800882","lastActiveTime":"","createTime":"2019-09-07 18:55:02","modifyTime":"2021-09-23 21:20:34","status":1,"userLevel":1,"userLevelStr":null,"classes":null,"imagePath":""}}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// UpdateUserRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.Data;
+
+@Data
+public class UpdateUserRequest {
+    private String realName;
+    private int age;
+    private int sex;
+    private String birthDay;
+    private String phone;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.Data;
+
+@Data
+public class UpdateUserRequest {
+    private String realName;
+    private int age;
+    private int sex;
+    private String birthDay;
+    private String phone;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+```java
+// UserEventLog.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+
+import lombok.Data;
+
+@Data
+public class UpdateUserRequest {
+    private String realName;
+    private int age;
+    private int sex;
+    private String birthDay;
+    private String phone;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserEventLog {
+    private int id;
+    private int userId;
+    private String userName;
+    private String realName;
+    private String content;
+    private Date createTime;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.UserEventLog;
+import com.example.entity.User;
+import com.example.entity.UpdateUserRequest;
+
+import com.example.demo.model.User;
+import com.example.demo.model.UserEventLog;
+import com.example.demo.model.UpdateUserRequest;
+
+public interface UserService {
+    User updateUser(int userId, UpdateUserRequest request);
+}
+
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.UpdateUserRequest;
+import com.example.entity.User;
+import com.example.mapper.UserEventLogMapper;
+import com.example.mapper.UserMapper;
+import com.example.entity.UserEventLog;
+import com.example.service.UserService;
+
+import com.example.demo.mapper.UserEventLogMapper;
+import com.example.demo.mapper.UserMapper;
+import com.example.demo.model.User;
+import com.example.demo.model.UserEventLog;
+import com.example.demo.model.UpdateUserRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserMapper userMapper;
+    private final UserEventLogMapper userEventLogMapper;
+
+    @Autowired
+    public UserServiceImpl(UserMapper userMapper, UserEventLogMapper userEventLogMapper) {
+        this.userMapper = userMapper;
+        this.userEventLogMapper = userEventLogMapper;
+    }
+
+    @Override
+    public User updateUser(int userId, UpdateUserRequest request) {
+        User user = userMapper.getUserById(userId);
+        if (user == null) {
+            return null;
+        }
+
+        user.setRealName(request.getRealName());
+        user.setAge(request.getAge());
+        user.setSex(request.getSex());
+        user.setBirthDay(Date.valueOf(request.getBirthDay()));
+        user.setPhone(request.getPhone());
+        user.setModifyTime(new Date());
+
+        userMapper.updateUser(user);
+
+        UserEventLog eventLog = new UserEventLog();
+        eventLog.setUserId(user.getId());
+        eventLog.setUserName(user.getUserName());
+        eventLog.setRealName(user.getRealName());
+        eventLog.setContent(user.getUserName() + " 更新了个人资料");
+        eventLog.setCreateTime(new Date());
+
+        userEventLogMapper.addUserEventLog(eventLog);
+
+        return user;
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.entity.UpdateUserRequest;
+import com.example.entity.ApiResponse;
+import com.example.entity.User;
+import com.example.service.UserService;
+
+import com.example.demo.model.ApiResponse;
+import com.example.demo.model.UpdateUserRequest;
+import com.example.demo.model.User;
+import com.example.demo.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/wx/student/user")
+public class UserController {
+
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/update")
+    public ApiResponse<User> updateUser(@RequestBody UpdateUserRequest request) {
+        User user = userService.updateUser(request.getUserId(), request);
+        if (user == null) {
+            return new ApiResponse<>(0, "用户不存在", null);
+        }
+        return new ApiResponse<>(1, "成功", user);
+    }
+}
+```
+
+```java
+// UserEventLogMapper.java
+package com.example.mapper;
+
+import com.example.entity.UserEventLog;
+
+import com.example.demo.model.UserEventLog;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface UserEventLogMapper {
+    void addUserEventLog(UserEventLog eventLog);
+}
+```
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.UserEventLog;
+
+import com.example.demo.model.UserEventLog;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface UserEventLogMapper {
+    void addUserEventLog(UserEventLog eventLog);
+}
+import com.example.entity.User;
+
+import com.example.demo.model.User;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface UserMapper {
+    User getUserById(@Param("userId") int userId);
+
+    void updateUser(User user);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.UserMapper">
+
+    <resultMap id="userResultMap" type="com.example.demo.model.User">
+        <id property="id" column="id"/>
+        <result property="userUuid" column="user_uuid"/>
+        <result property="userName" column="user_name"/>
+        <result property="password" column="password"/>
+        <result property="realName" column="real_name"/>
+        <result property="age" column="age"/>
+        <result property="sex" column="sex"/>
+        <result property="birthDay" column="birth_day"/>
+        <result property="userLevel" column="user_level"/>
+        <result property="phone" column="phone"/>
+        <result property="role" column="role"/>
+        <result property="status" column="status"/>
+        <result property="imagePath" column="image_path"/>
+        <result property="createTime" column="create_time"/>
+        <result property="modifyTime" column="modify_time"/>
+        <result property="lastActiveTime" column="last_active_time"/>
+        <result property="deleted" column="deleted"/>
+        <result property="wxOpenId" column="wx_open_id"/>
+    </resultMap>
+
+    <select id="getUserById" resultMap="userResultMap">
+        SELECT * FROM t_user WHERE id = #{userId}
+    </select>
+
+    <update id="updateUser">
+        UPDATE t_user
+        SET real_name = #{realName},
+            age = #{age},
+            sex = #{sex},
+            birth_day = #{birthDay},
+            phone = #{phone},
+            modify_time = #{modifyTime}
+        WHERE id = #{id}
+    </update>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\wx_user_update_system\src\main\java\com\example\entity\UpdateUserRequest.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\wx_user_update_system\src\main\java\com\example\controller\UserController.java:8:30
+java: 程序包com.example.demo.model不存在
+Caused by: org.xml.sax.SAXParseException: 不允许有匹配 "[xX][mM][lL]" 的处理指令目标。
+Caused by: java.lang.ClassNotFoundException: Cannot find class: com.example.demo.model.User
+```
+```功能错误
+未实现根据用户真实名字获取用户ID
+更新t_user_event_log中个人资料信息变插入了
+```

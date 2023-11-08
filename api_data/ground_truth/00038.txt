@@ -1,0 +1,218 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private String status;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// LinLog.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "lin_log")
+public class LinLog {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
+
+    @Column(name = "message")
+    private String message;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "username")
+    private String username;
+
+    @Column(name = "status_code")
+    private Integer statusCode;
+
+    @Column(name = "method")
+    private String method;
+
+    @Column(name = "path")
+    private String path;
+
+    @Column(name = "permission")
+    private String permission;
+
+    @Column(name = "create_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createTime;
+
+    @Column(name = "update_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date updateTime;
+
+    @Column(name = "delete_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date deleteTime;
+
+    @Column(name = "is_deleted")
+    private Boolean isDeleted;
+}
+```
+
+```java
+// QueryLogDTO.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class QueryLogDTO {
+    Integer count;
+    Integer page;
+    Date start;
+    Date end;
+    String name;
+    String keyword;
+}
+```
+
+```java
+// LogService.java
+package com.example.service;
+
+import com.example.entity.LinLog;
+
+import java.util.Date;
+import java.util.List;
+
+public interface LogService {
+    List<LinLog> queryLogs(String name, Date start, Date end, Integer page, Integer count);
+}
+```
+
+```java
+// LogServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.LinLog;
+import com.example.mapper.LogMapper;
+import com.example.service.LogService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.List;
+
+@Service
+public class LogServiceImpl implements LogService {
+
+    private final LogMapper logMapper;
+
+    @Autowired
+    public LogServiceImpl(LogMapper logMapper) {
+        this.logMapper = logMapper;
+    }
+
+    @Override
+    public List<LinLog> queryLogs(String name, Date start, Date end, Integer page, Integer count) {
+        // 根据dto.name、dto.page、dto.count在lin_log表中进行分页查询
+        // 查询的记录lin_log.is_deleted必须为0，lin_log.create_time必须在dto.start和dto.end范围内
+        // 获取的结果按lin_log.create_time降序排列
+        return logMapper.queryLogs(name, start, end, page, count);
+    }
+}
+```
+
+```java
+// LogController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.LinLog;
+import com.example.entity.QueryLogDTO;
+import com.example.service.LogService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Date;
+import java.util.List;
+
+@RestController
+@RequestMapping("/cms/log")
+public class LogController {
+
+    private final LogService logService;
+
+    @Autowired
+    public LogController(LogService logService) {
+        this.logService = logService;
+    }
+
+    @GetMapping
+    public ApiResponse queryLogs(@RequestBody QueryLogDTO dto) {
+        int page = (dto.getPage() - 1) * dto.getCount();
+        List<LinLog> logs = logService.queryLogs(dto.getName(), dto.getStart(), dto.getEnd(), page, dto.getCount());
+        return new ApiResponse("success", "操作成功", logs);
+    }
+}
+```
+
+```java
+// LogMapper.java
+package com.example.mapper;
+
+import com.example.entity.LinLog;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.Date;
+import java.util.List;
+
+@Mapper
+public interface LogMapper {
+    List<LinLog> queryLogs(@Param("name") String name, @Param("start") Date start, @Param("end") Date end, @Param("page") Integer page, @Param("count") Integer count);
+}
+```
+
+```xml
+<!-- LogMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.LogMapper">
+
+    <select id="queryLogs" resultType="com.example.entity.LinLog">
+        SELECT * FROM lin_log
+        WHERE lin_log.is_deleted = 0
+        AND lin_log.create_time BETWEEN #{start} AND #{end}
+        <if test="name != null and name != ''">
+            AND lin_log.username = #{name}
+        </if>
+        ORDER BY lin_log.create_time DESC
+        LIMIT #{page}, #{count}
+    </select>
+
+</mapper>
+
+```

@@ -1,0 +1,206 @@
+﻿业务功能逻辑：
+用户分页：根据传入的参数从数据库中查询用户列表，请求参数中的userName、role用来过滤查询条件；还有用于分页的属性，包括pageIndex（页码）和pageSize(每页记录数)。如果查询到用户数据，则返回UserPageListResponse；否则返回一个失败的响应，提示"用户信息检索失败"。
+
+需要检查的代码：
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private Integer id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private Integer age;
+    private Integer sex;
+    private Date birthDay;
+    private Integer userLevel;
+    private String phone;
+    private Integer role;
+    private Integer status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private Boolean deleted;
+    private String wxOpenId;
+}
+```
+```java
+// UserPageListRequest.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserPageListRequest {
+    private String userName;
+    private Integer role;
+    private Integer pageIndex;
+    private Integer pageSize;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.UserPageListRequest;
+import com.example.entity.UserPageListResponse;
+
+public interface UserService {
+    UserPageListResponse getUserPageList(UserPageListRequest request);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.service.UserService;
+import com.example.entity.User;
+import com.example.entity.UserPageListRequest;
+import com.example.mapper.UserMapper;
+import com.example.entity.UserPageListResponse;
+
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class UserServiceImpl implements UserService {
+    private final UserMapper userMapper;
+
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public UserPageListResponse getUserPageList(UserPageListRequest request) {
+        UserPageListResponse response = new UserPageListResponse();
+        try {
+            Integer total = userMapper.getUserCount(request.getUserName(), request.getRole());
+            List<User> userList = userMapper.getUserPageList(request.getUserName(), request.getRole(), request.getPageIndex(), request.getPageSize());
+            UserPageListResponse.UserPageListData data = new UserPageListResponse.UserPageListData(total, userList);
+            response.setCode(1);
+            response.setMessage("成功");
+            response.setResponse(data);
+        } catch (Exception e) {
+            response.setCode(-1);
+            response.setMessage("用户信息检索失败");
+        }
+        return response;
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.service.UserService;
+import com.example.entity.UserPageListRequest;
+import com.example.entity.UserPageListResponse;
+
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/user")
+public class UserController {
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/page/list")
+    public UserPageListResponse getUserPageList(@RequestBody UserPageListRequest request) {
+        return userService.getUserPageList(request);
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface UserMapper {
+    Integer getUserCount(@Param("userName") String userName, @Param("role") Integer role);
+
+    List<User> getUserPageList(@Param("userName") String userName, @Param("role") Integer role, @Param("pageIndex") Integer pageIndex, @Param("pageSize") Integer pageSize);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+
+    <select id="getUserCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM t_user
+        <where>
+            <if test="userName != null and userName != ''">
+                AND user_name LIKE CONCAT('%', #{userName}, '%')
+            </if>
+            <if test="role != null">
+                AND role = #{role}
+            </if>
+        </where>
+    </select>
+
+    <select id="getUserPageList" resultType="com.example.entity.User">
+        SELECT * FROM t_user
+        <where>
+            <if test="userName != null and userName != ''">
+                AND user_name LIKE CONCAT('%', #{userName}, '%')
+            </if>
+            <if test="role != null">
+                AND role = #{role}
+            </if>
+        </where>
+        LIMIT #{pageIndex}, #{pageSize}
+    </select>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+UserServiceImpl.java:7:26
+java: 找不到符号
+  符号:   类 UserPageListResponse
+  位置: 程序包 com.example.entity
+```
+```语法错误
+在UserMapper.xml中缺少User实体类属性与表t_user字段间的映射语句，导致返回结果不完整。
+```

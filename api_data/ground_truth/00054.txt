@@ -1,0 +1,211 @@
+﻿```java
+// Result.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Result {
+    private boolean success;
+    private String message;
+    
+    public static Result success(String message) {
+        return new Result(true, message);
+    }
+    
+    public static Result failure(String message) {
+        return new Result(false, message);
+    }
+}
+
+
+```
+```java
+// Store.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Store {
+    /**
+     * 主键ID
+     */
+    private int id;
+
+    /**
+     * 类别
+     */
+    private String category;
+
+    /**
+     * 编号
+     */
+    private String number;
+
+    /**
+     * 等级
+     */
+    private String level;
+
+    /**
+     * 页面
+     */
+    private String page;
+
+    /**
+     * 状态
+     */
+    private int status;
+
+}
+```
+```java
+// StoreDeleteRequest.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class StoreDeleteRequest {
+    private String ids;
+}
+```
+
+```java
+// StoreService.java
+
+package com.example.service;
+
+import com.example.entity.Result;
+import com.example.entity.StoreDeleteRequest;
+
+public interface StoreService {
+    Result deleteStore(StoreDeleteRequest request);
+}
+```
+
+```java
+// StoreServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.service.StoreService;
+import com.example.mapper.StoreMapper;
+import com.example.entity.Result;
+import com.example.entity.StoreDeleteRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class StoreServiceImpl implements StoreService {
+    
+    @Autowired
+    private StoreMapper storeMapper;
+    
+    @Override
+    public Result deleteStore(StoreDeleteRequest request) {
+        String ids = request.getIds();
+        if (ids == null || ids.isEmpty()) {
+            return Result.failure("ids不能为空!");
+        }
+        
+        String[] idArray = ids.split(",");
+        for (String id : idArray) {
+            if (!isInteger(id)) {
+                return Result.failure("字符串无效，请重新输入！");
+            }
+        }
+        
+        int count = storeMapper.deleteStoreByIds(idArray);
+        if (count > 0) {
+            return Result.success("删除成功");
+        } else {
+            return Result.failure("删除失败");
+        }
+    }
+    
+    private boolean isInteger(String str) {
+        try {
+            Integer.parseInt(str);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+}
+```
+
+```java
+// StoreController.java
+
+package com.example.controller;
+
+import com.example.service.StoreService;
+import com.example.entity.Result;
+import com.example.entity.StoreDeleteRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/store")
+public class StoreController {
+    
+    @Autowired
+    private StoreService storeService;
+    
+    @PostMapping("/delete")
+    public Result deleteStore(StoreDeleteRequest request) {
+        return storeService.deleteStore(request);
+    }
+}
+```
+
+```java
+// StoreMapper.java
+
+package com.example.mapper;
+
+
+import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Param;
+
+public interface StoreMapper {
+    int deleteStoreByIds(@Param("ids") String[] ids);
+}
+```
+
+```xml
+<!-- StoreMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.StoreMapper">
+    <delete id="deleteStoreByIds">
+        DELETE FROM ssm_store WHERE id IN
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
+
+```

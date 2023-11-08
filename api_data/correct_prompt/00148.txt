@@ -1,0 +1,223 @@
+业务功能逻辑：
+根据good的goodId、goodName、categorySecondId属性在tb_good表中分页查询商品列表，只获取tb_good.inventory大于0的记录，获取结果按orderBy进行排序，返回data设置为{[tb_good记录]}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+```
+
+```java
+// Good.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_good")
+public class Good {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "good_name", length = 20)
+    private String goodName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+    @Column(name = "price", precision = 10, scale = 2)
+    private Double price;
+
+    @Column(name = "original_price", precision = 10, scale = 2)
+    private Double originalPrice;
+
+    @Column(name = "inventory")
+    private Integer inventory;
+
+    @Column(name = "sold_count")
+    private Integer soldCount;
+
+    @Column(name = "spec", length = 20)
+    private String spec;
+
+    @Column(name = "origin", length = 10)
+    private String origin;
+}
+```
+
+```java
+// GoodService.java
+package com.example.service;
+
+import java.util.List;
+
+public interface GoodService {
+    List<Good> getGoods(int page, int rows, String orderBy, Good good);
+}
+```
+
+```java
+// GoodServiceImpl.java
+package com.example.service.impl;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class GoodServiceImpl implements GoodService {
+    @Override
+    public List<Good> getGoods(int page, int rows, String orderBy, Good good) {
+        // 在tb_good表中分页查询商品列表的逻辑
+        // 只获取tb_good.inventory大于0的记录
+        // 获取结果按orderBy进行排序
+        // 返回查询结果
+        return null;
+    }
+}
+```
+
+```java
+// GoodController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/user/v1")
+public class GoodController {
+    private final GoodService goodService;
+
+    @Autowired
+    public GoodController(GoodService goodService) {
+        this.goodService = goodService;
+    }
+
+    @GetMapping("/goods")
+    public ApiResponse<List<Good>> getGoods(int page, int rows, String orderBy, Good good) {
+        List<Good> goods = goodService.getGoods(page, rows, orderBy, good);
+        return new ApiResponse<>(100, "成功", goods);
+    }
+}
+```
+
+```java
+// GoodMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface GoodMapper {
+    List<Good> selectGoods(Good good);
+}
+```
+
+```xml
+<!-- GoodMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.GoodMapper">
+    <select id="selectGoods" resultType="com.example.entity.Good">
+        SELECT * FROM tb_good
+        WHERE good_id = #{goodId}
+        AND good_name = #{goodName}
+        AND category_second_id = #{categorySecondId}
+        AND inventory > 0
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+GoodController.java:11:19
+java: 找不到符号
+  符号:   类 GoodService
+  位置: 类 com.example.controller.GoodController
+GoodController.java:14:27
+java: 找不到符号
+  符号:   类 GoodService
+  位置: 类 com.example.controller.GoodController
+GoodController.java:19:81
+java: 找不到符号
+  符号:   类 Good
+  位置: 类 com.example.controller.GoodController
+GoodController.java:19:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.GoodController
+GoodController.java:19:24
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.controller.GoodController
+GoodController.java:19:29
+java: 找不到符号
+  符号:   类 Good
+  位置: 类 com.example.controller.GoodController
+GoodMapper.java:9:28
+java: 找不到符号
+  符号:   类 Good
+  位置: 接口 com.example.mapper.GoodMapper
+GoodMapper.java:9:10
+java: 找不到符号
+  符号:   类 Good
+  位置: 接口 com.example.mapper.GoodMapper
+GoodService.java:6:61
+java: 找不到符号
+  符号:   类 Good
+  位置: 接口 com.example.service.GoodService
+GoodService.java:6:10
+java: 找不到符号
+  符号:   类 Good
+  位置: 接口 com.example.service.GoodService
+GoodServiceImpl.java:6:41
+java: 找不到符号
+  符号: 类 GoodService
+GoodServiceImpl.java:8:68
+java: 找不到符号
+  符号:   类 Good
+  位置: 类 com.example.service.impl.GoodServiceImpl
+GoodServiceImpl.java:8:12
+java: 找不到符号
+  符号:   类 List
+  位置: 类 com.example.service.impl.GoodServiceImpl
+GoodServiceImpl.java:8:17
+java: 找不到符号
+  符号:   类 Good
+  位置: 类 com.example.service.impl.GoodServiceImpl
+```
+
+```功能错误
+在GoodController.java模块的getGoods接口函数没有对参数注释输入类型@RequestParam和@RequestBody.
+以下功能没有实现：在tb_good表中分页查询商品列表的逻辑、只获取tb_good.inventory大于0的记录、获取结果按orderBy进行排序、返回查询结果.
+```

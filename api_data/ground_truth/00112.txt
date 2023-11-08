@@ -1,0 +1,284 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T response;
+}
+```
+```java
+// RegisterRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class RegisterRequest {
+    private String userName;
+    private String password;
+    private int userLevel;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private int id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private int age;
+    private int sex;
+    private Date birthDay;
+    private int userLevel;
+    private String phone;
+    private int role;
+    private int status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private boolean deleted;
+    private String wxOpenId;
+}
+```
+```java
+// UserEventLog.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserEventLog {
+    private int id;
+    private int userId;
+    private String userName;
+    private String realName;
+    private String content;
+    private Date createTime;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface UserService {
+    ApiResponse<Void> registerUser(String userName, String password, int userLevel);
+}
+
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.User;
+import com.example.entity.ApiResponse;
+import com.example.entity.UserEventLog;
+import com.example.service.UserService;
+import com.example.mapper.UserMapper;
+import com.example.mapper.UserEventLogMapper;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.UUID;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserMapper userMapper;
+    private final UserEventLogMapper userEventLogMapper;
+
+    @Autowired
+    public UserServiceImpl(UserMapper userMapper, UserEventLogMapper userEventLogMapper) {
+        this.userMapper = userMapper;
+        this.userEventLogMapper = userEventLogMapper;
+    }
+
+    @Override
+    public ApiResponse<Void> registerUser(String userName, String password, int userLevel) {
+        User existingUser = userMapper.findByUserName(userName);
+        User newUser = new User();
+        newUser.setUserUuid(UUID.randomUUID().toString());
+        newUser.setUserName(userName);
+        newUser.setPassword(password);
+        newUser.setUserLevel(userLevel);
+        newUser.setRole(1);
+        newUser.setStatus(1);
+        newUser.setLastActiveTime(new Date());
+        newUser.setCreateTime(new Date());
+        newUser.setDeleted(false);
+        if (existingUser != null) {
+            UserEventLog userEventLog = new UserEventLog();
+            userEventLog.setUserId(newUser.getId());
+            userEventLog.setUserName(newUser.getUserName());
+            userEventLog.setRealName(newUser.getRealName());
+            userEventLog.setContent("欢迎 " + newUser.getUserName() + " 来到学之思开源考试系统");
+            userEventLog.setCreateTime(new Date());
+            userEventLogMapper.update(userEventLog);
+            return new ApiResponse<>(2, "用户已存在", null);
+        }
+        userMapper.insert(newUser);
+
+        UserEventLog userEventLog = new UserEventLog();
+        userEventLog.setUserId(newUser.getId());
+        userEventLog.setUserName(newUser.getUserName());
+        userEventLog.setRealName(newUser.getRealName());
+        userEventLog.setContent("欢迎 " + newUser.getUserName() + " 注册来到学之思开源考试系统");
+        userEventLog.setCreateTime(new Date());
+        userEventLogMapper.insert(userEventLog);
+
+        return new ApiResponse<>(1, "成功", null);
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.RegisterRequest;
+import com.example.service.UserService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/wx/student/user")
+public class UserController {
+
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/register")
+    public ApiResponse<Void> registerUser(@RequestBody RegisterRequest request) {
+        return userService.registerUser(request.getUserName(), request.getPassword(), request.getUserLevel());
+    }
+}
+```
+
+```java
+// UserEventLogMapper.java
+package com.example.mapper;
+
+import com.example.entity.UserEventLog;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface UserEventLogMapper {
+    void update(UserEventLog userEventLog);
+
+    void insert(UserEventLog userEventLog);
+}
+```
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import com.example.entity.User;
+
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface UserMapper {
+    User findByUserName(@Param("userName") String userName);
+    void insert(User user);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.entity.User">
+        <id column="id" property="id" />
+        <result column="user_uuid" property="userUuid" />
+        <result column="user_name" property="userName" />
+        <result column="password" property="password" />
+        <result column="real_name" property="realName" />
+        <result column="age" property="age" />
+        <result column="sex" property="sex" />
+        <result column="birth_day" property="birthDay" />
+        <result column="user_level" property="userLevel" />
+        <result column="phone" property="phone" />
+        <result column="role" property="role" />
+        <result column="status" property="status" />
+        <result column="image_path" property="imagePath" />
+        <result column="create_time" property="createTime" />
+        <result column="modify_time" property="modifyTime" />
+        <result column="last_active_time" property="lastActiveTime" />
+        <result column="deleted" property="deleted" />
+        <result column="wx_open_id" property="wxOpenId" />
+    </resultMap>
+
+    <select id="findByUserName" resultMap="BaseResultMap">
+        SELECT * FROM t_user WHERE user_name = #{userName}
+    </select>
+
+    <insert id="insert">
+        INSERT INTO t_user (user_uuid, user_name, password, real_name, age, sex, birth_day, user_level, phone, role, status, image_path, create_time, modify_time, last_active_time, deleted, wx_open_id)
+        VALUES (#{userUuid}, #{userName}, #{password}, #{realName}, #{age}, #{sex}, #{birthDay}, #{userLevel}, #{phone}, #{role}, #{status}, #{imagePath}, #{createTime}, #{modifyTime}, #{lastActiveTime}, #{deleted}, #{wxOpenId})
+    </insert>
+
+</mapper>
+
+```
+

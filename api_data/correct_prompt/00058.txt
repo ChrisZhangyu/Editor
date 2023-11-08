@@ -1,0 +1,376 @@
+﻿业务功能逻辑：
+根据请求路径中传入的参数ids从表ssm_storebook中获取指定id的书籍库存信息，多个ids时，以逗号分隔，迭代处理每个指定的书籍库存。从数据库表ssm_storebook中获取指定id的书籍库存信息对象；检查该对象是否为空，如果不为空，则执行下面的操作：在表ssm_storebook中检查number属性的值是否大于1；如果number大于1，将number减去1，然后更新表中的书籍信息；否则删除表ssm_storebook中的这本书籍；每个库存书籍对象还关联着表ssm_book根据库存书籍的id从表ssm_book中获取相关的书籍信息，如果书籍的供应数量大于0，则将书籍的供应数量减1，表示销售了一本书籍；如果书籍的供应数量小于1，将书籍的状态属性设置为 "0"，并将结果保存到对应的表中，如果操作成功，则返回{"success": true}，否则返回{"success": false}。
+
+需要检查的代码：
+```java
+// Book.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Book {
+    private int id;
+    private String isbn;
+    private String path;
+    private String title;
+    private String subtitle;
+    private String originalTitle;
+    private BigDecimal marketPrice;
+    private String intro;
+    private String binding;
+    private int pages;
+    private String author;
+    private String publisher;
+    private String catalog;
+    private int supply;
+    private String status;
+    private int hot;
+    private String indate;
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getIsbn() {
+        return isbn;
+    }
+
+    public void setIsbn(String isbn) {
+        this.isbn = isbn;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getSubtitle() {
+        return subtitle;
+    }
+
+    public void setSubtitle(String subtitle) {
+        this.subtitle = subtitle;
+    }
+
+    public String getOriginalTitle() {
+        return originalTitle;
+    }
+
+    public void setOriginalTitle(String originalTitle) {
+        this.originalTitle = originalTitle;
+    }
+
+    public BigDecimal getMarketPrice() {
+        return marketPrice;
+    }
+
+    public void setMarketPrice(BigDecimal marketPrice) {
+        this.marketPrice = marketPrice;
+    }
+
+    public String getIntro() {
+        return intro;
+    }
+
+    public void setIntro(String intro) {
+        this.intro = intro;
+    }
+
+    public String getBinding() {
+        return binding;
+    }
+
+    public void setBinding(String binding) {
+        this.binding = binding;
+    }
+
+    public int getPages() {
+        return pages;
+    }
+
+    public void setPages(int pages) {
+        this.pages = pages;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
+    }
+
+    public String getPublisher() {
+        return publisher;
+    }
+
+    public void setPublisher(String publisher) {
+        this.publisher = publisher;
+    }
+
+    public String getCatalog() {
+        return catalog;
+    }
+
+    public void setCatalog(String catalog) {
+        this.catalog = catalog;
+    }
+
+    public int getSupply() {
+        return supply;
+    }
+
+    public void setSupply(int supply) {
+        this.supply = supply;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public int getHot() {
+        return hot;
+    }
+
+    public void setHot(int hot) {
+        this.hot = hot;
+    }
+
+    public String getIndate() {
+        return indate;
+    }
+
+    public void setIndate(String indate) {
+        this.indate = indate;
+    }
+}
+```
+```java
+// OutWarehouseRequest.java
+package com.example.entity;
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OutWarehouseRequest {
+    private String ids;
+}
+```
+
+```java
+// StoreBook.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class StoreBook {
+    private int id;
+    private String isbn;
+    private int storeId;
+    private int number;
+    private String inDate;
+
+}
+```
+
+```java
+// StoreBookService.java
+package com.example.service;
+
+import com.example.entity.OutWarehouseRequest;
+import com.example.entity.OutWarehouseResponse;
+
+public interface StoreBookService {
+    OutWarehouseResponse outWarehouse(OutWarehouseRequest request);
+}
+```
+
+```java
+// StoreBookServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.OutWarehouseRequest;
+import com.example.mapper.StoreBookMapper;
+import com.example.mapper.BookMapper;
+import com.example.entity.Book;
+import com.example.entity.StoreBook;
+import com.example.entity.OutWarehouseResponse;
+import com.example.service.StoreBookService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class StoreBookServiceImpl implements StoreBookService {
+
+    @Autowired
+    private StoreBookMapper storeBookMapper;
+
+    @Autowired
+    private BookMapper bookMapper;
+
+    @Override
+    public OutWarehouseResponse outWarehouse(OutWarehouseRequest request) {
+        OutWarehouseResponse response = new OutWarehouseResponse();
+        String[] ids = request.getIds().split(",");
+        for (String id : ids) {
+            StoreBook storeBook = storeBookMapper.getById(Integer.parseInt(id));
+            if (storeBook != null) {
+                if (storeBook.getNumber() > 1) {
+                    storeBook.setNumber(storeBook.getNumber() - 1);
+                    storeBookMapper.update(storeBook);
+                } else {
+                    storeBookMapper.delete(Integer.parseInt(id));
+                }
+                Book book = bookMapper.getById(storeBook.getId());
+                if (book.getSupply() > 0) {
+                    book.setSupply(book.getSupply() - 1);
+                    bookMapper.update(book);
+                } else {
+                    book.setStatus("0");
+                    bookMapper.update(book);
+                }
+            }
+        }
+        response.setSuccess(true);
+        return response;
+    }
+}
+```
+
+```java
+// StoreBookController.java
+package com.example.controller;
+
+import com.example.entity.OutWarehouseRequest;
+import com.example.service.StoreBookService;
+import com.example.entity.OutWarehouseResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/storeBook")
+public class StoreBookController {
+
+    @Autowired
+    private StoreBookService storeBookService;
+
+    @PostMapping("/outWarehouse")
+    public OutWarehouseResponse outWarehouse(@RequestParam("ids") String ids) {
+        OutWarehouseRequest request = new OutWarehouseRequest(ids);
+        return storeBookService.outWarehouse(request);
+    }
+}
+```
+
+```java
+// BookMapper.java
+package com.example.mapper;
+
+import com.example.entity.Book;
+
+public interface BookMapper {
+    Book getById(int id);
+    void update(Book book);
+}
+```
+```java
+// StoreBookMapper.java
+package com.example.mapper;
+
+
+import com.example.entity.StoreBook;
+
+public interface StoreBookMapper {
+    StoreBook getById(int id);
+    void update(StoreBook storeBook);
+    void delete(int id);
+}
+```
+
+```xml
+<!-- StoreBookMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.StoreBookMapper">
+   
+    <select id="getById" >
+        SELECT * FROM ssm_storebook WHERE id = #{id}
+    </select>
+
+    <update id="update">
+        UPDATE ssm_storebook SET isbn = #{isbn}, storeId = #{storeId}, number = #{number}, inDate = #{inDate} WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM ssm_storebook WHERE id = #{id}
+    </delete>
+</mapper>
+
+```
+```xml
+<!-- BookMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.BookMapper">
+    
+    <select id="getById" >
+        SELECT * FROM ssm_book WHERE id = #{id}
+    </select>
+
+    <update id="update">
+        UPDATE ssm_book SET isbn = #{isbn}, path = #{path}, title = #{title}, subtitle = #{subtitle}, originalTitle = #{originalTitle}, marketPrice = #{marketPrice}, intro = #{intro}, binding = #{binding}, pages = #{pages}, author = #{author}, publisher = #{publisher}, catalog = #{catalog}, supply = #{supply}, status = #{status}, hot = #{hot}, indate = #{indate} WHERE id = #{id}
+    </update>
+</mapper>
+```
+
+代码执行的错误信息：
+```依赖错误
+StoreBookServiceImpl.java:8:26
+java: 找不到符号
+  符号:   类 OutWarehouseResponse
+  位置: 程序包 com.example.entity
+```
+```语法错误
+在StoreBookMapper.xml和BookMapper.xml 中分别缺少StoreBook和Book实体类属性与表ssm_storebook、ssm_book字段间的映射语句。
+```

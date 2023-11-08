@@ -1,0 +1,289 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Post.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "bms_post")
+public class Post {
+    @Id
+    @Column(name = "id", length = 20)
+    private String id;
+
+    @Column(name = "title")
+    private String title;
+
+    @Column(name = "content", columnDefinition = "longtext")
+    private String content;
+
+    @Column(name = "user_id", length = 20)
+    private String userId;
+
+    @Column(name = "comments")
+    private int comments;
+
+    @Column(name = "collects")
+    private int collects;
+
+    @Column(name = "view")
+    private int view;
+
+    @Column(name = "top")
+    private boolean top;
+
+    @Column(name = "essence")
+    private boolean essence;
+
+    @Column(name = "section_id")
+    private String sectionId;
+
+    @Column(name = "create_time")
+    private Date createTime;
+
+    @Column(name = "modify_time")
+    private Date modifyTime;
+}
+```
+
+```java
+// UmsUser.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UmsUser {
+    /**
+     * 用户ID
+     */
+    private String id;
+
+    /**
+     * 用户名
+     */
+    private String username;
+
+    /**
+     * 别名
+     */
+    private String alias;
+
+    /**
+     * 密码
+     */
+    private String password;
+
+    /**
+     * 头像
+     */
+    private String avatar;
+
+    /**
+     * 邮箱
+     */
+    private String email;
+
+    /**
+     * 手机号码
+     */
+    private String mobile;
+
+    /**
+     * 积分
+     */
+    private int score;
+
+    /**
+     * 令牌
+     */
+    private String token;
+
+    /**
+     * 个人简介
+     */
+    private String bio;
+
+    /**
+     * 是否激活
+     */
+    private boolean active;
+
+    /**
+     * 状态
+     */
+    private boolean status;
+
+    /**
+     * 角色ID
+     */
+    private String roleId;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 修改时间
+     */
+    private Date modifyTime;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.UmsUser;
+import java.util.List;
+
+public interface UserService {
+    UmsUser getUserByUsername(String username);
+    List<UmsUser> getUsersByPostId(Long postId, int pageNo, int size);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.UmsUser;
+import com.example.mapper.UmsUserMapper;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UmsUserMapper userMapper;
+
+    @Autowired
+    public UserServiceImpl(UmsUserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public UmsUser getUserByUsername(String username) {
+        return userMapper.getUserByUsername(username);
+    }
+
+    @Override
+    public List<UmsUser> getUsersByPostId(Long postId, int pageNo, int size) {
+        int offset = (pageNo - 1) * size;
+        return userMapper.getUsersByPostId(postId, offset, size);
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.UmsUser;
+import com.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+public class UserController {
+
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/ums/user/{username}")
+    public ApiResponse getUserByUsername(@PathVariable String username,
+                                         @RequestParam(defaultValue = "1") int pageNo,
+                                         @RequestParam(defaultValue = "10") int size) {
+        UmsUser user = userService.getUserByUsername(username);
+        if (user == null) {
+            return new ApiResponse(200, "操作成功", null);
+        } else {
+            List<UmsUser> users = userService.getUsersByPostId(Long.valueOf(user.getId()), pageNo, size);
+            return new ApiResponse(200, "操作成功", users);
+        }
+    }
+}
+```
+
+```java
+// UmsUserMapper.java
+package com.example.mapper;
+
+import com.example.entity.UmsUser;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface UmsUserMapper {
+    UmsUser getUserByUsername(String username);
+    List<UmsUser> getUsersByPostId(@Param("postId") Long postId,
+                                   @Param("offset") int offset,
+                                   @Param("size") int size);
+}```
+
+```xml
+<!-- UmsUserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UmsUserMapper">
+
+    <select id="getUserByUsername" resultType="com.example.entity.UmsUser">
+        SELECT * FROM ums_user WHERE username = #{username}
+    </select>
+
+    <select id="getUsersByPostId" resultType="com.example.entity.UmsUser">
+        SELECT * FROM ums_user WHERE id IN (
+        SELECT user_id FROM bms_post WHERE user_id = #{postId}
+        ) LIMIT #{offset}, #{size}
+    </select>
+
+</mapper>
+```

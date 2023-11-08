@@ -1,0 +1,207 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// CategoryFirst.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_first")
+public class CategoryFirst {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+}
+```
+
+```java
+// CategorySecond.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_second")
+public class CategorySecond {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+}
+```
+
+```java
+// CategoryService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+import java.util.List;
+
+public interface CategoryService {
+    ApiResponse getCategoryFirst(int start, int rows);
+
+    ApiResponse getCategorySecond(int categoryFirstId);
+}
+```
+
+```java
+// CategoryServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.entity.CategoryFirst;
+import com.example.entity.CategorySecond;
+import com.example.mapper.CategoryMapper;
+import com.example.service.CategoryService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class CategoryServiceImpl implements CategoryService {
+    private final CategoryMapper categoryMapper;
+
+    @Autowired
+    public CategoryServiceImpl(CategoryMapper categoryMapper) {
+        this.categoryMapper = categoryMapper;
+    }
+
+    @Override
+    public ApiResponse getCategoryFirst(int start, int rows) {
+        List<CategoryFirst> categoryFirstList = categoryMapper.getCategoryFirstList(start, rows);
+
+        List<Map<String, Object>> resultList = new ArrayList<>();
+        for(CategoryFirst categoryFirst : categoryFirstList) {
+            List<CategorySecond> categorySecondList = categoryMapper.getCategorySecondListByFirstId(categoryFirst.getCategoryFirstId());
+            Map<String, Object> result = new HashMap<>();
+            result.put("categoryFirstId", categoryFirst.getCategoryFirstId());
+            result.put("categoryName", categoryFirst.getCategoryName());
+            result.put("categorySeconds", categorySecondList);
+            resultList.add(result);
+        }
+        return new ApiResponse(100, "成功", resultList);
+    }
+
+    @Override
+    public ApiResponse getCategorySecond(int categoryFirstId) {
+        List<CategorySecond> categorySecondList = categoryMapper.getCategorySecondListByFirstId(categoryFirstId);
+        return new ApiResponse(100, "成功", categorySecondList);
+    }
+}
+```
+
+```java
+// CategoryController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.CategoryService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/user/v1/category")
+public class CategoryController {
+    private final CategoryService categoryService;
+
+    @Autowired
+    public CategoryController(CategoryService categoryService) {
+        this.categoryService = categoryService;
+    }
+
+    @GetMapping("/first")
+    public ApiResponse getCategoryFirst(@RequestParam("page") int page, @RequestParam("rows") int rows) {
+        // 分页查询逻辑
+        int start = (page - 1) * rows;
+        return categoryService.getCategoryFirst(start, rows);
+    }
+}
+```
+
+```java
+// CategoryMapper.java
+package com.example.mapper;
+
+import com.example.entity.CategoryFirst;
+import com.example.entity.CategorySecond;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import java.util.List;
+
+@Mapper
+public interface CategoryMapper {
+    List<CategoryFirst> getCategoryFirstList(@Param("start") int start, @Param("size") int size);
+
+    List<CategorySecond> getCategorySecondListByFirstId(@Param("categoryFirstId") int categoryFirstId);
+
+}
+```
+
+```xml
+<!-- CategoryMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.CategoryMapper">
+    <select id="getCategoryFirstList" resultType="com.example.entity.CategoryFirst">
+        SELECT * FROM tb_category_first
+        LIMIT #{start}, #{size}
+    </select>
+
+    <select id="getCategorySecondListByFirstId" resultType="com.example.entity.CategorySecond">
+        SELECT * FROM tb_category_second WHERE category_first_id = #{categoryFirstId}
+    </select>
+</mapper>
+
+```

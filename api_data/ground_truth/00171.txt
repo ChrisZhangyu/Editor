@@ -1,0 +1,173 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Good.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_good")
+public class Good {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "good_name", length = 20)
+    private String goodName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+    @Column(name = "price", precision = 10, scale = 2)
+    private Double price;
+
+    @Column(name = "original_price", precision = 10, scale = 2)
+    private Double originalPrice;
+
+    @Column(name = "inventory")
+    private Integer inventory;
+
+    @Column(name = "sold_count")
+    private Integer soldCount;
+
+    @Column(name = "spec", length = 20)
+    private String spec;
+
+    @Column(name = "origin", length = 10)
+    private String origin;
+}
+```
+
+```java
+// GoodService.java
+package com.example.service;
+
+import com.example.entity.Good;
+
+import java.util.List;
+
+public interface GoodService {
+    List<Good> getGoodsByPage(int page, int rows, int categorySecondId);
+}
+```
+
+```java
+// GoodServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.Good;
+import com.example.mapper.GoodMapper;
+import com.example.service.GoodService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class GoodServiceImpl implements GoodService {
+    private final GoodMapper goodMapper;
+
+    @Autowired
+    public GoodServiceImpl(GoodMapper goodMapper) {
+        this.goodMapper = goodMapper;
+    }
+
+    @Override
+    public List<Good> getGoodsByPage(int page, int rows, int categorySecondId) {
+        int start = (page - 1) * rows;
+        return goodMapper.getGoodsByPage(start, rows, categorySecondId);
+    }
+}
+```
+
+```java
+// GoodController.java
+package com.example.controller;
+
+import com.example.entity.Good;
+import com.example.service.GoodService;
+import com.example.entity.ApiResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/user/v1/categories")
+public class GoodController {
+    private final GoodService goodService;
+
+    @Autowired
+    public GoodController(GoodService goodService) {
+        this.goodService = goodService;
+    }
+
+    @GetMapping("/{categoryId}/goods")
+    public ApiResponse getGoodsByCategory(@PathVariable int categoryId, int page, int rows) {
+        int categorySecondId = categoryId; // 根据实际情况设置categorySecondId
+        List<Good> goods = goodService.getGoodsByPage(page, rows, categorySecondId);
+        return new ApiResponse(100, "成功", goods);
+    }
+}
+```
+
+```java
+// GoodMapper.java
+package com.example.mapper;
+
+import com.example.entity.Good;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface GoodMapper {
+    List<Good> getGoodsByPage(@Param("start") int start, @Param("rows") int rows, @Param("categorySecondId") int categorySecondId);
+}
+```
+
+```xml
+<!-- GoodMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.GoodMapper">
+    <select id="getGoodsByPage" resultType="com.example.entity.Good">
+        SELECT * FROM tb_good
+        WHERE category_second_id = #{categorySecondId}
+        LIMIT #{start}, #{rows}
+    </select>
+</mapper>
+
+```

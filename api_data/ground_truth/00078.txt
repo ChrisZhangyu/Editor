@@ -1,0 +1,236 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int count;
+}```
+```java
+// DeleteOrderRequest.java
+package com.example.entity;
+
+import lombok.Data;
+
+@Data
+public class DeleteOrderRequest {
+    private Long[] ids;
+}```
+```java
+// OmsOrder.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrder {
+    private Long id;
+    private Long memberId;
+    private Long couponId;
+    private String orderSn;
+    private Timestamp createTime;
+    private String memberUsername;
+    private BigDecimal totalAmount;
+    private BigDecimal payAmount;
+    private BigDecimal freightAmount;
+    private BigDecimal promotionAmount;
+    private BigDecimal integrationAmount;
+    private BigDecimal couponAmount;
+    private BigDecimal discountAmount;
+    private Integer payType;
+    private Integer sourceType;
+    private Integer status;
+    private Integer orderType;
+    private String deliveryCompany;
+    private String deliverySn;
+    private Integer autoConfirmDay;
+    private Integer integration;
+    private Integer growth;
+    private String promotionInfo;
+    private Integer billType;
+    private String billHeader;
+    private String billContent;
+    private String billReceiverPhone;
+    private String billReceiverEmail;
+    private String receiverName;
+    private String receiverPhone;
+    private String receiverPostCode;
+    private String receiverProvince;
+    private String receiverCity;
+    private String receiverRegion;
+    private String receiverDetailAddress;
+    private String note;
+    private Integer confirmStatus;
+    private Integer deleteStatus;
+    private Integer useIntegration;
+    private Timestamp paymentTime;
+    private Timestamp deliveryTime;
+    private Timestamp receiveTime;
+    private Timestamp commentTime;
+    private Timestamp modifyTime;
+}```
+```java
+// OmsOrderOperateHistory.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderOperateHistory {
+    private Long id;
+    private Long orderId;
+    private String operateMan;
+    private Date createTime;
+    private Integer orderStatus;
+    private String note;
+}```
+
+```java
+// OmsOrderService.java
+package com.example.service;
+
+public interface OmsOrderService {
+    int deleteOrders(Long[] ids);
+}```
+
+```java
+// OmsOrderServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.OmsOrderOperateHistory;
+import com.example.mapper.OmsOrderMapper;
+import com.example.mapper.OmsOrderOperateHistoryMapper;
+import org.springframework.stereotype.Service;
+
+import java.security.Timestamp;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+
+
+@Service
+public class OmsOrderServiceImpl implements com.example.service.OmsOrderService {
+    private final OmsOrderMapper orderMapper;
+    private final OmsOrderOperateHistoryMapper historyMapper;
+
+    public OmsOrderServiceImpl(OmsOrderMapper orderMapper, OmsOrderOperateHistoryMapper historyMapper) {
+        this.orderMapper = orderMapper;
+        this.historyMapper = historyMapper;
+    }
+
+    @Override
+    public int deleteOrders(Long[] ids) {
+        int count = orderMapper.updateDeleteStatusByIds(ids, 1);
+        if (count > 0) {
+            List<OmsOrderOperateHistory> histories = new ArrayList<>();
+            for (Long id : ids) {
+                OmsOrderOperateHistory history = new OmsOrderOperateHistory();
+                history.setOrderId(id);
+                history.setOperateMan("后台管理员");
+                history.setCreateTime(new Date());
+                history.setOrderStatus(0);
+                history.setNote("订单已删除");
+                histories.add(history);
+            }
+            historyMapper.insertBatch(histories);
+        }
+        return count;
+    }
+}
+```
+
+```java
+// OmsOrderController.java
+package com.example.controller;
+
+import com.example.entity.DeleteOrderRequest;
+import com.example.entity.ApiResponse;
+
+import com.example.service.OmsOrderService;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/order")
+public class OmsOrderController {
+    private final OmsOrderService orderService;
+
+    public OmsOrderController(OmsOrderService orderService) {
+        this.orderService = orderService;
+    }
+
+    @PostMapping("/delete")
+    public ApiResponse deleteOrders(@RequestBody DeleteOrderRequest request) {
+        int count = orderService.deleteOrders(request.getIds());
+        return new ApiResponse(count);
+    }
+}
+```
+
+```java
+// OmsOrderMapper.java
+package com.example.mapper;
+
+
+import com.example.entity.OmsOrderOperateHistory;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface OmsOrderMapper {
+    int updateDeleteStatusByIds(@Param("ids") Long[] ids, @Param("deleteStatus") int deleteStatus);
+}
+```
+```java
+// OmsOrderOperateHistoryMapper.java
+package com.example.mapper;
+
+import com.example.entity.OmsOrderOperateHistory;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface OmsOrderOperateHistoryMapper {
+    int insertBatch(@Param("histories") List<OmsOrderOperateHistory> histories);
+}
+```
+
+```xml
+<!-- OmsOrderOperateHistoryMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.OmsOrderOperateHistoryMapper">
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO oms_order_operate_history (order_id, operate_man, create_time, order_status, note)
+        VALUES
+        <foreach collection="histories" item="history" separator=",">
+            (#{history.orderId}, #{history.operateMan}, #{history.createTime}, #{history.orderStatus}, #{history.note})
+        </foreach>
+    </insert>
+</mapper>
+
+```
+

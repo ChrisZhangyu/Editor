@@ -1,0 +1,211 @@
+业务功能逻辑：通过输入参数在oms_order表中，更新数据库中订单的费用信息其中修改时间为当前时间。并在数据库中记录订单操作历史，操作历史记录的当前的日期和时间，用于记录操作历史的时间戳用于追踪订单的费用修改记录，将操作历史记录的字段设置为"后台管理员"，将操作历史记录的note字段设置为字符串 "修改费用信息"。返回参数{"count"}.
+
+需要检查的代码：
+```java
+// OmsOrder.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrder {
+    private Long id;
+    private Long memberId;
+    private Long couponId;
+    private String orderSn;
+    private Timestamp createTime;
+    private String memberUsername;
+    private BigDecimal totalAmount;
+    private BigDecimal payAmount;
+    private BigDecimal freightAmount;
+    private BigDecimal promotionAmount;
+    private BigDecimal integrationAmount;
+    private BigDecimal couponAmount;
+    private BigDecimal discountAmount;
+    private Integer payType;
+    private Integer sourceType;
+    private Integer status;
+    private Integer orderType;
+    private String deliveryCompany;
+    private String deliverySn;
+    private Integer autoConfirmDay;
+    private Integer integration;
+    private Integer growth;
+    private String promotionInfo;
+    private Integer billType;
+    private String billHeader;
+    private String billContent;
+    private String billReceiverPhone;
+    private String billReceiverEmail;
+    private String receiverName;
+    private String receiverPhone;
+    private String receiverPostCode;
+    private String receiverProvince;
+    private String receiverCity;
+    private String receiverRegion;
+    private String receiverDetailAddress;
+    private String note;
+    private Integer confirmStatus;
+    private Integer deleteStatus;
+    private Integer useIntegration;
+    private Timestamp paymentTime;
+    private Timestamp deliveryTime;
+    private Timestamp receiveTime;
+    private Timestamp commentTime;
+    private Timestamp modifyTime;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderOperateHistory {
+    private Long id;
+    private Long orderId;
+    private String operateMan;
+    private Timestamp createTime;
+    private Integer orderStatus;
+    private String note;
+}
+
+import org.apache.ibatis.annotations.Param;
+
+public interface OmsOrderMapper {
+    int updateMoneyInfo(@Param("orderId") Long orderId, @Param("freightAmount") BigDecimal freightAmount, @Param("discountAmount") BigDecimal discountAmount, @Param("status") Integer status);
+}
+
+public interface OmsOrderOperateHistoryMapper {
+    int insert(OmsOrderOperateHistory history);
+}
+
+<!-- OmsOrderMapper.xml -->
+<mapper namespace="com.example.mapper.OmsOrderMapper">
+    <update id="updateMoneyInfo">
+        UPDATE oms_order
+        SET freightAmount = #{freightAmount},
+            discountAmount = #{discountAmount},
+            status = #{status},
+            modifyTime = CURRENT_TIMESTAMP
+        WHERE id = #{orderId}
+    </update>
+</mapper>
+
+<!-- OmsOrderOperateHistoryMapper.xml -->
+<mapper namespace="com.example.mapper.OmsOrderOperateHistoryMapper">
+    <insert id="insert">
+        INSERT INTO oms_order_operate_history (order_id, operate_man, create_time, order_status, note)
+        VALUES (#{orderId}, '后台管理员', CURRENT_TIMESTAMP, #{orderStatus}, '修改费用信息')
+    </insert>
+</mapper>
+
+import com.example.mapper.OmsOrderMapper;
+import com.example.mapper.OmsOrderOperateHistoryMapper;
+import com.example.model.OmsOrder;
+import com.example.model.OmsOrderOperateHistory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class OrderService {
+    private final OmsOrderMapper orderMapper;
+    private final OmsOrderOperateHistoryMapper historyMapper;
+
+    @Autowired
+    public OrderService(OmsOrderMapper orderMapper, OmsOrderOperateHistoryMapper historyMapper) {
+        this.orderMapper = orderMapper;
+        this.historyMapper = historyMapper;
+    }
+
+    @Transactional
+    public int updateMoneyInfo(Long orderId, BigDecimal freightAmount, BigDecimal discountAmount, Integer status) {
+        int count = orderMapper.updateMoneyInfo(orderId, freightAmount, discountAmount, status);
+        if (count > 0) {
+            OmsOrderOperateHistory history = new OmsOrderOperateHistory();
+            history.setOrderId(orderId);
+            history.setOperateMan("后台管理员");
+            history.setCreateTime(new Timestamp(System.currentTimeMillis()));
+            history.setOrderStatus(status);
+            history.setNote("修改费用信息");
+            historyMapper.insert(history);
+        }
+        return count;
+    }
+}
+
+import com.example.model.ApiResponse;
+import com.example.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/order")
+public class OrderController {
+    private final OrderService orderService;
+
+    @Autowired
+    public OrderController(OrderService orderService) {
+        this.orderService = orderService;
+    }
+
+    @PostMapping("/update/moneyInfo")
+    public ApiResponse<Integer> updateMoneyInfo(@RequestBody UpdateMoneyInfoRequest request) {
+        int count = orderService.updateMoneyInfo(request.getOrderId(), request.getFreightAmount(), request.getDiscountAmount(), request.getStatus());
+        return new ApiResponse<>(count);
+    }
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateMoneyInfoRequest {
+    private Long orderId;
+    private BigDecimal freightAmount;
+    private BigDecimal discountAmount;
+    private Integer status;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private T data;
+}
+```
+
+
+
+
+
+
+代码执行的错误信息：
+```运行错误
+
+```
+```功能错误
+
+```

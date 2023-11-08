@@ -1,0 +1,236 @@
+﻿业务功能逻辑：
+更新用户积分：接收id和scoreCount两个参数，根据传入的用户id查询数据库表user中的用户信息，根据获取到的用户信息和scoreCount来更新表score中的积分，将更新后的用户信息以JSON格式返回 。
+
+需要检查的代码：
+```java
+// Score.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.sql.Timestamp;
+
+public class Score {
+    private int id;
+    private String changeType;
+    private Timestamp createTime;
+    private int score;
+    private int userId;
+
+    public Score() {
+    }
+
+    public Score(int id, String changeType, Timestamp createTime, int score, int userId) {
+        this.id = id;
+        this.changeType = changeType;
+        this.createTime = createTime;
+        this.score = score;
+        this.userId = userId;
+    }
+
+
+    // Getters and Setters
+}
+
+
+
+
+```
+
+```java
+// UpdateScoreResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateScoreResponse {
+    private Long id;
+    private String account;
+    private String avatar;
+    private Integer pay_money;
+    private String country;
+    private String create_time;
+    private Integer score;
+    private Double latitude;
+    private Double longitude;
+    private String province;
+    private String sex;
+    private String password;
+}
+
+```
+```java
+// User.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private Long id;
+    private String account;
+    private String avatar;
+    private Integer pay_money;
+    private String country;
+    private String create_time;
+    private Integer score;
+    private Double latitude;
+    private Double longitude;
+    private String province;
+    private String sex;
+    private String password;
+
+}
+
+```
+
+```java
+// UserService.java
+
+package com.example.service;
+
+import com.example.entity.UpdateScoreRequest;
+import com.example.entity.UpdateScoreResponse;
+
+public interface UserService {
+    UpdateScoreResponse updateScore(UpdateScoreRequest request);
+}
+```
+
+```java
+// UserServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.mapper.UserMapper;
+import com.example.entity.User;
+import com.example.entity.UpdateScoreRequest;
+import com.example.service.UserService;
+import com.example.entity.UpdateScoreResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional
+public class UserServiceImpl implements UserService {
+    private final UserMapper userMapper;
+
+    @Autowired
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public UpdateScoreResponse updateScore(UpdateScoreRequest request) {
+        User user = userMapper.getUserById(request.getId());
+        if (user != null) {
+            userMapper.updateUserScore(request.getId(), request.getScoreCount());
+            return new UpdateScoreResponse(
+                    user.getId(),
+                    user.getAccount(),
+                    user.getAvatar(),
+                    user.getPay_money(),
+                    user.getCountry(),
+                    user.getCreate_time(),
+                    user.getScore() + request.getScoreCount(),
+                    user.getLatitude(),
+                    user.getLongitude(),
+                    user.getProvince(),
+                    user.getSex(),
+                    user.getPassword()
+            );
+        }
+        return null;
+    }
+}
+```
+
+```java
+// UserController.java
+
+package com.example.controller;
+
+import com.example.service.UserService;
+import com.example.entity.UpdateScoreRequest;
+import com.example.entity.UpdateScoreResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class UserController {
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/score/updateScore")
+    public UpdateScoreResponse updateScore(
+            @RequestParam("id") Long id,
+            @RequestParam("scoreCount") Integer scoreCount
+    ) {
+        UpdateScoreRequest request = new UpdateScoreRequest(id, scoreCount);
+        return userService.updateScore(request);
+    }
+}
+```
+
+```java
+// UserMapper.java
+
+package com.example.mapper;
+
+import com.example.entity.User;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface UserMapper {
+    User getUserById(@Param("id") Long id);
+    void updateUserScore(@Param("id") Long id, @Param("scoreCount") Integer scoreCount);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="getUserById" resultType="com.example.entity.User">
+        SELECT * FROM user WHERE id = #{id}
+    </select>
+    
+    <update id="updateUserScore">
+        UPDATE score SET score = score + #{scoreCount} WHERE id = #{id}
+    </update>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+UserServiceImpl.java:6:26
+java: 找不到符号
+  符号:   类 UpdateScoreRequest
+  位置: 程序包 com.example.entity
+```

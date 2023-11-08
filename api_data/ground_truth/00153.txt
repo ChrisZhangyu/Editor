@@ -1,0 +1,190 @@
+﻿
+```java
+// SelectUserRequest.java
+package com.example.entity;
+
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SelectUserRequest {
+    private Integer id;
+}
+```
+```java
+// SelectUserResponse.java
+package com.example.entity;
+
+
+
+import com.example.entity.User;
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SelectUserResponse {
+    private Integer code;
+    private String message;
+    private User response;
+}
+```
+```java
+// User.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private Integer id;
+    private String userUuid;
+    private String userName;
+    private String password;
+    private String realName;
+    private Integer age;
+    private Integer sex;
+    private Date birthDay;
+    private Integer userLevel;
+    private String phone;
+    private Integer role;
+    private Integer status;
+    private String imagePath;
+    private Date createTime;
+    private Date modifyTime;
+    private Date lastActiveTime;
+    private Boolean deleted;
+    private String wxOpenId;
+}
+```
+
+```java
+// UserService.java
+package com.example.service;
+
+import com.example.entity.SelectUserResponse;
+
+public interface UserService {
+    SelectUserResponse selectUser(Integer id);
+}
+```
+
+```java
+// UserServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.User;
+import com.example.service.UserService;
+import com.example.entity.SelectUserResponse;
+import com.example.mapper.UserMapper;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserServiceImpl implements UserService {
+    private final UserMapper userMapper;
+
+    public UserServiceImpl(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
+    @Override
+    public SelectUserResponse selectUser(Integer id) {
+        SelectUserResponse response = new SelectUserResponse();
+        User user = userMapper.selectUserById(id);
+        if (user != null) {
+            response.setCode(1);
+            response.setMessage("成功");
+            response.setResponse(user);
+        } else {
+            response.setCode(0);
+            response.setMessage("用户id不存在");
+        }
+        return response;
+    }
+}
+```
+
+```java
+// UserController.java
+package com.example.controller;
+
+import com.example.service.UserService;
+import com.example.entity.SelectUserResponse;
+
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/admin/user")
+public class UserController {
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/select/{id}")
+    public SelectUserResponse selectUser(@PathVariable Integer id) {
+        return userService.selectUser(id);
+    }
+}
+```
+
+```java
+// UserMapper.java
+package com.example.mapper;
+
+import com.example.entity.User;
+
+public interface UserMapper {
+    User selectUserById(Integer id);
+}
+```
+
+```xml
+<!-- UserMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+    <resultMap id="UserResultMap" type="com.example.entity.User">
+        <id property="id" column="id"/>
+        <result property="userUuid" column="user_uuid"/>
+        <result property="userName" column="user_name"/>
+        <result property="realName" column="real_name"/>
+        <result property="password" column="password"/>
+        <result property="realName" column="real_name"/>
+        <result property="age" column="age"/>
+        <result property="sex" column="sex"/>
+        <result property="birthDay" column="birth_day"/>
+        <result property="userLevel" column="user_level"/>
+        <result property="phone" column="phone"/>
+        <result property="role" column="role"/>
+        <result property="status" column="status"/>
+        <result property="imagePath" column="image_path"/>
+        <result property="createTime" column="create_time"/>
+        <result property="modifyTime" column="modify_time"/>
+        <result property="modifyTime" column="modify_time"/>
+        <result property="lastActiveTime" column="last_active_time"/>
+        <result property="deleted" column="deleted"/>
+        <result property="wxOpenId" column="wx_open_id"/>
+    </resultMap>
+    <select id="selectUserById" resultType="com.example.entity.User" resultMap="UserResultMap">
+        SELECT * FROM t_user WHERE id = #{id}
+    </select>
+</mapper>
+
+```

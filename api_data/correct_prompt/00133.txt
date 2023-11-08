@@ -1,0 +1,233 @@
+业务功能逻辑：
+在tb_cart表中查询购物车记录，查询条件是user_id等于userId，如果不为空获取列表的第一个购物车记录，如果为空返回(-1002, "购物车不存在",null)；在tb_cart_detail表中查询详情，查询条件是good_id等于goodId，cart_id等于tb_cart.cart_id，如果为空返回(-1002, "购物车不存在",null)，否则返回{tb_cart_detail记录}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Cart.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_cart")
+public class Cart {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "cart_id")
+    private Integer cartId;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "amount")
+    private Double amount;
+}
+```
+
+```java
+// CartDetail.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_cart_detail")
+public class CartDetail {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "cart_detail_id")
+    private Long cartDetailId;
+
+    @Column(name = "cart_id")
+    private Long cartId;
+
+    @Column(name = "good_id")
+    private Integer goodId;
+
+    @Column(name = "count")
+    private Integer count;
+}
+```
+
+```java
+// CartService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+import com.example.entity.CartDetail;
+import com.example.entity.Cart;
+
+public interface CartService {
+    ApiResponse getCartDetailByUserIdAndGoodId(int userId, int goodId);
+}
+```
+
+```java
+// CartServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.CartDetail;
+import com.example.entity.Cart;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class CartServiceImpl implements CartService {
+
+    @Autowired
+    private CartMapper cartMapper;
+
+    @Autowired
+    private CartDetailMapper cartDetailMapper;
+
+    @Override
+    public ApiResponse getCartDetailByUserIdAndGoodId(int userId, int goodId) {
+        Cart cart = cartMapper.getCartByUserId(userId);
+        if (cart == null) {
+            return new ApiResponse(-1002, "购物车不存在", null);
+        }
+
+        CartDetail cartDetail = cartDetailMapper.getCartDetailByCartIdAndGoodId(cart.getCartId(), goodId);
+        if (cartDetail == null) {
+            return new ApiResponse(-1002, "购物车不存在", null);
+        }
+
+        return new ApiResponse(100, "成功", cartDetail);
+    }
+}
+```
+
+```java
+// CartController.java
+package com.example.controller;
+
+import com.example.service.CartService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/user/v1/user")
+public class CartController {
+
+    @Autowired
+    private CartService cartService;
+
+    @GetMapping("/{userId}/cartDetail/good/{goodId}")
+    public ApiResponse getCartDetailByUserIdAndGoodId(@PathVariable int userId, @PathVariable int goodId) {
+        return cartService.getCartDetailByUserIdAndGoodId(userId, goodId);
+    }
+}
+```
+
+```java
+// CartDetailMapper.java
+package com.example.mapper;
+
+import com.example.entity.CartDetail;
+
+public interface CartDetailMapper {
+    CartDetail getCartDetailByCartIdAndGoodId(int cartId, int goodId);
+}
+```
+```java
+// CartMapper.java
+package com.example.mapper;
+
+import com.example.entity.Cart;
+
+public interface CartMapper {
+    Cart getCartByUserId(int userId);
+}
+```
+
+```xml
+<!-- CartDetailMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.CartDetailMapper">
+    <select id="getCartDetailByCartIdAndGoodId" parameterType="map" resultType="com.example.entity.CartDetail">
+        SELECT * FROM tb_cart_detail WHERE cart_id = #{cartId} AND good_id = #{goodId}
+    </select>
+</mapper>
+
+```
+
+```xml
+<!-- CartMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.CartMapper">
+    <select id="getCartByUserId" parameterType="int" resultType="com.example.entity.Cart">
+        SELECT * FROM tb_cart WHERE user_id = #{userId}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+CartController.java:18:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.CartController
+CartServiceImpl.java:9:41
+java: 找不到符号
+  符号: 类 CartService
+CartServiceImpl.java:12:13
+java: 找不到符号
+  符号:   类 CartMapper
+  位置: 类 com.example.service.impl.CartServiceImpl
+CartServiceImpl.java:15:13
+java: 找不到符号
+  符号:   类 CartDetailMapper
+  位置: 类 com.example.service.impl.CartServiceImpl
+CartServiceImpl.java:18:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.CartServiceImpl
+ERROR 6380 --- [nio-8080-exec-3] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis.binding.BindingException: Parameter 'cartId' not found. Available parameters are [arg1, arg0, param1, param2]] with root cause
+```
+
+```功能错误
+如果从tb_cart表中查询的结果不为空时获取列表的第一个购物车记录，这个功能没有实现.
+```

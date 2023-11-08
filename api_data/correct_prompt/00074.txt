@@ -1,0 +1,167 @@
+业务功能逻辑：根据传入的参数修改退货申请的状态，根据不同的状态值，进行相应的操作：如果状态是1（表示确认退货），则设置退货申请的状态为1，同时更新相关信息，如退款金额、收货地址关联ID、处理时间、处理人和处理备注。
+如果状态是2（表示完成退货），则设置退货申请的状态为2，同时更新相关信息，如收货时间、收货人和收货备注。
+如果状态是3（表示拒绝退货），则设置退货申请的状态为3，同时更新相关信息，如处理时间、处理人和处理备注。
+如果状态不是1、2或3，则返回0，表示未进行任何更新操作。返回{"count"}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+```
+```java
+// UpdateReturnApplyStatusParam.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse<T> {
+    private int code;
+    private String message;
+    private T data;
+}
+
+import lombok.Data;
+
+@Data
+public class UpdateReturnApplyStatusParam {
+    private Long id;
+    private Long companyAddressId;
+    private BigDecimal returnAmount;
+    private String handleNote;
+    private String handleMan;
+    private String receiveNote;
+    private String receiveMan;
+    private Integer status;
+}
+```
+
+```java
+// OmsOrderReturnApplyService.java
+package com.example.service;
+
+import com.example.entity.UpdateReturnApplyStatusParam;
+
+import com.example.model.OmsOrderReturnApply;
+import com.example.model.UpdateReturnApplyStatusParam;
+
+public interface OmsOrderReturnApplyService {
+    int updateStatusById(Long id, UpdateReturnApplyStatusParam param);
+}
+```
+
+```java
+// OmsOrderReturnApplyServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.UpdateReturnApplyStatusParam;
+import com.example.service.OmsOrderReturnApplyService;
+
+import com.example.mapper.OmsOrderReturnApplyMapper;
+import com.example.model.OmsOrderReturnApply;
+import com.example.model.UpdateReturnApplyStatusParam;
+import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
+
+@Service
+public class OmsOrderReturnApplyServiceImpl implements OmsOrderReturnApplyService {
+
+    @Resource
+    private OmsOrderReturnApplyMapper omsOrderReturnApplyMapper;
+
+    @Override
+    public int updateStatusById(Long id, UpdateReturnApplyStatusParam param) {
+        OmsOrderReturnApply omsOrderReturnApply = new OmsOrderReturnApply();
+        BeanUtils.copyProperties(param, omsOrderReturnApply);
+        omsOrderReturnApply.setId(id);
+        return omsOrderReturnApplyMapper.updateStatusById(omsOrderReturnApply);
+    }
+}
+```
+
+```java
+// OmsOrderReturnApplyController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.OmsOrderReturnApplyService;
+import com.example.entity.UpdateReturnApplyStatusParam;
+
+import com.example.model.ApiResponse;
+import com.example.model.UpdateReturnApplyStatusParam;
+import com.example.service.OmsOrderReturnApplyService;
+import org.springframework.web.bind.annotation.*;
+
+import javax.annotation.Resource;
+
+@RestController
+@RequestMapping("/returnApply")
+public class OmsOrderReturnApplyController {
+
+    @Resource
+    private OmsOrderReturnApplyService omsOrderReturnApplyService;
+
+    @PostMapping("/update/status/{id}")
+    public ApiResponse<Integer> updateStatusById(@PathVariable Long id, @RequestBody UpdateReturnApplyStatusParam param) {
+        int count = omsOrderReturnApplyService.updateStatusById(id, param);
+        return new ApiResponse<>(200, "Success", count);
+    }
+}
+```
+
+
+```xml
+<!-- OmsOrderReturnApplyMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.OmsOrderReturnApplyMapper">
+
+    <update id="updateStatusById" parameterType="java.util.Map">
+        UPDATE oms_order_return_apply
+        SET status = #{status}
+        WHERE id = #{id}
+    </update>
+
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\order_return_apply_update\src\main\java\com\example\entity\UpdateReturnApplyStatusParam.java:17
+java: 需要class, interface或enum
+D:\迅雷下载\xzs-project_test\order_return_apply_update\src\main\java\com\example\service\OmsOrderReturnApplyService.java:5:25
+java: 程序包com.example.model不存在
+D:\迅雷下载\xzs-project_test\order_return_apply_update\src\main\java\com\example\service\impl\OmsOrderReturnApplyServiceImpl.java:25:41
+java: 无法将接口 com.example.mapper.OmsOrderReturnApplyMapper中的方法 updateStatusById应用到给定类型;
+  需要: java.lang.Long,java.lang.Integer
+  找到: com.example.entity.OmsOrderReturnApply
+  原因: 实际参数列表和形式参数列表长度不同
+```
+```功能错误
+### Error updating database.  Cause: java.sql.SQLSyntaxErrorException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'return_amount = 45.0;
+        handle_note = 'generator';
+        handle_man = 'g' at line 4
+```

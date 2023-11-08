@@ -1,0 +1,142 @@
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// Cart.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_cart")
+public class Cart {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "cart_id")
+    private Integer cartId;
+
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "amount")
+    private Double amount;
+}
+```
+
+```java
+// CartService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+import com.example.entity.Cart;
+
+public interface CartService {
+    ApiResponse deleteCart(long userId, long cartId);
+}
+```
+
+```java
+// CartServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.ApiResponse;
+import com.example.mapper.CartMapper;
+import com.example.service.CartService;
+import com.example.entity.Cart;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class CartServiceImpl implements CartService {
+    @Autowired
+    private CartMapper cartMapper;
+    @Override
+    public ApiResponse deleteCart(long userId, long cartId) {
+        // 在tb_cart表中查询购物车列表返回第一个记录
+        Cart cart = cartMapper.getCartByUserId(userId);
+        if (cart == null) {
+            return new ApiResponse(-1002, "购物车不存在", null);
+        }
+
+        // 在tb_cart表中删除该记录
+        cartMapper.deleteCartById(cartId);
+
+        return new ApiResponse(100, "成功", null);
+    }
+}
+```
+
+```java
+// CartController.java
+package com.example.controller;
+
+import com.example.service.CartService;
+import com.example.entity.ApiResponse;
+import com.example.entity.Cart;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/user/v1/user/{userId}/cart")
+public class CartController {
+    @Autowired
+    private CartService cartService;
+
+    @DeleteMapping("/{cartId}")
+    public ApiResponse deleteCart(@PathVariable long userId, @PathVariable long cartId) {
+        return cartService.deleteCart(userId, cartId);
+    }
+}
+```
+
+```java
+// CartMapper.java
+package com.example.mapper;
+
+import com.example.entity.Cart;
+
+public interface CartMapper {
+    Cart getCartByUserId(long userId);
+
+    void deleteCartById(long cartId);
+}
+```
+
+```xml
+<!-- CartMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.CartMapper">
+    <select id="getCartByUserId" parameterType="long" resultType="com.example.entity.Cart">
+        SELECT * FROM tb_cart WHERE user_id = #{userId} LIMIT 1
+    </select>
+
+    <delete id="deleteCartById" parameterType="long">
+        DELETE FROM tb_cart WHERE cart_id = #{cartId}
+    </delete>
+</mapper>
+
+```

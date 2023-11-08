@@ -1,0 +1,136 @@
+﻿业务功能逻辑：
+根据部门ID查询部门信息业务逻辑。首先检查传递的 deptId 是否大于 0。调用 departmentService 的getDeptById 方法，该方法根据 deptId 获取部门信息。如果找到部门信息，则返回包含部门信息的 JSON 响应，否则返回无部门信息的 JSON 响应。
+
+需要检查的代码：
+```java
+// Department.java
+
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Department {
+    private int deptId;
+    private String deptName;
+    private String deptLeader;
+
+}
+```
+
+```java
+// DepartmentService.java
+
+package com.example.service;
+
+import com.example.entity.Department;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public interface DepartmentService {
+    Department getDeptById(int deptId);
+}
+```
+
+```java
+// DepartmentServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.service.DepartmentService;
+import com.example.mapper.DepartmentMapper;
+import com.example.entity.Department;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class DepartmentServiceImpl implements DepartmentService {
+
+    private final DepartmentMapper departmentMapper;
+
+    @Autowired
+    public DepartmentServiceImpl(DepartmentMapper departmentMapper) {
+        this.departmentMapper = departmentMapper;
+    }
+
+    @Override
+    public Department getDeptById(int deptId) {
+        return departmentMapper.getDeptById(deptId);
+    }
+}
+```
+
+```java
+// DepartmentController.java
+
+package com.example.controller;
+
+import com.example.service.DepartmentService;
+import com.example.entity.Department;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/hrms/dept")
+public class DepartmentController {
+
+    private final DepartmentService departmentService;
+
+    @Autowired
+    public DepartmentController(DepartmentService departmentService) {
+        this.departmentService = departmentService;
+    }
+
+    @GetMapping("/getDeptById/{deptId}")
+    public ResponseEntity<?> getDeptById(@PathVariable int deptId) {
+        if (deptId <= 0) {
+            return ResponseEntity.badRequest().body("Invalid deptId");
+        }
+
+        Department department = departmentService.getDeptById(deptId);
+        if (department != null) {
+            return ResponseEntity.ok().body(department);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No department found");
+        }
+    }
+}
+```
+
+```xml
+<!-- DepartmentMapper.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.DepartmentMapper">
+    <resultMap type="com.example.entity.Department" id="ArticleResult">
+        <result property="deptId" column="dept_id"/>
+        <result property="deptName" column="dept_name"/>
+        <result property="deptLeader" column="dept_leader"/>
+    </resultMap>
+
+    <!--    <select id="getDeptById" resultType="com.example.entity.Department">-->
+    <select id="getDeptById" resultMap="ArticleResult">
+        SELECT * FROM dept WHERE dept_id = #{deptId}
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```依赖错误
+DepartmentServiceImpl.java:5:26
+java: 程序包com.example.mapper不存在
+```

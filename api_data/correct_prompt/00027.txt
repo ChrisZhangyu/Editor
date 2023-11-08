@@ -1,0 +1,271 @@
+业务功能逻辑：实现用于根据商品编号和关键字模糊搜索SKU库存的接口。客户端通过GET请求传递商品编号和关键字，Controller层调用Service层的方法执行查询操作，Service层构建查询条件并调用数据访问层的Mapper查询数据，最后将查询结果返回给客户端。这样，客户端可以获取与商品相关的SKU库存信息。返回参数{"id":null,"productId":null,"skuCode":"sku编码","price":null,"stock":"库存","lowStock":"预警库存","pic":"展示图片","sale":"销量","promotionPrice":"单品促销价格","lockStock":"锁定库存","spData":"商品销售属性，json格式"}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Long id;
+    private Long productId;
+    private String skuCode;
+    private Double price;
+    private Integer stock;
+    private Integer lowStock;
+    private String pic;
+    private Integer sale;
+    private Double promotionPrice;
+    private Integer lockStock;
+    private String spData;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PmsSkuStock {
+    /**
+     * 主键ID
+     */
+    private Long id;
+    
+    /**
+     * 商品ID
+     */
+    private Long productId;
+    
+    /**
+     * SKU编码
+     */
+    private String skuCode;
+    
+    /**
+     * 价格
+     */
+    private BigDecimal price;
+    
+    /**
+     * 库存
+     */
+    private Integer stock;
+    
+    /**
+     * 低库存预警值
+     */
+    private Integer lowStock;
+    
+    /**
+     * 图片
+     */
+    private String pic;
+    
+    /**
+     * 销量
+     */
+    private Integer sale;
+    
+    /**
+     * 促销价格
+     */
+    private BigDecimal promotionPrice;
+    
+    /**
+     * 锁定库存
+     */
+    private Integer lockStock;
+    
+    /**
+     * 商品规格数据
+     */
+    private String spData;
+}
+
+import lombok.Data;
+
+@Data
+public class SkuSearchRequest {
+    private String pid;
+    private String keyword;
+}
+```
+
+```java
+// SkuService.java
+
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+
+public interface SkuService {
+    List<ApiResponse> searchSku(String pid, String keyword);
+}
+```
+
+```java
+// SkuServiceImpl.java
+
+package com.example.service.impl;
+
+import com.example.service.SkuService;
+import com.example.entity.ApiResponse;
+import com.example.mapper.SkuMapper;
+
+@Service
+public class SkuServiceImpl implements SkuService {
+    @Autowired
+    private SkuMapper skuMapper;
+
+    @Override
+    public List<ApiResponse> searchSku(String pid, String keyword) {
+        // 构建查询条件
+        SkuExample example = new SkuExample();
+        SkuExample.Criteria criteria = example.createCriteria();
+        criteria.andProductIdEqualTo(pid);
+        criteria.andSkuCodeLike("%" + keyword + "%");
+
+        // 调用Mapper查询数据
+        List<Sku> skuList = skuMapper.selectByExample(example);
+
+        // 将查询结果转换为ApiResponse对象
+        List<ApiResponse> responseList = new ArrayList<>();
+        for (Sku sku : skuList) {
+            ApiResponse response = new ApiResponse();
+            response.setId(sku.getId());
+            response.setProductId(sku.getProductId());
+            response.setSkuCode(sku.getSkuCode());
+            response.setPrice(sku.getPrice());
+            response.setStock(sku.getStock());
+            response.setLowStock(sku.getLowStock());
+            response.setPic(sku.getPic());
+            response.setSale(sku.getSale());
+            response.setPromotionPrice(sku.getPromotionPrice());
+            response.setLockStock(sku.getLockStock());
+            response.setSpData(sku.getSpData());
+            responseList.add(response);
+        }
+
+        return responseList;
+    }
+}
+```
+
+```java
+// SkuController.java
+
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.SkuService;
+
+@RestController
+@RequestMapping("/sku")
+public class SkuController {
+    @Autowired
+    private SkuService skuService;
+
+    @GetMapping("/{pid}")
+    public List<ApiResponse> searchSku(@PathVariable String pid, @RequestParam String keyword) {
+        return skuService.searchSku(pid, keyword);
+    }
+}
+```
+
+```java
+// SkuMapper.java
+
+package com.example.mapper;
+
+
+@Mapper
+public interface SkuMapper {
+    int countByExample(SkuExample example);
+
+    int deleteByExample(SkuExample example);
+
+    int deleteByPrimaryKey(Long id);
+
+    int insert(Sku record);
+
+    int insertSelective(Sku record);
+
+    List<Sku> selectByExample(SkuExample example);
+
+    Sku selectByPrimaryKey(Long id);
+
+    int updateByExampleSelective(@Param("record") Sku record, @Param("example") SkuExample example);
+
+    int updateByExample(@Param("record") Sku record, @Param("example") SkuExample example);
+
+    int updateByPrimaryKeySelective(Sku record);
+
+    int updateByPrimaryKey(Sku record);
+}
+```
+
+```xml
+<!-- SkuMapper.xml -->
+
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<!-- skuMapper.xml -->
+<mapper namespace="com.example.mapper.SkuMapper">
+    <!-- 根据商品编号和关键字模糊搜索SKU库存 -->
+    <select id="selectByExample" parameterType="com.example.entity.SkuExample" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM sku
+        <if test="_parameter != null">
+            <include refid="Example_Where_Clause" />
+        </if>
+        <if test="orderByClause != null">
+            ORDER BY ${orderByClause}
+        </if>
+        <if test="limit != null">
+            LIMIT ${limit}
+        </if>
+    </select>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+xzs-project_test\pms_sku_stock_system\src\main\java\com\example\entity\ApiResponse.java:26
+java: 需要class, interface或enum
+xzs-project_test\pms_sku_stock_system\src\main\java\com\example\entity\ApiResponse.java:27
+java: 需要class, interface或enum
+xzs-project_test\pms_sku_stock_system\src\main\java\com\example\entity\ApiResponse.java:28
+java: 需要class, interface或enum
+xzs-project_test\pms_sku_stock_system\src\main\java\com\example\entity\ApiResponse.java:90
+java: 需要class, interface或enum
+pms_sku_stock_system\src\main\java\com\example\mapper\SkuMapper.java:10:24
+java: 找不到符号
+  符号:   类 SkuExample
+  位置: 接口 com.example.mapper.SkuMapper
+org.xml.sax.SAXParseException; lineNumber: 2; columnNumber: 105; 在 publicId 和 systemId 之间需要有空格。
+```
+```功能错误
+java.lang.IllegalArgumentException: XML fragments parsed from previous mappers does not contain value for com.example.mapper.SkuMapper.Base_Column_List
+java.lang.IllegalArgumentException: XML fragments parsed from previous mappers does not contain value for com.example.mapper.SkuMapper.Example_Where_Clause
+Caused by: org.apache.ibatis.type.TypeException: Could not resolve type alias 'com.example.entity.SkuExample'.  Cause: java.lang.ClassNotFoundException: Cannot find class: com.example.entity.SkuExample
+org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'oredCriteria' in 'class com.example.entity.SkuSearchRequest'
+org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'orderByClause' in 'class com.example.entity.SkuSearchRequest'
+org.mybatis.spring.MyBatisSystemException: nested exception is org.apache.ibatis.reflection.ReflectionException: There is no getter for property named 'limit' in 'class com.example.entity.SkuSearchRequest'
+### Error querying database.  Cause: java.sql.SQLSyntaxErrorException: Table 'test.sku' doesn't exist
+返回列表为空
+```

@@ -1,0 +1,197 @@
+业务功能逻辑：
+根据categoryFirstId在tb_category_first表中查询记录，不存在返回(-1002, "该分类不存在",null)；根据categoryFirstId统计tb_category_second表中记录数量，如果数量大于0返回(-1006, "该分类下有子分类存在，不能删除该分类",null)，否则在tb_category_first表中删除该记录，返回(-1006, "该分类下有子分类存在，不能删除该分类",null).
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// CategoryFirst.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_first")
+public class CategoryFirst {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+}
+```
+
+```java
+// CategorySecond.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_second")
+public class CategorySecond {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+}
+```
+
+```java
+// CategoryService.java
+package com.example.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class CategoryService {
+    @Autowired
+    private CategoryFirstMapper categoryFirstMapper;
+
+    @Autowired
+    private CategorySecondMapper categorySecondMapper;
+
+    public ApiResponse deleteCategoryFirst(int categoryFirstId) {
+        CategoryFirst categoryFirst = categoryFirstMapper.getCategoryFirstById(categoryFirstId);
+        if (categoryFirst == null) {
+            return new ApiResponse(-1002, "该分类不存在", null);
+        }
+
+        int count = categorySecondMapper.countCategorySecondByCategoryFirstId(categoryFirstId);
+        if (count > 0) {
+            return new ApiResponse(-1006, "该分类下有子分类存在，不能删除该分类", null);
+        }
+
+        categoryFirstMapper.deleteCategoryFirst(categoryFirstId);
+        return new ApiResponse(100, "成功", null);
+    }
+}
+```
+
+```java
+// CategoryController.java
+package com.example.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/admin/v1/category/first")
+public class CategoryController {
+    @Autowired
+    private CategoryService categoryService;
+
+    @DeleteMapping("/{categoryFirstId}")
+    public ApiResponse deleteCategoryFirst(@PathVariable int categoryFirstId) {
+        return categoryService.deleteCategoryFirst(categoryFirstId);
+    }
+}
+```
+
+```java
+// CategoryFirstMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface CategoryFirstMapper {
+    CategoryFirst getCategoryFirstById(int categoryFirstId);
+    void deleteCategoryFirst(int categoryFirstId);
+}
+```
+
+```java
+// CategorySecondMapper.java
+package com.example.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface CategorySecondMapper {
+    int countCategorySecondByCategoryFirstId(int categoryFirstId);
+    // 其他数据库操作方法...
+}
+```
+
+代码执行的错误信息：
+```运行错误
+CategoryController.java:13:13
+java: 找不到符号
+  符号:   类 CategoryService
+  位置: 类 com.example.controller.CategoryController
+CategoryController.java:16:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.CategoryController
+CategoryFirstMapper.java:7:5
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 接口 com.example.mapper.CategoryFirstMapper
+CategoryService.java:9:13
+java: 找不到符号
+  符号:   类 CategoryFirstMapper
+  位置: 类 com.example.service.CategoryService
+CategoryService.java:12:13
+java: 找不到符号
+  符号:   类 CategorySecondMapper
+  位置: 类 com.example.service.CategoryService
+CategoryService.java:14:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.CategoryService
+CategoryService.java:18:9
+java: 找不到符号
+  符号:   类 CategoryFirst
+  位置: 类 com.example.service.CategoryService
+没有生成CategoryFirstMapper.xml、CategorySecondMapper.xml数据库操作文件.
+```
+
+```功能错误
+没有实现功能：根据categoryFirstId统计tb_category_second表中记录数量.
+```

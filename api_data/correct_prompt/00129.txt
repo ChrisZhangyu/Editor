@@ -1,0 +1,246 @@
+业务功能逻辑：
+如果输入参数为nulll返回(-1004, "字段不能为空",null)；在tb_category_second表中查询类别，查询条件是category_second_id等于输入参数categorySecondId，如果为空返回(-1002, "该分类不存在",null)；在tb_adv_swiper表中插入记录，字段image、name、category_second_id设置为输入参数，category_name设置为tb_category_second.category_name，返回data设置为{tb_adv_swiper记录}.
+
+需要检查的代码：
+```java
+// AdvSwiper.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_adv_swiper")
+public class AdvSwiper {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "adv_swiper_id")
+    private Integer advSwiperId;
+
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "name", length = 20)
+    private String name;
+
+    @Column(name = "image", length = 100)
+    private String image;
+
+}
+```
+
+```java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import javax.persistence.*;
+import java.util.Date;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_category_second")
+public class CategorySecond {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_second_id")
+    private Integer categorySecondId;
+
+    @Column(name = "category_first_id")
+    private Integer categoryFirstId;
+
+    @Column(name = "category_name", length = 10)
+    private String categoryName;
+
+    @Column(name = "image", length = 100)
+    private String image;
+}
+```
+
+```java
+// ApiResponse.java
+package com.example.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private int code;
+    private String message;
+    private Object data;
+}
+```
+
+```java
+// AdvSwiperService.java
+package com.example.service;
+
+import com.example.entity.AdvSwiper;
+
+public interface AdvSwiperService {
+    ApiResponse createAdvSwiper(String name, int categorySecondId, String image);
+}
+```
+
+```java
+// AdvSwiperServiceImpl.java
+package com.example.service.impl;
+
+import com.example.entity.AdvSwiper;
+import com.example.mapper.AdvSwiperMapper;
+
+@Service
+public class AdvSwiperServiceImpl implements AdvSwiperService {
+
+    @Autowired
+    private AdvSwiperMapper advSwiperMapper;
+
+    @Override
+    public ApiResponse createAdvSwiper(String name, int categorySecondId, String image) {
+        if (name == null || image == null) {
+            return new ApiResponse(-1004, "字段不能为空", null);
+        }
+
+        CategorySecond categorySecond = categorySecondMapper.getCategorySecondById(categorySecondId);
+        if (categorySecond == null) {
+            return new ApiResponse(-1002, "该分类不存在", null);
+        }
+
+        AdvSwiper advSwiper = new AdvSwiper();
+        advSwiper.setName(name);
+        advSwiper.setCategorySecondId(categorySecondId);
+        advSwiper.setImage(image);
+        advSwiper.setCategoryName(categorySecond.getCategoryName());
+
+        advSwiperMapper.createAdvSwiper(advSwiper);
+
+        return new ApiResponse(100, "成功", advSwiper);
+    }
+}
+```
+
+```java
+// AdvSwiperController.java
+package com.example.controller;
+
+import com.example.entity.AdvSwiper;
+import com.example.service.AdvSwiperService;
+
+@RestController
+@RequestMapping("/admin/v1/advs")
+public class AdvSwiperController {
+
+    @Autowired
+    private AdvSwiperService advSwiperService;
+
+    @PostMapping
+    public ApiResponse createAdvSwiper(@RequestParam String name, @RequestParam int categorySecondId, @RequestParam String image) {
+        return advSwiperService.createAdvSwiper(name, categorySecondId, image);
+    }
+}
+```
+
+```java
+// AdvSwiperMapper.java
+package com.example.mapper;
+
+import com.example.entity.AdvSwiper;
+
+public interface AdvSwiperMapper {
+    void createAdvSwiper(AdvSwiper advSwiper);
+}
+```
+
+```xml
+<!-- AdvSwiperMapper.xml -->
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.mapper.AdvSwiperMapper">
+    <insert id="createAdvSwiper" parameterType="com.example.entity.AdvSwiper">
+        INSERT INTO tb_adv_swiper (name, category_second_id, category_name, image)
+        VALUES (#{name}, #{categorySecondId}, #{categoryName}, #{image})
+    </insert>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+AdvSwiperController.java:6:2
+java: 找不到符号
+  符号: 类 RestController
+AdvSwiperController.java:7:2
+java: 找不到符号
+  符号: 类 RequestMapping
+AdvSwiperController.java:14:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.controller.AdvSwiperController
+AdvSwiperController.java:10:6
+java: 找不到符号
+  符号:   类 Autowired
+  位置: 类 com.example.controller.AdvSwiperController
+AdvSwiperController.java:14:41
+java: 找不到符号
+  符号:   类 RequestParam
+  位置: 类 com.example.controller.AdvSwiperController
+AdvSwiperController.java:14:68
+java: 找不到符号
+  符号:   类 RequestParam
+  位置: 类 com.example.controller.AdvSwiperController
+AdvSwiperController.java:14:104
+java: 找不到符号
+  符号:   类 RequestParam
+  位置: 类 com.example.controller.AdvSwiperController
+AdvSwiperController.java:13:6
+java: 找不到符号
+  符号:   类 PostMapping
+  位置: 类 com.example.controller.AdvSwiperController
+AdvSwiperService.java:6:5
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 接口 com.example.service.AdvSwiperService
+AdvSwiperServiceImpl.java:7:46
+java: 找不到符号
+  符号: 类 AdvSwiperService
+AdvSwiperServiceImpl.java:6:2
+java: 找不到符号
+  符号: 类 Service
+AdvSwiperServiceImpl.java:13:12
+java: 找不到符号
+  符号:   类 ApiResponse
+  位置: 类 com.example.service.impl.AdvSwiperServiceImpl
+AdvSwiperServiceImpl.java:9:6
+java: 找不到符号
+  符号:   类 Autowired
+  位置: 类 com.example.service.impl.AdvSwiperServiceImpl
+AdvSwiperServiceImpl.java:22:9
+java: 找不到符号
+  符号:   类 CategorySecond
+  位置: 类 com.example.service.impl.AdvSwiperServiceImpl
+AdvSwiperServiceImpl.java:23:41
+java: 找不到符号
+  符号:   变量 categorySecondMapper
+  位置: 类 com.example.service.impl.AdvSwiperServiceImpl
+```
+
+```功能错误
+在tb_category_second表中查询类别功能没有实现,同时缺少Mapper接口和Mappper.xml文件.
+返回data{tb_adv_swiper记录}结果中的advSwiperId为null.
+```

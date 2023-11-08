@@ -1,0 +1,310 @@
+业务功能逻辑：实现更新订单表中对应订单的备注信息，同时更新订单的修改时间。记录这次备注信息的修改操作，包括操作时间、操作人、新的订单状态等信息。将操作历史记录插入数据库，以便日后查阅和审计。返回操作的结果，通常是成功更新的记录数。返回参数{"count"}.
+
+需要检查的代码：
+```java
+// ApiResponse.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer count;
+}
+```
+```java
+// OmsOrder.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer count;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrder {
+    private Long id;
+    private Long memberId;
+    private Long couponId;
+    private String orderSn;
+    private Timestamp createTime;
+    private String memberUsername;
+    private BigDecimal totalAmount;
+    private BigDecimal payAmount;
+    private BigDecimal freightAmount;
+    private BigDecimal promotionAmount;
+    private BigDecimal integrationAmount;
+    private BigDecimal couponAmount;
+    private BigDecimal discountAmount;
+    private Integer payType;
+    private Integer sourceType;
+    private Integer status;
+    private Integer orderType;
+    private String deliveryCompany;
+    private String deliverySn;
+    private Integer autoConfirmDay;
+    private Integer integration;
+    private Integer growth;
+    private String promotionInfo;
+    private Integer billType;
+    private String billHeader;
+    private String billContent;
+    private String billReceiverPhone;
+    private String billReceiverEmail;
+    private String receiverName;
+    private String receiverPhone;
+    private String receiverPostCode;
+    private String receiverProvince;
+    private String receiverCity;
+    private String receiverRegion;
+    private String receiverDetailAddress;
+    private String note;
+    private Integer confirmStatus;
+    private Integer deleteStatus;
+    private Integer useIntegration;
+    private Timestamp paymentTime;
+    private Timestamp deliveryTime;
+    private Timestamp receiveTime;
+    private Timestamp commentTime;
+    private Timestamp modifyTime;
+}
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderOperateHistory {
+    private Long id;
+    private Long orderId;
+    private String operateMan;
+    private Timestamp createTime;
+    private Integer orderStatus;
+    private String note;
+}
+```
+```java
+// UpdateOrderNoteRequest.java
+package com.example.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiResponse {
+    private Integer count;
+}
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrder {
+    private Long id;
+    private Long memberId;
+    private Long couponId;
+    private String orderSn;
+    private Timestamp createTime;
+    private String memberUsername;
+    private BigDecimal totalAmount;
+    private BigDecimal payAmount;
+    private BigDecimal freightAmount;
+    private BigDecimal promotionAmount;
+    private BigDecimal integrationAmount;
+    private BigDecimal couponAmount;
+    private BigDecimal discountAmount;
+    private Integer payType;
+    private Integer sourceType;
+    private Integer status;
+    private Integer orderType;
+    private String deliveryCompany;
+    private String deliverySn;
+    private Integer autoConfirmDay;
+    private Integer integration;
+    private Integer growth;
+    private String promotionInfo;
+    private Integer billType;
+    private String billHeader;
+    private String billContent;
+    private String billReceiverPhone;
+    private String billReceiverEmail;
+    private String receiverName;
+    private String receiverPhone;
+    private String receiverPostCode;
+    private String receiverProvince;
+    private String receiverCity;
+    private String receiverRegion;
+    private String receiverDetailAddress;
+    private String note;
+    private Integer confirmStatus;
+    private Integer deleteStatus;
+    private Integer useIntegration;
+    private Timestamp paymentTime;
+    private Timestamp deliveryTime;
+    private Timestamp receiveTime;
+    private Timestamp commentTime;
+    private Timestamp modifyTime;
+}
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OmsOrderOperateHistory {
+    private Long id;
+    private Long orderId;
+    private String operateMan;
+    private Timestamp createTime;
+    private Integer orderStatus;
+    private String note;
+}
+
+import lombok.Data;
+
+@Data
+public class UpdateOrderNoteRequest {
+    private Long id;
+    private String note;
+    private Integer status;
+}
+```
+
+```java
+// OmsOrderService.java
+package com.example.service;
+
+import com.example.entity.ApiResponse;
+import com.example.mapper.OmsOrderMapper;
+import com.example.entity.UpdateOrderNoteRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class OmsOrderService {
+    private final OmsOrderMapper omsOrderMapper;
+    private final OmsOrderOperateHistoryMapper omsOrderOperateHistoryMapper;
+
+    @Autowired
+    public OmsOrderService(OmsOrderMapper omsOrderMapper, OmsOrderOperateHistoryMapper omsOrderOperateHistoryMapper) {
+        this.omsOrderMapper = omsOrderMapper;
+        this.omsOrderOperateHistoryMapper = omsOrderOperateHistoryMapper;
+    }
+
+    @Transactional
+    public ApiResponse updateOrderNote(UpdateOrderNoteRequest request) {
+        int count = omsOrderMapper.updateOrderNote(request.getId(), request.getNote(), request.getStatus());
+        if (count > 0) {
+            OmsOrderOperateHistory history = new OmsOrderOperateHistory();
+            history.setOrderId(request.getId());
+            history.setOperateMan("admin"); // 操作人
+            history.setCreateTime(new Timestamp(System.currentTimeMillis()));
+            history.setOrderStatus(request.getStatus());
+            history.setNote(request.getNote());
+            omsOrderOperateHistoryMapper.insert(history);
+        }
+        return new ApiResponse(count);
+    }
+}
+```
+
+
+```java
+// OmsOrderController.java
+package com.example.controller;
+
+import com.example.entity.ApiResponse;
+import com.example.service.OmsOrderService;
+import com.example.entity.UpdateOrderNoteRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/order")
+public class OmsOrderController {
+    private final OmsOrderService omsOrderService;
+
+    @Autowired
+    public OmsOrderController(OmsOrderService omsOrderService) {
+        this.omsOrderService = omsOrderService;
+    }
+
+    @PostMapping("/update/note")
+    public ApiResponse updateOrderNote(@RequestBody UpdateOrderNoteRequest request) {
+        return omsOrderService.updateOrderNote(request);
+    }
+}
+```
+
+```java
+// OmsOrderMapper.java
+package com.example.mapper;
+
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface OmsOrderMapper {
+    int updateOrderNote(@Param("id") Long id, @Param("note") String note, @Param("status") Integer status);
+}
+```
+
+```xml
+<!-- OmsOrderMapper.xml -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.OmsOrderMapper">
+    <update id="updateOrderNote">
+        UPDATE oms_order
+        SET note = #{note}, modifyTime = NOW()
+        WHERE id = #{id} AND status = #{status}
+    </update>
+</mapper>
+
+```
+
+代码执行的错误信息：
+```运行错误
+D:\迅雷下载\xzs-project_test\order_update_note_system\src\main\java\com\example\service\OmsOrderService.java:8:26
+java: 找不到符号
+  符号:   类 OmsOrderOperateHistoryMapper
+  位置: 程序包 com.example.mapper
+```
+```功能错误
+
+```
