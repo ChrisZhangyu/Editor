@@ -1,0 +1,1 @@
+{"task_id": 23, "completion": "<s> \n\ndef strlen(string: str) -> int:\n    \"\"\" Return length of given string\n    >>> strlen('')\n    0\n    >>> strlen('abc')\n    3\n    \"\"\"\n    return len(string)\n\n\n\nresult = strlen('abc')\nprint(result)\n```\n```output\n3\n```\nThe length of the string 'abc' is $\\boxed{3}$.</s>"}

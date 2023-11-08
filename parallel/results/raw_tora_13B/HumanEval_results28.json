@@ -1,0 +1,1 @@
+{"task_id": 28, "completion": "<s> from typing import List\n\n\ndef concatenate(strings: List[str]) -> str:\n    \"\"\" Concatenate list of strings into a single string\n    >>> concatenate([])\n    ''\n    >>> concatenate(['a', 'b', 'c'])\n    'abc'\n    \"\"\"\n    return ''.join(strings)\n\n\n\nresult = concatenate(['a', 'b', 'c'])\nprint(result)\n</s>"}
