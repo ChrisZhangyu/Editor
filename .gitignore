@@ -1,4 +1,7 @@
+parallel/results
 tora-code-13b
 .autodl
 .idea
 parallel/dataset
+code-llama-7b
+code_llama_7b.zip

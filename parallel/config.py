@@ -18,5 +18,7 @@ class TrainConfig:
 @dataclass
 class ModelArgs:
     # model_name_or_path: Optional[str] = field(default=r"/root/autodl-tmp/Phind-CodeLlama-34B-v2")
-    model_name_or_path: Optional[str] = field(default=r"/root/autodl-tmp/tora-code-13b")
-    data_path: Optional[str] = field(default="/root/autodl-tmp/parallel/dataset/APPS/train")
+    # model_name_or_path: Optional[str] = field(default=r"/root/autodl-tmp/tora-code-13b")
+    model_name_or_path: Optional[str] = field(default=r"/root/autodl-tmp/code-llama-7b")
+    # data_path: Optional[str] = field(default="/root/autodl-tmp/parallel/dataset/APPS/train")
+    data_path: Optional[str] = field(default="/root/autodl-tmp/Editor/api_data")

@@ -176,7 +176,7 @@ def inference(dataset_type):
     model.bfloat16()
     test_loader_iter = iter(test_loader)
     results = []
-    path = "./results/tora_13B_planning"
+    path = "./results/tora_13B_planning_example1"
     with tqdm(total=164) as data:
         for ids, batch in zip(range(164), test_loader_iter):
             if os.path.exists(f"raw_tora_13B/HumanEval_results{ids}.json"):
