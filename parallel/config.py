@@ -4,15 +4,15 @@ from typing import Optional
 
 @dataclass
 class TrainConfig:
-    log_interval = 5
-    eval_interval = 200
-    save_interval = 800
-    batch_size = 1
-    num_training_steps = 1000000
-    weight_decay = 1e-1
-    lr = 2e-4
-    num_warmup_steps = 2000
-    max_length = 4096
+    log_interval: int = 5
+    eval_interval: int = 200
+    save_interval: int = 800
+    batch_size: int = 1
+    num_training_steps: int = 1000000
+    weight_decay: int = 1e-1
+    lr: int = 2e-4
+    num_warmup_steps: int = 2000
+    max_length: int = 4096
 
 
 @dataclass

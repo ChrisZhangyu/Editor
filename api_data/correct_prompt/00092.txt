@@ -1,7 +1,7 @@
-ÒµÎñÂß¼­£º
-Ñ§¿ÆÁĞ±í£º¸Ã½Ó¿ÚÓÃÀ´»ñÈ¡ËùÓĞÑ§¿ÆµÄÁĞ±íĞÅÏ¢£¬´Ó±ít_subjectÖĞ¼ìË÷Ñ§¿ÆÁĞ±í£»È»ºó½«½á¹û×é×°³ÉJSONÏìÓ¦¶ÔÏó£»Èç¹û»ñÈ¡³É¹¦£¬Ôò·µ»Ø{"code": 1, "message": "³É¹¦",
- "response": [{"id": 64,  "name": "",  "level": 1,  "levelName": "", "itemOrder": null,  "deleted": false }]}¡£·ñÔò·µ»ØÊ§°ÜµÄÏìÓ¦£¬ÌáÊ¾"»ñÈ¡Ê§°Ü"¡£
-ĞèÒª¼ì²é´úÂë£º
+ä¸šåŠ¡é€»è¾‘ï¼š
+å­¦ç§‘åˆ—è¡¨ï¼šè¯¥æ¥å£ç”¨æ¥è·å–æ‰€æœ‰å­¦ç§‘çš„åˆ—è¡¨ä¿¡æ¯ï¼Œä»è¡¨t_subjectä¸­æ£€ç´¢å­¦ç§‘åˆ—è¡¨ï¼›ç„¶åå°†ç»“æœç»„è£…æˆJSONå“åº”å¯¹è±¡ï¼›å¦‚æœè·å–æˆåŠŸï¼Œåˆ™è¿”å›{"code": 1, "message": "æˆåŠŸ",
+ "response": [{"id": 64,  "name": "",  "level": 1,  "levelName": "", "itemOrder": null,  "deleted": false }]}ã€‚å¦åˆ™è¿”å›å¤±è´¥çš„å“åº”ï¼Œæç¤º"è·å–å¤±è´¥"ã€‚
+éœ€è¦æ£€æŸ¥ä»£ç ï¼š
 ```java
 //Subject.java
 import lombok.AllArgsConstructor;
@@ -80,11 +80,11 @@ public class SubjectServiceImpl implements SubjectService {
         try {
             List<Subject> subjectList = subjectMapper.getSubjectList();
             response.setCode(1);
-            response.setMessage("³É¹¦");
+            response.setMessage("æˆåŠŸ");
             response.setResponse(subjectList);
         } catch (Exception e) {
             response.setCode(0);
-            response.setMessage("»ñÈ¡Ê§°Ü");
+            response.setMessage("è·å–å¤±è´¥");
         }
         return response;
     }
@@ -144,10 +144,10 @@ public interface SubjectMapper {
     </select>
 </mapper>
 ```
-´úÂëÖ´ĞĞµÄ´íÎóĞÅÏ¢£º
-```Óï·¨´íÎó
-SubjectMapper.javaÖĞÖØ¸´¶¨ÒåµÄÓ³ÉäÓï¾ä@Select("SELECT * FROM t_subject")¡£
+ä»£ç æ‰§è¡Œçš„é”™è¯¯ä¿¡æ¯ï¼š
+```è¯­æ³•é”™è¯¯
+SubjectMapper.javaä¸­é‡å¤å®šä¹‰çš„æ˜ å°„è¯­å¥@Select("SELECT * FROM t_subject")ã€‚
 ```
-```Óï·¨´íÎó
-ÔÚSubjectMapper.xmlÖĞÈ±ÉÙSubjectÊµÌåÀàÊôĞÔÓë±ít_subject×Ö¶Î¼äµÄÓ³ÉäÓï¾ä¡£
+```è¯­æ³•é”™è¯¯
+åœ¨SubjectMapper.xmlä¸­ç¼ºå°‘Subjectå®ä½“ç±»å±æ€§ä¸è¡¨t_subjectå­—æ®µé—´çš„æ˜ å°„è¯­å¥ã€‚
 ```

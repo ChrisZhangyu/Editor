@@ -1,11 +1,13 @@
 import json
 import os
+import time
 from typing import Callable
 
 import accelerate
 import colossalai.utils
 import datasets
 from accelerate import infer_auto_device_map
+from colossalai.cluster import DistCoordinator
 from colossalai.inference.tensor_parallel import TPInferEngine
 from colossalai.lazy import LazyInitContext
 import torch
@@ -38,6 +40,8 @@ os.environ["NCCL_IB_DISABLE"] = '1'
 os.environ["TORCH_CPP_LOG_LEVEL"] = "INFO"
 os.environ["NCCL_DEBUG"] = "INFO"
 
+inference_save_path = "/root/autodl-tmp/Editor/parallel/results/raw_tora_13B"
+checkpoint_save_path = "/root/autodl-tmp/Editor/parallel/"
 
 def setup(rank, world_size):
     os.environ['MASTER_ADDR'] = 'localhost'
@@ -45,21 +49,23 @@ def setup(rank, world_size):
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
 
 
-def train(plugin_type: str):
+def train(plugin_type: str, is_lora=True):
     model_args, training_config = ModelArgs(), TrainConfig()
-    colossalai.launch_from_torch({})
-    # setup(0, 1)
+    # colossalai.launch_from_torch({})
+    setup(0, 1)
     model_config = AutoConfig.from_pretrained(model_args.model_name_or_path, device="cuda")
     tokenizer = LlamaTokenizer.from_pretrained(model_args.model_name_or_path, device="cuda")
     tokenizer.mask_token = "[MASK]"
     tokenizer.sep_token = "[SEP]"
     tokenizer.cls_token = "[CLS]"
     tokenizer.pad_token = "\s"
+    coordinator = DistCoordinator()
     dataset = IterableDataset.from_generator(data_iterator, gen_kwargs={'data_or_path': model_args.data_path,
                                                                         'tokenizer': tokenizer,
                                                                         'mode': 'train',
 
                                                                         'dataset_type': 'API'})
+
 
     train_loader = DataLoader(dataset,
                               collate_fn=collate_gen(tokenizer, training_config.max_length),
@@ -68,13 +74,13 @@ def train(plugin_type: str):
 
     torch.set_default_dtype(torch.bfloat16)
 
-    print("加载模型")
+    coordinator.print_on_master("加载模型")
     print(colossalai.utils.get_current_device())
 
     with LazyInitContext(default_device=get_current_device()):
         raw_model = LlamaForCausalLM(config=model_config)
 
-    print("准备阶段")
+    coordinator.print_on_master("准备阶段")
 
     no_decay = ["bias", "LayerNorm.weight", "layernorm.weight"]
     optimizer_grouped_parameters = [
@@ -89,7 +95,7 @@ def train(plugin_type: str):
     ]
 
 
-    print("加载优化器")
+    coordinator.print_on_master("加载优化器")
     optimizer = HybridAdam(optimizer_grouped_parameters, lr=training_config.lr, betas=(0.9, 0.95))
     # optimizer = FusedAdam(optimizer_grouped_parameters, lr=training_config.lr, betas=(0.9, 0.95))
     # 为了使所有GPU的学习率与单GPU情况下一致
@@ -100,10 +106,10 @@ def train(plugin_type: str):
     scheduler = get_cosine_schedule_with_warmup(optimizer,
                                                 num_warmup_steps=training_config.num_warmup_steps,
                                                 num_training_steps=training_config.num_training_steps)
-    print("并行初始化")
+    coordinator.print_on_master("并行初始化")
 
     if plugin_type == "HybridParallel":
-        print("HybridParallel")
+        coordinator.print_on_master("HybridParallel")
 
         plugin = HybridParallelPlugin(tp_size=1,
                                       pp_size=1,
@@ -114,7 +120,7 @@ def train(plugin_type: str):
                                       precision='bf16',
                                       initial_scale=1)
     elif plugin_type == "gemini":
-        print("gemini")
+        coordinator.print_on_master("gemini")
         plugin = GeminiPlugin(
             placement_policy="auto",
             precision="bf16",
@@ -129,16 +135,27 @@ def train(plugin_type: str):
     else:
         raise RuntimeError("不支持的插件类型")
 
-    writer = SummaryWriter()
+    writer = SummaryWriter("./log")
     booster = Booster(plugin=plugin, mixed_precision="")
     dist.get_rank()
+
     model, optimizer, criterion, train_dataloader, scheduler = booster.boost(raw_model, optimizer, nn.CrossEntropyLoss
                                                                              , train_loader, scheduler)
     booster.load_model(model, model_args.model_name_or_path)
+    if is_lora:
+        from peft import LoraConfig, TaskType, get_peft_model
+        peft_config = LoraConfig(task_type=TaskType.CAUSAL_LM, inference_mode=False, r=8, lora_alpha=32,
+                                 lora_dropout=0.1, target_modules=["q_proj", "k_proj", "v_proj"])
+        model = get_peft_model(model.module, peft_config)
+        model.print_trainable_parameters()
     torch.cuda.synchronize()
-    for epoch in range(10):
-        one_epoch(epoch, model, optimizer, criterion, scheduler, train_dataloader, booster, writer)
+    for epoch in range(1):
+        one_epoch(epoch, model, optimizer, criterion, scheduler, train_dataloader, booster, writer, coordinator)
+        # save_checkpoint()
     writer.flush()
+
+
+
 
 
 def one_epoch(epoch,
@@ -148,30 +165,54 @@ def one_epoch(epoch,
               scheduler: LRScheduler,
               train_dataloader: DataLoader,
               booster: Booster,
-              writer: SummaryWriter):
+              writer: SummaryWriter,
+              coordinator: DistCoordinator):
     # print(type(train_dataloader))
     # total_step = len(train_dataloader)
-    total_step = 1000
+    total_step = 206
     train_loader_iter = iter(train_dataloader)
-    print("开始训练")
+    coordinator.print_on_master("开始训练")
     model.train()
     optimizer.zero_grad()
+    loss = 206
     with tqdm(range(total_step),
               desc=f'Epoch [{epoch + 1}]') as pbar:
-        for _ in pbar:
+        for i in pbar:
             batch = next(train_loader_iter)
             for k, v in batch.items():
                 batch[k] = v.to(torch.cuda.current_device())
             outputs = model(**batch)
             loss = outputs[0]
-            writer.add_scalar("Loss/train", loss, epoch)
+            writer.add_scalar("Loss/train", loss, i)
+            writer.flush()
+            # time.sleep(5)
             booster.backward(loss, optimizer)
             optimizer.step()
             scheduler.step()
             optimizer.zero_grad()
 
 
-path = "/root/autodl-tmp/Editor/parallel/results/raw_tora_13B"
+def save_checkpoint(epoch: int,
+                    training_config: TrainConfig,
+                    model: nn.Module,
+                    optimizer: Optimizer,
+                    scheduler: LRScheduler,
+                    booster: Booster,
+                    step: int,
+                    batch_size: int,
+                    coordinator: DistCoordinator
+                    ):
+    full_path = os.path.join(checkpoint_save_path, "checkpoints")
+    if not os.path.isdir(full_path):
+        os.mkdir(full_path)
+    booster.save_model(model, os.path.join(full_path, "model"), shard=True)
+    booster.save_optimizer(optimizer, os.path.join(full_path, "optimizer"), shard=True)
+    booster.save_lr_scheduler(scheduler, os.path.join(full_path, "lr_scheduler"))
+    running_states = {"epoch": epoch, "step": step, "sample_start_index": step * batch_size, }
+    if coordinator.is_master():
+       with open(os.path.join(full_path, "running_states.json"), "w") as f:
+           json.dump(running_states, f)
+
 
 
 def inference(dataset_type, dataloader):
@@ -196,6 +237,8 @@ def inference(dataset_type, dataloader):
                                              gen_kwargs={'data_or_path': model_args.data_path, 'tokenizer': tokenizer,
                                                          'dataset_type': dataset_type, 'mode': 'train',
                                                          'max_length': 1024})
+
+
     test_loader = DataLoader(dataset, collate_fn=collate_gen(tokenizer, "infer"), batch_size=training_config.batch_size,
                              num_workers=1)
     model.bfloat16()
@@ -206,7 +249,7 @@ def inference(dataset_type, dataloader):
     results = []
     with tqdm(total=164) as data:
         for ids, batch in zip(range(164), test_loader_iter):
-            if os.path.exists(f"{path}/HumanEval_results{ids}.json"):
+            if os.path.exists(f"{inference_save_path}/HumanEval_results{ids}.json"):
                 print(f"该问题已经解决{ids}，跳过")
                 data.update(1)
                 continue
@@ -228,7 +271,7 @@ def inference(dataset_type, dataloader):
             # 根据计划完成代码
             # print(tokenizer.decode(plans[0]))
             data.update(1)
-            with open(f"{path}/HumanEval_results{ids}.json", "w") as f:
+            with open(f"{inference_save_path}/HumanEval_results{ids}.json", "w") as f:
                 json.dump(dict(task_id=ids, completion=tokenizer.decode(plans[0])), f)
 
 
@@ -243,7 +286,7 @@ def merge_json():
     task_ids = [task_id for task_id in problems]
     for task_name, ids in zip(task_ids, range(len(task_ids))):
         file = f"HumanEval_results{ids}.json"
-        f = os.path.join(path, file)
+        f = os.path.join(inference_save_path, file)
         with open(f, "r") as fp:
             text = json.load(fp)
             text["task_id"] = task_name

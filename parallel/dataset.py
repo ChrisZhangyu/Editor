@@ -1,10 +1,16 @@
+import json
 import os
+from functools import partial
+
 import torch
+from transformers import LlamaTokenizer
+
+from Editor.parallel.config import ModelArgs, TrainConfig
 from human_eval.data import read_problems
 from typing import Optional
 
 
-def data_iterator(data_or_path,  tokenizer,  mode, max_length=2048, dataset_type=Optional[str], process_index=0, num_processes=1, ):
+def data_iterator(data_or_path,  tokenizer,  mode, dataset_type=Optional[str], max_length=2048,  process_index=0, num_processes=1, ):
     assert data_or_path
     # 首先确定训练或者推理
     if mode == "train":
@@ -31,26 +37,30 @@ def data_iterator(data_or_path,  tokenizer,  mode, max_length=2048, dataset_type
                 # print("*"*100)
                 question = problems[task_id]['prompt'][:-4]
 
-                problems[task_id]['prompt'] = example4_plan + "\n" + question + 'Let’s think step by step\n    """'
+                problems[task_id]['prompt'] = example4_plan + "\n" + question + 'Let’s think step by step\n"""'
                 input_ids = tokenizer(problems[task_id]['prompt'])
                 yield input_ids
         elif dataset_type == "API":
+            print("API")
             path = data_or_path
             prompt_path = os.path.join(path, 'correct_prompt')
             truth_path = os.path.join(path, 'ground_truth')
-            prompts = os.listdir(prompt_path)
-            truths = os.listdir(truth_path)
+            prompts = sorted(os.listdir(prompt_path))
+            truths = sorted(os.listdir(truth_path))
             for prompt, truth in zip(prompts, truths):
                 prompt_full_path = os.path.join(prompt_path, prompt)
                 truth_full_path = os.path.join(truth_path, truth)
-                with open(prompt_full_path, "r", encoding="utf-8") as fp, open(truth_full_path, "r", encoding="utf-8") as ft:
-                    prompt_str = fp.read()
-                    truth_str = ft.read()                
+                try:
+                    with open(prompt_full_path, "r", encoding="utf-8") as fp, open(truth_full_path, "r", encoding="utf-8") as ft:
+                        prompt_str = fp.read()
+                        truth_str = ft.read()
+                except UnicodeDecodeError:
+                        print(f"{prompt_full_path}或{truth_full_path}文件编码错误，读取失败")
                 instruct = "你是一个专业的程序员，下面的业务逻辑代码有错误，请你找出并修改"
                 llama_template = f'''[INST] <<SYS>>\n{instruct}\n<</SYS>>\n\n{prompt_str}\n\n{truth_str}[/INST]'''
 
                 input_ids = tokenizer(llama_template)
-                yield input_ids[:1700]
+                yield input_ids
         else:
             raise Exception("不支持的数据集")
     else:
@@ -93,3 +103,29 @@ def spilt_prompt(api_data):
     source_code = source_code.group(0)
     java_code = re.findall(r"(?<=```java).*?(?=```)", source_code, flags=re.DOTALL)
     xml_code = re.findall(r"(?<=```xml).*?(?=```)", source_code, flags=re.DOTALL)
+
+if __name__ == '__main__':
+    model_args, training_config = ModelArgs(), TrainConfig()
+    tokenizer = LlamaTokenizer.from_pretrained(model_args.model_name_or_path, device="cuda")
+    data_iter = data_iterator(model_args.data_path, tokenizer, 'train', 'API')
+    count = 0
+    sum = 0
+    max = 0
+    min = 100000000
+    json_prompt = []
+    for i,  in data_iter:
+        count += 1
+        length = len(i['input_ids'])
+        print(f"{count}：{length}")
+        sum += length
+        max = length if length > max else max
+        min = length if length < min else min
+        json_prompt.append({f'{count}': length})
+    json_prompt.append({'max': max,
+                        'min': min,
+                        'average': sum/count})
+
+    with open("./prompt_length_statistics.jsonl", "w") as f:
+        for item in json_prompt:
+            f.write(json.dumps(item) + "\n")
+    print(f"平均长度为：{sum/count}, 最大长度为：{max}, 最小长度为：{min}")
