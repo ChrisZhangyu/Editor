@@ -13,6 +13,9 @@ class TrainConfig:
     lr: int = 2e-4
     num_warmup_steps: int = 2000
     max_length: int = 4096
+    lora_lr: int = 5e-4
+    lr_scheduler_type: str = 'cosine'
+    device: str = 'cuda'
 
 
 @dataclass

@@ -5,7 +5,7 @@ from functools import partial
 import torch
 from transformers import LlamaTokenizer
 
-from Editor.parallel.config import ModelArgs, TrainConfig
+from config import ModelArgs, TrainConfig
 from human_eval.data import read_problems
 from typing import Optional
 
@@ -60,7 +60,7 @@ def data_iterator(data_or_path,  tokenizer,  mode, dataset_type=Optional[str], m
                 llama_template = f'''[INST] <<SYS>>\n{instruct}\n<</SYS>>\n\n{prompt_str}\n\n{truth_str}[/INST]'''
 
                 input_ids = tokenizer(llama_template)
-                yield input_ids
+                yield input_ids[:]
         else:
             raise Exception("不支持的数据集")
     else:
